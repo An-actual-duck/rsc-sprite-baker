@@ -21,10 +21,11 @@ diagonal, side, diagonal-away, away, and combat views.
 
 ## Current status
 
-Phase 1 now has a narrow compatibility proof for one untextured revision-530
-NPC model. See [`docs/COMPATIBILITY_SPIKE.md`](docs/COMPATIBILITY_SPIKE.md) for
-the reproducible evidence and [`docs/ROADMAP.md`](docs/ROADMAP.md) for the
-ordered implementation plan.
+Phase 2 adds revision-530 sequence/frame/framemap decoding, deterministic
+time-based posing, a source timeline beside a labeled 6×3 selection sheet,
+portable selection projects, and normalized sheet export. See
+[`docs/ANIMATION_COMPATIBILITY.md`](docs/ANIMATION_COMPATIBILITY.md) for the
+client trace and live-cache evidence. The Phase 1 CLI remains unchanged.
 
 ## Compatibility-spike CLI
 
@@ -38,9 +39,29 @@ mvn exec:java \
   --output-dir /tmp/rsc-sprite-baker-output --npc 72"
 ```
 
-The output is one transparent diagnostic PNG and one JSON manifest. Textures,
-animation transforms, UI, sprite sheets, and batch processing are intentionally
-outside this spike.
+The output is one transparent diagnostic PNG and one JSON manifest.
+
+## Animation selector MVP
+
+The selector project records identifiers and timing only; it contains no cache
+payload. The project and output paths may be placed outside the checkout:
+
+```bash
+mvn exec:java -Dexec.mainClass=com.spoiledmilk.spritebaker.SelectorMain \
+  -Dexec.args="--cache /path/to/user-supplied/cache \
+  --project /tmp/troll-project.json \
+  --output-dir /tmp/troll-sheet --npc 72"
+```
+
+Load a source sequence, scrub or select any rendered keyframe, then set a
+shared standing/left-step/right-step row or replace the currently outlined
+cell. The five movement directions share row poses until individually
+overridden. Combat-side cells are assigned independently. Locks prevent row,
+suggestion, and replacement actions; suggestions fill empty cells only.
+
+Export creates a transparent 1536×768 PNG and diagnostic JSON with one trace
+entry per cell. All cells share scale, ground anchor, crop policy, camera, and
+canvas. The mirrored-direction control is preview-only.
 
 ## Local collaboration
 

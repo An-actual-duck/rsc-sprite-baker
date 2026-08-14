@@ -17,6 +17,11 @@ public final class StaticRenderer {
     public static final double DIFFUSE_LIGHT = 0.55;
 
     public BufferedImage render(List<ModelDefinition> models, NpcDefinition530 npc) {
+        return render(models, npc, YAW_DEGREES, null);
+    }
+
+    public BufferedImage render(List<ModelDefinition> models, NpcDefinition530 npc,
+                                double yawDegrees, Viewport viewport) {
         if (models.isEmpty()) {
             throw new IllegalArgumentException("at least one model is required");
         }
@@ -26,7 +31,7 @@ public final class StaticRenderer {
         double[] projectedY = new double[totalVertices];
         double[] depth = new double[totalVertices];
 
-        double yaw = Math.toRadians(YAW_DEGREES);
+        double yaw = Math.toRadians(yawDegrees);
         double pitch = Math.toRadians(PITCH_DEGREES);
         int vertexOffset = 0;
         for (ModelDefinition model : models) {
@@ -47,16 +52,17 @@ public final class StaticRenderer {
         double maxX = Arrays.stream(projectedX).max().orElseThrow();
         double minY = Arrays.stream(projectedY).min().orElseThrow();
         double maxY = Arrays.stream(projectedY).max().orElseThrow();
-        double scale = Math.min(
+        double scale = viewport == null ? Math.min(
             (WIDTH - PADDING * 2.0) / Math.max(1.0, maxX - minX),
-            (HEIGHT - PADDING * 2.0) / Math.max(1.0, maxY - minY));
-        double centerX = (minX + maxX) / 2.0;
+            (HEIGHT - PADDING * 2.0) / Math.max(1.0, maxY - minY)) : viewport.scale;
+        double centerX = viewport == null ? (minX + maxX) / 2.0 : viewport.centerX;
+        double groundY = viewport == null ? minY : viewport.groundY;
 
         double[] screenX = new double[totalVertices];
         double[] screenY = new double[totalVertices];
         for (int i = 0; i < totalVertices; i++) {
             screenX[i] = WIDTH / 2.0 + (projectedX[i] - centerX) * scale;
-            screenY[i] = HEIGHT - PADDING - (projectedY[i] - minY) * scale;
+            screenY[i] = HEIGHT - PADDING - (projectedY[i] - groundY) * scale;
         }
 
         BufferedImage image = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
@@ -78,6 +84,38 @@ public final class StaticRenderer {
             vertexOffset += model.vertexCount;
         }
         return image;
+    }
+
+    /** Shared orthographic framing for an entire sheet. */
+    public Viewport fit(List<View> views, NpcDefinition530 npc) {
+        if (views.isEmpty()) throw new IllegalArgumentException("at least one view is required");
+        double minX=Double.POSITIVE_INFINITY,maxX=Double.NEGATIVE_INFINITY;
+        double minY=Double.POSITIVE_INFINITY,maxY=Double.NEGATIVE_INFINITY;
+        for(View view:views) {
+            double yaw=Math.toRadians(view.yawDegrees), pitch=Math.toRadians(PITCH_DEGREES);
+            ModelDefinition m=view.model;
+            for(int i=0;i<m.vertexCount;i++) {
+                double x=m.vertexX[i]*npc.widthScale/128.0, up=-m.vertexY[i]*npc.heightScale/128.0;
+                double z=m.vertexZ[i]*npc.widthScale/128.0;
+                double cx=Math.cos(yaw)*x+Math.sin(yaw)*z;
+                double depth=-Math.sin(yaw)*x+Math.cos(yaw)*z;
+                double py=up*Math.cos(pitch)-depth*Math.sin(pitch);
+                minX=Math.min(minX,cx);maxX=Math.max(maxX,cx);minY=Math.min(minY,py);maxY=Math.max(maxY,py);
+            }
+        }
+        double extent=Math.max(Math.abs(minX),Math.abs(maxX));
+        double scale=Math.min((WIDTH-PADDING*2.0)/Math.max(1.0,extent*2),
+            (HEIGHT-PADDING*2.0)/Math.max(1.0,maxY-minY));
+        return new Viewport(scale,0,minY);
+    }
+
+    public static final class View {
+        public final ModelDefinition model; public final double yawDegrees;
+        public View(ModelDefinition model,double yawDegrees){this.model=model;this.yawDegrees=yawDegrees;}
+    }
+    public static final class Viewport {
+        public final double scale,centerX,groundY;
+        public Viewport(double scale,double centerX,double groundY){this.scale=scale;this.centerX=centerX;this.groundY=groundY;}
     }
 
     private static void rejectTextures(ModelDefinition model) {
