@@ -17,6 +17,12 @@ workspace/
 *.dat2
 *.idx*
 *.jcache
+*.jagex_cache_*
+main_file_cache.*
+
+# Generated compatibility outputs remain local unless explicitly reviewed.
+*.png
+diagnostic-manifest.json
 
 # Local configuration may contain machine-specific paths.
 .env

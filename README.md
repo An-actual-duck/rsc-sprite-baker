@@ -21,8 +21,26 @@ diagonal, side, diagonal-away, away, and combat views.
 
 ## Current status
 
-The project is at the compatibility-spike stage. See
-[`docs/ROADMAP.md`](docs/ROADMAP.md) for the ordered implementation plan.
+Phase 1 now has a narrow compatibility proof for one untextured revision-530
+NPC model. See [`docs/COMPATIBILITY_SPIKE.md`](docs/COMPATIBILITY_SPIKE.md) for
+the reproducible evidence and [`docs/ROADMAP.md`](docs/ROADMAP.md) for the
+ordered implementation plan.
+
+## Compatibility-spike CLI
+
+JDK 11 or newer and Maven are required. The command refuses to write into the
+cache and, when run from this checkout, into the repository:
+
+```bash
+mvn test
+mvn exec:java \
+  -Dexec.args="--cache /path/to/user-supplied/cache \
+  --output-dir /tmp/rsc-sprite-baker-output --npc 72"
+```
+
+The output is one transparent diagnostic PNG and one JSON manifest. Textures,
+animation transforms, UI, sprite sheets, and batch processing are intentionally
+outside this spike.
 
 ## Local collaboration
 
@@ -37,4 +55,3 @@ checkout is `/home/justin/rsc-sprite-baker-ai-1`.
 The small wrappers reuse the hardened collaboration implementation owned by
 the sibling Core repository. Product source remains independent; only local
 workspace orchestration is shared.
-
