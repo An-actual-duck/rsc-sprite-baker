@@ -14,6 +14,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <runelite.version>1.12.35</runelite.version>
     <junit.version>5.11.4</junit.version>
+    <exec.mainClass>com.spoiledmilk.spritebaker.Main</exec.mainClass>
   </properties>
 
   <repositories>
@@ -59,7 +60,7 @@
         <artifactId>exec-maven-plugin</artifactId>
         <version>3.5.0</version>
         <configuration>
-          <mainClass>com.spoiledmilk.spritebaker.Main</mainClass>
+          <mainClass>${exec.mainClass}</mainClass>
         </configuration>
       </plugin>
     </plugins>
