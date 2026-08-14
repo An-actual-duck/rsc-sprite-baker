@@ -145,6 +145,39 @@ content, extracted models/textures/animations, and third-party assets are
 never included. Generated packages remain outside this repository and still
 require an explicit provenance/licensing review before distribution.
 
+## 2026-08-14 real-cache evidence
+
+The final command paths were exercised read-only against
+`/home/justin/2009scape/Server/data/cache`. Its dat2 SHA-256 is
+`b5431211b019b9403b4cfca933f4c9635c1d5278d3730995dced0d8672b1cc91`
+and idx255 SHA-256 is
+`83a2292c515596af0423764c48e41dfe1aac482920dca0b89ecb343db6dd4c30`.
+All projects, manifests, reports, staging, and output remained under `/tmp`.
+
+One schema-1 reviewed untextured NPC-72 Troll project was migrated in memory;
+its RSC-restrained 768×384 PNG retained SHA-256
+`c1d71e5f553a918d8374d3a5db467bf07e6f6ecf71fbf0845ff5001afa80b1f5`.
+One schema-2 reviewed textured NPC-40 Shark project produced a 576×288 PNG
+with the unchanged Phase-4 SHA-256
+`4568d2194f59c6d0d3118dd594531a517c83052c40fcec28896d5b348182ab44`
+and unchanged provenance SHA-256
+`c49d42c26770f3524cfce9f9c6b572567ab3db71252aede3e92bf7e442f36a5d`.
+
+Two complete two-entry packages were byte-for-byte identical. Both batch
+reports hashed to
+`4d3f1a9fdcdfdd08edacc5ed317893bbf21a2fdbc5b6fe9ea4776d5d78a4c452`
+and both mapping manifests hashed to
+`7df6f5a2bc921069d0eab424148a727e94a0a399a70a6d740f4e923be3f25eea`.
+Validation-only reproduced and checked both sprites while publishing no output
+package. Dry-run published neither sprites nor a package and explicitly
+reported output hashes as unchecked.
+
+A case-only output collision failed both named entries. NPC 42 Sheep failed
+with exact unsupported procedural operations 32, 36, 38, and 15. Each failed
+run left the previously accepted package byte-for-byte unchanged and removed
+its staging directory. A deliberately incorrect dat2 identity also failed its
+named entry during dry-run and produced no package.
+
 ## Decisions deliberately left to Core integration
 
 Sprite Baker does not assume or create Core-Framework paths. A separate Core
