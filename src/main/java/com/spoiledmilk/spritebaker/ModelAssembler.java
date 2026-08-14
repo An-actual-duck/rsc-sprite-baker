@@ -49,7 +49,7 @@ public final class ModelAssembler {
                     out.texIndices3[to+i]=(short)(Short.toUnsignedInt(part.texIndices3[i])+vo);
                 }
                 if(part.textureRenderTypes!=null)System.arraycopy(part.textureRenderTypes,0,out.textureRenderTypes,to,part.numTextureFaces);
-                if(part.textureCoords!=null)for(int i=0;i<part.faceCount;i++)if(part.textureCoords[i]!=-1)out.textureCoords[fo+i]=(byte)(Byte.toUnsignedInt(part.textureCoords[i])+to);
+                if(part.textureCoords!=null)for(int i=0;i<part.faceCount;i++)if(part.textureCoords[i]!=-1){int mapped=Byte.toUnsignedInt(part.textureCoords[i])+to;out.textureCoords[fo+i]=mapped<255?(byte)mapped:(byte)-1;}
             }
             if (part.packedTransparencyVertexGroups != null) System.arraycopy(part.packedTransparencyVertexGroups,0,out.packedTransparencyVertexGroups,fo,part.faceCount);
             vo+=part.vertexCount; fo+=part.faceCount;to+=part.numTextureFaces;

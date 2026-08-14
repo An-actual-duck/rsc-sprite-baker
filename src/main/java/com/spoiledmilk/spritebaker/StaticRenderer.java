@@ -46,7 +46,7 @@ public final class StaticRenderer {
     /** Phase-4 path. Existing overloads retain their fail-closed untextured behavior. */
     public BufferedImage renderStyled(List<ModelDefinition> models,NpcDefinition530 npc,
                                       double baseYawDegrees,Viewport viewport,VisualSettings settings,
-                                      TextureProvider530 materials) {
+                                      MaterialProvider530 materials) {
         settings.validate();int factor=settings.supersample;
         BufferedImage highResolution=renderRaw(models,npc,baseYawDegrees+settings.yawOffsetDegrees,
             settings.pitchDegrees,viewport,settings.cellWidth*factor,settings.cellHeight*factor,
@@ -73,7 +73,7 @@ public final class StaticRenderer {
                                     double yawDegrees, double pitchDegrees, Viewport viewport,
                                     int width, int height, int padding, double verticalOffset,
                                     double[] lightDirection, double ambient, double diffuse,
-                                    TextureProvider530 materials) {
+                                    MaterialProvider530 materials) {
         if (models.isEmpty()) throw new IllegalArgumentException("at least one model is required");
         int totalVertices = models.stream().mapToInt(model -> model.vertexCount).sum();
         double[] projectedX = new double[totalVertices];
