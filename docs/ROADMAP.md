@@ -39,13 +39,34 @@ cache and rendered without committing any source or output asset.
 
 1. Decode sequence, frame, framemap/skeleton, and vertex-skin data.
 2. Assemble multipart NPC models without losing animation groups.
-3. Apply one idle/walk sequence and one combat sequence.
-4. Capture three deliberately selected frames for each required view.
-5. Normalize crop, ground anchor, and frame canvas.
-6. Export the initial 18-frame sheet and manifest.
+3. Apply one idle/standing sequence, one walking sequence, and one combat
+   sequence while respecting their frame durations.
+4. Expose the complete animation timeline as rendered thumbnails and a
+   scrubber. Where the source client interpolates between discrete keyframes,
+   permit deterministic time-based sampling of those in-between poses rather
+   than limiting selection to encoded keyframes.
+5. Provide a labeled six-column by three-row target sheet beside the source
+   timeline. Users can drag or assign source poses into target slots and lock
+   their choices before export.
+6. Treat the first five direction columns as three shared movement poses:
+   standing, left step, and right step. Selecting a pose at the row level
+   renders it from front, diagonal, side, diagonal-away, and away cameras;
+   individual cells may override the shared selection when a particular angle
+   needs correction.
+7. Treat the sixth column as side-view combat: standing/ready followed by two
+   deliberately selected moments moving into the attack. Reusing the side
+   standing pose is the default, not a requirement.
+8. Offer automatic suggestions for the standing pose, opposing gait extremes,
+   and useful attack moments, but never make automatic selection authoritative.
+   The user can preview, replace, and lock every suggested choice.
+9. Normalize crop, ground anchor, scale, and frame canvas across the complete
+   sheet, with a live mirrored-direction preview.
+10. Save selections by sequence ID plus frame/time position in the manifest and
+    export the initial 18-frame sheet.
 
 Exit criterion: an animated NPC produces a stable RSC-layout sheet twice with
-identical inputs and equivalent output.
+identical inputs and equivalent output, and every exported cell can be traced
+back to a user-visible, persisted source pose selection.
 
 ## Phase 3: RSC visual treatment
 
@@ -65,9 +86,10 @@ identical inputs and equivalent output.
 ## Phase 5: usable desktop tool
 
 Provide a small interface containing cache path, NPC search/ID, animation
-selection, three frame selectors, view preview, camera/light controls, scale,
-palette preset, output directory, and export controls. Settings are stored as
-portable project files without source assets.
+selection, source timeline/frame browser, labeled target sheet, drag-and-drop
+or explicit assignment, selection locks, view preview, camera/light controls,
+scale, palette preset, output directory, and export controls. Settings are
+stored as portable project files without source assets.
 
 ## Phase 6: batch and Spoiled Milk integration
 
@@ -84,4 +106,3 @@ portable project files without source assets.
 - Redistribution policy for output derived from third-party game assets.
 - Texture support breadth beyond the first verified cache.
 - Whether additional RSC layouts or player/item/object presets belong in v1.
-
