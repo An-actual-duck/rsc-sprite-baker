@@ -25,7 +25,7 @@ public final class StaticRenderer {
     public BufferedImage render(List<ModelDefinition> models, NpcDefinition530 npc,
                                 double yawDegrees, Viewport viewport) {
         return renderRaw(models, npc, yawDegrees, PITCH_DEGREES, viewport,
-            WIDTH, HEIGHT, PADDING, 0, LIGHT_DIRECTION, AMBIENT_LIGHT, DIFFUSE_LIGHT);
+            WIDTH, HEIGHT, PADDING, 0, LIGHT_DIRECTION, AMBIENT_LIGHT, DIFFUSE_LIGHT, null);
     }
 
     /** Phase-3 output path: high-resolution raster followed by exact nearest-neighbor reduction. */
@@ -38,9 +38,21 @@ public final class StaticRenderer {
             baseYawDegrees + settings.yawOffsetDegrees, settings.pitchDegrees, viewport,
             settings.cellWidth * factor, settings.cellHeight * factor, settings.padding * factor,
             settings.verticalOffsetPixels * factor, settings.lightDirection(),
-            settings.ambient, settings.diffuse);
+            settings.ambient, settings.diffuse, null);
         BufferedImage reduced = nearestNeighbor(highResolution, settings.cellWidth, settings.cellHeight, factor);
         return PaletteReducer.apply(reduced, settings);
+    }
+
+    /** Phase-4 path. Existing overloads retain their fail-closed untextured behavior. */
+    public BufferedImage renderStyled(List<ModelDefinition> models,NpcDefinition530 npc,
+                                      double baseYawDegrees,Viewport viewport,VisualSettings settings,
+                                      TextureProvider530 materials) {
+        settings.validate();int factor=settings.supersample;
+        BufferedImage highResolution=renderRaw(models,npc,baseYawDegrees+settings.yawOffsetDegrees,
+            settings.pitchDegrees,viewport,settings.cellWidth*factor,settings.cellHeight*factor,
+            settings.padding*factor,settings.verticalOffsetPixels*factor,settings.lightDirection(),
+            settings.ambient,settings.diffuse,materials);
+        return PaletteReducer.apply(nearestNeighbor(highResolution,settings.cellWidth,settings.cellHeight,factor),settings);
     }
 
     /** Shared orthographic framing for a legacy 256px sheet. */
@@ -60,7 +72,8 @@ public final class StaticRenderer {
     private BufferedImage renderRaw(List<ModelDefinition> models, NpcDefinition530 npc,
                                     double yawDegrees, double pitchDegrees, Viewport viewport,
                                     int width, int height, int padding, double verticalOffset,
-                                    double[] lightDirection, double ambient, double diffuse) {
+                                    double[] lightDirection, double ambient, double diffuse,
+                                    TextureProvider530 materials) {
         if (models.isEmpty()) throw new IllegalArgumentException("at least one model is required");
         int totalVertices = models.stream().mapToInt(model -> model.vertexCount).sum();
         double[] projectedX = new double[totalVertices];
@@ -102,17 +115,24 @@ public final class StaticRenderer {
         Arrays.fill(zBuffer, Double.NEGATIVE_INFINITY);
         vertexOffset = 0;
         for (ModelDefinition model : models) {
-            rejectTextures(model);
+            if(materials==null)rejectTextures(model);
             for (int face = 0; face < model.faceCount; face++) {
                 int a = vertexOffset + model.faceIndices1[face];
                 int b = vertexOffset + model.faceIndices2[face];
                 int c = vertexOffset + model.faceIndices3[face];
-                int rgb = litColor(recolor(model.faceColors[face], npc), model, face, npc,
-                    lightDirection, ambient, diffuse);
                 int alpha = model.faceTransparencies == null ? 255
                     : 255 - Byte.toUnsignedInt(model.faceTransparencies[face]);
-                rasterize(image, zBuffer, screenX, screenY, depth, a, b, c,
-                    (alpha << 24) | rgb, width, height);
+                int texture=texture(model,face,npc);
+                if(texture==-1){
+                    int rgb = litColor(recolor(model.faceColors[face], npc), model, face, npc,lightDirection, ambient, diffuse);
+                    rasterize(image,zBuffer,screenX,screenY,depth,a,b,c,(alpha<<24)|rgb,width,height);
+                }else{
+                    try{
+                        TextureMaterial530 material=materials.material(texture);double[] uv=textureCoordinates(model,face);
+                        double brightness=faceBrightness(model,face,npc,lightDirection,ambient,diffuse);
+                        rasterizeTextured(image,zBuffer,screenX,screenY,depth,a,b,c,uv,material,brightness,alpha,width,height);
+                    }catch(java.io.IOException exception){throw new IllegalArgumentException("cannot load texture "+texture,exception);}
+                }
             }
             vertexOffset += model.vertexCount;
         }
@@ -180,6 +200,15 @@ public final class StaticRenderer {
 
     private static int litColor(int packedHsl, ModelDefinition model, int face, NpcDefinition530 npc,
                                 double[] lightDirection, double ambient, double diffuse) {
+        double brightness=faceBrightness(model,face,npc,lightDirection,ambient,diffuse);
+        int base=packedHslToRgb(packedHsl);
+        int red=(int)Math.round(((base>>>16)&255)*brightness);
+        int green=(int)Math.round(((base>>>8)&255)*brightness);
+        int blue=(int)Math.round((base&255)*brightness);
+        return(red<<16)|(green<<8)|blue;
+    }
+    private static double faceBrightness(ModelDefinition model,int face,NpcDefinition530 npc,
+                                         double[] lightDirection,double ambient,double diffuse){
         int ia=model.faceIndices1[face],ib=model.faceIndices2[face],ic=model.faceIndices3[face];
         double ax=model.vertexX[ib]-model.vertexX[ia],ay=-(model.vertexY[ib]-model.vertexY[ia]),az=model.vertexZ[ib]-model.vertexZ[ia];
         double bx=model.vertexX[ic]-model.vertexX[ia],by=-(model.vertexY[ic]-model.vertexY[ia]),bz=model.vertexZ[ic]-model.vertexZ[ia];
@@ -187,12 +216,27 @@ public final class StaticRenderer {
         double length=Math.sqrt(nx*nx+ny*ny+nz*nz);
         double lambert=length==0?0:Math.abs((nx*lightDirection[0]+ny*lightDirection[1]+nz*lightDirection[2])/length);
         double adjustment=npc.ambient/512.0+npc.contrast/4096.0;
-        double brightness=clamp(ambient+diffuse*lambert+adjustment,0.15,1.0);
-        int base=packedHslToRgb(packedHsl);
-        int red=(int)Math.round(((base>>>16)&255)*brightness);
-        int green=(int)Math.round(((base>>>8)&255)*brightness);
-        int blue=(int)Math.round((base&255)*brightness);
-        return(red<<16)|(green<<8)|blue;
+        return clamp(ambient+diffuse*lambert+adjustment,0.15,1.0);
+    }
+
+    private static int texture(ModelDefinition model,int face,NpcDefinition530 npc){
+        if(model.faceTextures==null||model.faceTextures[face]==-1)return-1;short source=model.faceTextures[face];
+        for(int i=0;i<npc.retextureFrom.length;i++)if(source==npc.retextureFrom[i])return Short.toUnsignedInt(npc.retextureTo[i]);
+        return Short.toUnsignedInt(source);
+    }
+    /** u0,v0,u1,v1,u2,v2. Advanced mapping records use the rev-530 software face-local fallback. */
+    static double[] textureCoordinates(ModelDefinition m,int face){
+        if(m.textureCoords==null||m.textureCoords[face]==-1)return new double[]{0,0,1,0,0,1};
+        int t=Byte.toUnsignedInt(m.textureCoords[face]);
+        if(t>=m.numTextureFaces||m.textureRenderTypes==null||m.textureRenderTypes[t]!=0||m.texIndices1==null)return new double[]{0,0,1,0,0,1};
+        int ta=Short.toUnsignedInt(m.texIndices1[t]),tb=Short.toUnsignedInt(m.texIndices2[t]),tc=Short.toUnsignedInt(m.texIndices3[t]);
+        if(ta>=m.vertexCount||tb>=m.vertexCount||tc>=m.vertexCount)return new double[]{0,0,1,0,0,1};
+        double ax=m.vertexX[ta],ay=m.vertexY[ta],az=m.vertexZ[ta],bx=m.vertexX[tb]-ax,by=m.vertexY[tb]-ay,bz=m.vertexZ[tb]-az,cx=m.vertexX[tc]-ax,cy=m.vertexY[tc]-ay,cz=m.vertexZ[tc]-az;
+        double nx=by*cz-bz*cy,ny=bz*cx-bx*cz,nz=bx*cy-by*cx;
+        double ux=cy*nz-cz*ny,uy=cz*nx-cx*nz,uz=cx*ny-cy*nx,ud=ux*bx+uy*by+uz*bz;
+        double vx=by*nz-bz*ny,vy=bz*nx-bx*nz,vz=bx*ny-by*nx,vd=vx*cx+vy*cy+vz*cz;
+        if(Math.abs(ud)<1e-9||Math.abs(vd)<1e-9)return new double[]{0,0,1,0,0,1};double[] out=new double[6];int[] faces={m.faceIndices1[face],m.faceIndices2[face],m.faceIndices3[face]};
+        for(int i=0;i<3;i++){double x=m.vertexX[faces[i]]-ax,y=m.vertexY[faces[i]]-ay,z=m.vertexZ[faces[i]]-az;out[i*2]=(ux*x+uy*y+uz*z)/ud;out[i*2+1]=(vx*x+vy*y+vz*z)/vd;}return out;
     }
 
     static int packedHslToRgb(int packed) {
@@ -221,6 +265,18 @@ public final class StaticRenderer {
             if(pixelDepth>zBuffer[index]){zBuffer[index]=pixelDepth;image.setRGB(px,py,argb);}
         }
     }
+    private static void rasterizeTextured(BufferedImage image,double[] zBuffer,double[] x,double[] y,double[] z,
+            int a,int b,int c,double[] uv,TextureMaterial530 material,double brightness,int faceAlpha,int width,int height){
+        double area=edge(x[a],y[a],x[b],y[b],x[c],y[c]);if(Math.abs(area)<.00001||faceAlpha==0)return;
+        int minX=Math.max(0,(int)Math.floor(Math.min(x[a],Math.min(x[b],x[c])))),maxX=Math.min(width-1,(int)Math.ceil(Math.max(x[a],Math.max(x[b],x[c]))));
+        int minY=Math.max(0,(int)Math.floor(Math.min(y[a],Math.min(y[b],y[c])))),maxY=Math.min(height-1,(int)Math.ceil(Math.max(y[a],Math.max(y[b],y[c]))));
+        for(int py=minY;py<=maxY;py++)for(int px=minX;px<=maxX;px++){double sx=px+.5,sy=py+.5,wa=edge(x[b],y[b],x[c],y[c],sx,sy)/area,wb=edge(x[c],y[c],x[a],y[a],sx,sy)/area,wc=1-wa-wb;if(wa<-.000001||wb<-.000001||wc<-.000001)continue;
+            double pd=wa*z[a]+wb*z[b]+wc*z[c];int index=py*width+px;if(pd<=zBuffer[index])continue;double u=wa*uv[0]+wb*uv[2]+wc*uv[4],v=wa*uv[1]+wb*uv[3]+wc*uv[5];int tx=Math.floorMod((int)Math.floor(u*material.size),material.size),ty=Math.floorMod((int)Math.floor(v*material.size),material.size);int texel=material.pixels[ty*material.size+tx];if(!material.definition.opaque&&(texel&0xffffff)==0)continue;
+            int r=(int)Math.round(((texel>>>16)&255)*brightness),g=(int)Math.round(((texel>>>8)&255)*brightness),bl=(int)Math.round((texel&255)*brightness);int src=(faceAlpha<<24)|(r<<16)|(g<<8)|bl;
+            if(faceAlpha==255)image.setRGB(px,py,src);else image.setRGB(px,py,blend(src,image.getRGB(px,py)));zBuffer[index]=pd;
+        }
+    }
+    private static int blend(int src,int dst){int a=src>>>24,inv=255-a;int r=(((src>>>16)&255)*a+((dst>>>16)&255)*inv+127)/255,g=(((src>>>8)&255)*a+((dst>>>8)&255)*inv+127)/255,b=((src&255)*a+(dst&255)*inv+127)/255,oa=a+((dst>>>24)*inv+127)/255;return(oa<<24)|(r<<16)|(g<<8)|b;}
     private static double edge(double ax,double ay,double bx,double by,double px,double py){return(px-ax)*(by-ay)-(py-ay)*(bx-ax);}
     private static double clamp(double value,double min,double max){return Math.max(min,Math.min(max,value));}
 }
