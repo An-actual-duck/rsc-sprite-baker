@@ -23,3 +23,5 @@ workspace/
 .env.*
 local.properties
 
+# Generated separately in each neutral AI worktree.
+AI_WORKSPACE.md
