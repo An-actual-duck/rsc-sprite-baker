@@ -30,5 +30,6 @@ public final class SpriteProject {
         Path parent=path.toAbsolutePath().getParent(); if(parent!=null)Files.createDirectories(parent);
         try(Writer writer=Files.newBufferedWriter(path)){gson().toJson(this,writer);writer.write(System.lineSeparator());}
     }
+    public SpriteProject copy(){return gson().fromJson(gson().toJson(this),SpriteProject.class);}
     private static Gson gson(){return new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();}
 }

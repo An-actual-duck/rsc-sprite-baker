@@ -21,11 +21,13 @@ diagonal, side, diagonal-away, away, and combat views.
 
 ## Current status
 
-Phase 4 adds a fail-closed revision-530 material decoder, bounded procedural
-texture support, texture-coordinate handling, alpha-tested rasterization, and
-model/material diagnostics while preserving the Phase 1–3 workflow. See
-[`docs/TEXTURE_COMPATIBILITY.md`](docs/TEXTURE_COMPATIBILITY.md) for the live
-compatibility matrix and provenance,
+Phase 5 provides a runnable desktop application with guided first launch,
+portable project lifecycle, recent projects, lazy NPC search, compatibility
+status, animation discovery, and responsive background rendering/export. See
+[`docs/DESKTOP_APPLICATION.md`](docs/DESKTOP_APPLICATION.md) for packaging and
+end-user workflow evidence. See
+[`docs/TEXTURE_COMPATIBILITY.md`](docs/TEXTURE_COMPATIBILITY.md) for Phase 4's
+fail-closed textured compatibility matrix and provenance,
 [`docs/RSC_VISUAL_PRESETS.md`](docs/RSC_VISUAL_PRESETS.md) for the visual
 pipeline, and [`docs/ANIMATION_COMPATIBILITY.md`](docs/ANIMATION_COMPATIBILITY.md)
 for the client animation trace. The Phase 1 CLI remains unchanged.
