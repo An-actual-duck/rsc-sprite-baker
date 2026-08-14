@@ -14,11 +14,17 @@ import net.runelite.cache.fs.Store;
 public final class CacheReader implements Closeable {
     public static final int MODEL_INDEX = 7;
     public static final int NPC_INDEX = 18;
+    public static final int FRAME_INDEX = 0;
+    public static final int FRAMEMAP_INDEX = 1;
+    public static final int SEQUENCE_INDEX = 20;
 
     private final Store store;
     private final NpcDefinition530Decoder npcDecoder = new NpcDefinition530Decoder();
     private final ModelLoader modelLoader = new ModelLoader();
     private final RenderAnimation530Decoder renderAnimationDecoder = new RenderAnimation530Decoder();
+    private final Sequence530Decoder sequenceDecoder = new Sequence530Decoder();
+    private final Frame530Decoder frameDecoder = new Frame530Decoder();
+    private final Framemap530Decoder framemapDecoder = new Framemap530Decoder();
 
     public CacheReader(Path cacheDirectory) throws IOException {
         this.store = new Store(cacheDirectory.toFile());
@@ -40,6 +46,20 @@ public final class CacheReader implements Closeable {
 
     public RenderAnimation530 loadRenderAnimation(int id) throws IOException {
         return renderAnimationDecoder.decode(id, loadFile(2, 32, id));
+    }
+
+    public Sequence530 loadSequence(int id) throws IOException {
+        return sequenceDecoder.decode(id, loadFile(SEQUENCE_INDEX, id >>> 7, id & 0x7f));
+    }
+
+    public Frame530 loadFrame(int packedFrameId) throws IOException {
+        int frameSetId = packedFrameId >>> 16;
+        int frameId = packedFrameId & 0xffff;
+        byte[] data = loadFile(FRAME_INDEX, frameSetId, frameId);
+        int framemapId = (Byte.toUnsignedInt(data[0]) << 8) | Byte.toUnsignedInt(data[1]);
+        Framemap530 framemap = framemapDecoder.decode(
+            framemapId, loadFile(FRAMEMAP_INDEX, framemapId, 0));
+        return frameDecoder.decode(packedFrameId, framemap, data);
     }
 
     public byte[] loadFile(int indexId, int archiveId, int fileId) throws IOException {
