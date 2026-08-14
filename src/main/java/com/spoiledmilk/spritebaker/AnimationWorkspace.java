@@ -14,13 +14,14 @@ public final class AnimationWorkspace implements Closeable {
     public final NpcDefinition530 npc;
     public final RenderAnimation530 bas;
     public final ModelDefinition baseModel;
+    public final TextureProvider530 textures;
     private final ModelAnimator animator=new ModelAnimator();
 
     public AnimationWorkspace(Path cachePath,int npcId) throws IOException {
         this.cachePath=cachePath.toRealPath(); cache=new CacheReader(this.cachePath); npc=cache.loadNpc(npcId);
         bas=npc.renderAnimation==-1?null:cache.loadRenderAnimation(npc.renderAnimation);
         List<ModelDefinition> parts=new ArrayList<>(); for(int id:npc.modelIds)parts.add(cache.loadModel(id));
-        baseModel=ModelAssembler.combine(parts);
+        baseModel=ModelAssembler.combine(parts);textures=new TextureProvider530(cache);
     }
     public ModelDefinition pose(PoseSelection selection,boolean globalTweening) throws IOException {
         Sequence530 sequence=cache.loadSequence(selection.sequenceId);

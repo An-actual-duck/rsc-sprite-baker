@@ -54,6 +54,19 @@ class StaticRendererTest {
         assertArrayEquals(first.getRGB(0,0,48,56,null,0,48),second.getRGB(0,0,48,56,null,0,48));
     }
 
+    @Test void rendersNeutralTextureAndHonorsAlphaTestDeterministically() {
+        ModelDefinition fixture=neutralModel();fixture.faceTextures=new short[]{12};fixture.textureCoords=new byte[]{-1};
+        NpcDefinition530 npc=new NpcDefinition530(2);VisualSettings settings=new VisualSettings();settings.cellWidth=40;settings.cellHeight=40;settings.supersample=1;settings.padding=4;settings.palette=PaletteReducer.UNMODIFIED;
+        MaterialDefinition530 opaque=new MaterialDefinition530(12,true,true,true,false,false,0,0,0,0,0);
+        TextureMaterial530 stripes=new TextureMaterial530(opaque,2,new int[]{0xff0000,0x00ff00,0x0000ff,0xffffff},List.of(1));
+        StaticRenderer renderer=new StaticRenderer();BufferedImage first=renderer.renderStyled(List.of(fixture),npc,0,null,settings,id->stripes),second=renderer.renderStyled(List.of(fixture),npc,0,null,settings,id->stripes);
+        assertArrayEquals(first.getRGB(0,0,40,40,null,0,40),second.getRGB(0,0,40,40,null,0,40));assertTrue(java.util.Arrays.stream(first.getRGB(0,0,40,40,null,0,40)).anyMatch(pixel->(pixel>>>24)==255));
+
+        MaterialDefinition530 tested=new MaterialDefinition530(12,true,true,false,false,false,0,0,0,0,0);
+        TextureMaterial530 transparentBlack=new TextureMaterial530(tested,1,new int[]{0},List.of(0));BufferedImage empty=renderer.renderStyled(List.of(fixture),npc,0,null,settings,id->transparentBlack);
+        assertTrue(java.util.Arrays.stream(empty.getRGB(0,0,40,40,null,0,40)).allMatch(pixel->pixel==0));
+    }
+
     private static ModelDefinition neutralModel() {
         ModelDefinition fixture = new ModelDefinition(); fixture.id=9001; fixture.vertexCount=3;
         fixture.vertexX=new int[]{-20,20,0};fixture.vertexY=new int[]{0,0,-50};fixture.vertexZ=new int[]{0,0,10};
