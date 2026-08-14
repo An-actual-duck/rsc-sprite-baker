@@ -75,8 +75,9 @@ The PNG, source project, cache frames, and decoded geometry remain outside Git.
 - Timeline thumbnails show every encoded keyframe. The 20 ms scrubber previews
   deterministic in-between positions when tweening is enabled.
 - Export uses a shared orthographic scale, origin-centered horizontal anchor,
-  ground anchor, and 256×256 canvas for all 18 cells. Nearest-neighbor
-  supersampled reduction remains a Phase 3 item.
+  and ground anchor for all 18 cells. Phase 3 adds configurable target canvases,
+  supersampled nearest-neighbor reduction, and visual treatment without changing
+  this animation compatibility layer.
 - Suggestions are deliberately non-authoritative: they only populate empty,
   unlocked cells. User cell overrides and locks are persisted.
 

@@ -21,9 +21,11 @@ diagonal, side, diagonal-away, away, and combat views.
 
 ## Current status
 
-Phase 2 adds revision-530 sequence/frame/framemap decoding, deterministic
-time-based posing, a source timeline beside a labeled 6×3 selection sheet,
-portable selection projects, and normalized sheet export. See
+Phase 3 adds configurable supersampled rendering, shared framing, live camera
+and lighting controls, RSC-style color presets, deterministic palette
+reduction, and actual-size preview to the Phase 2 animation workflow. See
+[`docs/RSC_VISUAL_PRESETS.md`](docs/RSC_VISUAL_PRESETS.md) for the visual
+pipeline and preset definitions, and
 [`docs/ANIMATION_COMPATIBILITY.md`](docs/ANIMATION_COMPATIBILITY.md) for the
 client trace and live-cache evidence. The Phase 1 CLI remains unchanged.
 
@@ -59,9 +61,16 @@ cell. The five movement directions share row poses until individually
 overridden. Combat-side cells are assigned independently. Locks prevent row,
 suggestion, and replacement actions; suggestions fill empty cells only.
 
-Export creates a transparent 1536×768 PNG and diagnostic JSON with one trace
-entry per cell. All cells share scale, ground anchor, crop policy, camera, and
-canvas. The mirrored-direction control is preview-only.
+Double-click a timeline pose or target cell to assign it. `Enter` replaces the
+selected cell, `Ctrl+1`/`Ctrl+2`/`Ctrl+3` set shared rows, `L` toggles its lock,
+and `Backspace` restores the shared row pose. Green, blue, purple, and red cell
+frames identify shared, override, suggested, and locked states.
+
+The default export uses 128×128 cells and creates a transparent 768×384 PNG;
+cell width and height are configurable. Every cell shares scale, ground anchor,
+framing policy, camera settings, and target canvas. The mirrored-direction
+control is preview-only. The diagnostic JSON records the complete visual
+configuration and one source trace per cell.
 
 ## Local collaboration
 

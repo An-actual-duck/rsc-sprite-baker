@@ -17,6 +17,7 @@ import net.runelite.cache.definitions.ModelDefinition;
 public final class SheetExporter {
     private static final double[] YAW={0,45,90,135,180,90};
     public void export(AnimationWorkspace workspace,SpriteProject project,Path outputDirectory)throws IOException{
+        project.visual.validate();
         Main.enforceOutputBoundary(outputDirectory.toAbsolutePath().normalize(),workspace.cachePath,Path.of("").toRealPath());
         Files.createDirectories(outputDirectory);
         List<ModelDefinition> poses=new ArrayList<>(); List<StaticRenderer.View> views=new ArrayList<>();
@@ -24,21 +25,20 @@ public final class SheetExporter {
             PoseSelection selection=required(project.sheet.cells[r][c].pose,r,c);
             ModelDefinition pose=workspace.pose(selection,project.tweening); poses.add(pose); views.add(new StaticRenderer.View(pose,YAW[c]));
         }
-        StaticRenderer renderer=new StaticRenderer(); StaticRenderer.Viewport viewport=renderer.fit(views,workspace.npc);
-        BufferedImage sheet=new BufferedImage(StaticRenderer.WIDTH*6,StaticRenderer.HEIGHT*3,BufferedImage.TYPE_INT_ARGB);
+        StaticRenderer renderer=new StaticRenderer(); StaticRenderer.Viewport viewport=renderer.fitStyled(views,workspace.npc,project.visual);
+        BufferedImage sheet=new BufferedImage(project.visual.cellWidth*6,project.visual.cellHeight*3,BufferedImage.TYPE_INT_ARGB);
         Graphics2D graphics=sheet.createGraphics(); int index=0;
-        for(int r=0;r<3;r++)for(int c=0;c<6;c++)graphics.drawImage(renderer.render(List.of(poses.get(index++)),workspace.npc,YAW[c],viewport),c*256,r*256,null);
+        for(int r=0;r<3;r++)for(int c=0;c<6;c++)graphics.drawImage(renderer.renderStyled(List.of(poses.get(index++)),workspace.npc,YAW[c],viewport,project.visual),c*project.visual.cellWidth,r*project.visual.cellHeight,null);
         graphics.dispose(); Path png=outputDirectory.resolve("npc-"+project.npcId+"-rsc-sheet.png"); ImageIO.write(sheet,"PNG",png.toFile());
         Path manifest=outputDirectory.resolve("npc-"+project.npcId+"-sheet-diagnostic.json");
-        Map<String,Object> root=new LinkedHashMap<>();root.put("schemaVersion",1);root.put("npcId",project.npcId);
+        Map<String,Object> root=new LinkedHashMap<>();root.put("schemaVersion",2);root.put("npcId",project.npcId);
         Map<String,Object> cacheIdentity=new LinkedHashMap<>();cacheIdentity.put("directory",workspace.cachePath.toString());cacheIdentity.put("layout","JS5 dat2 with idx files");
         cacheIdentity.put("dataFile",fileIdentity(workspace.cachePath.resolve("main_file_cache.dat2")));cacheIdentity.put("referenceIndex",fileIdentity(workspace.cachePath.resolve("main_file_cache.idx255")));root.put("cache",cacheIdentity);
         root.put("componentModelIds",workspace.npc.modelIds);root.put("renderAnimationId",workspace.npc.renderAnimation);
         Map<String,Object> appearance=new LinkedHashMap<>();appearance.put("recolors",pairs(workspace.npc.recolorFrom,workspace.npc.recolorTo));appearance.put("retextures",pairs(workspace.npc.retextureFrom,workspace.npc.retextureTo));appearance.put("widthScale",workspace.npc.widthScale);appearance.put("heightScale",workspace.npc.heightScale);root.put("appearance",appearance);
         root.put("sequenceIds",Map.of("standing",project.standingSequenceId,"walking",project.walkingSequenceId,"combat",project.combatSequenceId));
-        root.put("timelineUnitMillis",20);root.put("tweening",project.tweening);root.put("sharedViewport",Map.of("scale",viewport.scale,"centerX",viewport.centerX,"groundY",viewport.groundY));
-        root.put("camera",Map.of("projection","orthographic","pitchDegrees",StaticRenderer.PITCH_DEGREES,"columnYawDegrees",YAW));
-        root.put("lighting",Map.of("direction",StaticRenderer.LIGHT_DIRECTION,"ambient",StaticRenderer.AMBIENT_LIGHT,"diffuse",StaticRenderer.DIFFUSE_LIGHT));
+        root.put("timelineUnitMillis",20);root.put("tweening",project.tweening);root.put("selectionBehavior",Map.of("sharedMovementColumns",5,"cellOverridesAllowed",true,"locksPersisted",true,"suggestionsReplaceExisting",false,"mirroredPreview",project.mirroredPreview));
+        root.put("render",renderSettings(project.visual,viewport));
         List<Map<String,Object>> cells=new ArrayList<>();
         for(int r=0;r<3;r++)for(int c=0;c<6;c++){TargetSheet.Cell cell=project.sheet.cells[r][c];PoseSelection p=cell.pose;Sequence530 sequence=workspace.cache.loadSequence(p.sequenceId);Frame530 frame=workspace.cache.loadFrame(sequence.frameIds[p.frameIndex]);Map<String,Object> trace=new LinkedHashMap<>();trace.put("row",r);trace.put("rowLabel",TargetSheet.ROW_LABELS[r]);trace.put("column",c);trace.put("columnLabel",TargetSheet.COLUMN_LABELS[c]);trace.put("yawDegrees",YAW[c]);trace.put("sequenceId",p.sequenceId);trace.put("frameIndex",p.frameIndex);trace.put("packedFrameId",sequence.frameIds[p.frameIndex]);trace.put("framemapId",frame.framemap.id);trace.put("frameDurationCycles",sequence.durations[p.frameIndex]);trace.put("cycleOffset",p.cycleOffset);trace.put("timeMillis",p.timeMillis);trace.put("source",p.source);trace.put("locked",cell.locked);trace.put("override",cell.override);cells.add(trace);}
         root.put("cells",cells);root.put("png",png.getFileName().toString());root.put("pngSha256",Hashing.sha256(png));
@@ -46,6 +46,7 @@ public final class SheetExporter {
         try(Writer writer=Files.newBufferedWriter(manifest)){new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(root,writer);writer.write(System.lineSeparator());}
     }
     private static PoseSelection required(PoseSelection pose,int row,int col){if(pose==null)throw new IllegalStateException("unassigned sheet cell "+row+","+col);return pose;}
+    private static Map<String,Object> renderSettings(VisualSettings settings,StaticRenderer.Viewport viewport){Map<String,Object> out=new LinkedHashMap<>();out.put("preset",settings.preset);out.put("projection","orthographic");out.put("cellWidth",settings.cellWidth);out.put("cellHeight",settings.cellHeight);out.put("sheetWidth",settings.cellWidth*6);out.put("sheetHeight",settings.cellHeight*3);out.put("supersample",settings.supersample);out.put("internalCellWidth",settings.cellWidth*settings.supersample);out.put("internalCellHeight",settings.cellHeight*settings.supersample);out.put("reduction","nearest-neighbor center sample");out.put("padding",settings.padding);out.put("modelScale",settings.modelScale);out.put("pitchDegrees",settings.pitchDegrees);out.put("yawOffsetDegrees",settings.yawOffsetDegrees);out.put("baseColumnYawDegrees",YAW);out.put("verticalOffsetPixels",settings.verticalOffsetPixels);out.put("sharedAnchor","origin-centered horizontal, minimum projected Y ground");out.put("sharedViewport",Map.of("internalPixelsPerModelUnit",viewport.scale,"centerX",viewport.centerX,"groundY",viewport.groundY));out.put("lighting",Map.of("ambient",settings.ambient,"diffuse",settings.diffuse,"azimuthDegrees",settings.lightAzimuthDegrees,"elevationDegrees",settings.lightElevationDegrees,"direction",settings.lightDirection()));out.put("color",Map.of("palette",settings.palette,"dithering",settings.dithering,"ditherStrength",settings.ditherStrength));return out;}
     private static Map<String,Object> fileIdentity(Path path)throws IOException{Map<String,Object> out=new LinkedHashMap<>();out.put("name",path.getFileName().toString());out.put("bytes",Files.size(path));out.put("sha256",Hashing.sha256(path));return out;}
     private static List<Map<String,Integer>> pairs(short[] from,short[] to){List<Map<String,Integer>> out=new ArrayList<>();for(int i=0;i<from.length;i++){Map<String,Integer> pair=new LinkedHashMap<>();pair.put("from",Short.toUnsignedInt(from[i]));pair.put("to",Short.toUnsignedInt(to[i]));out.add(pair);}return out;}
 }

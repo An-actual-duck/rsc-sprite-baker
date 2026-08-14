@@ -9,15 +9,22 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class SpriteProject {
-    public int schemaVersion=1;
+    public int schemaVersion=2;
     public int npcId;
     public int standingSequenceId=-1, walkingSequenceId=-1, combatSequenceId=-1;
     public boolean tweening=true;
     public boolean mirroredPreview;
+    public VisualSettings visual=new VisualSettings();
     public TargetSheet sheet=new TargetSheet();
 
     public static SpriteProject load(Path path) throws IOException {
-        try(Reader reader=Files.newBufferedReader(path)){return gson().fromJson(reader,SpriteProject.class);}
+        try(Reader reader=Files.newBufferedReader(path)){
+            SpriteProject project=gson().fromJson(reader,SpriteProject.class);
+            if(project.visual==null)project.visual=new VisualSettings();
+            if(project.sheet==null)project.sheet=new TargetSheet();
+            project.schemaVersion=2;
+            return project;
+        }
     }
     public void save(Path path) throws IOException {
         Path parent=path.toAbsolutePath().getParent(); if(parent!=null)Files.createDirectories(parent);
