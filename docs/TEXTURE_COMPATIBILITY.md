@@ -46,7 +46,7 @@ reference-index SHA-256
 | Case | Identifiers | Result | Evidence / limitation |
 | --- | --- | --- | --- |
 | Untextured | NPC 72 Troll; model 3752 | Supported, unchanged | 390 vertices, 739 faces; Phase-1 PNG SHA-256 remains `b6d9ebd11c681dc61e40b5a5e4e063326a2e0071a0f7f2e57a178bf5c181e758`. |
-| Textured animated | NPC 40 Shark; model 2848; sequence 10; materials 157/171 | Supported | 70 textured faces, 31 type-0 mappings, 39 documented face-local fallbacks. Two complete 18-cell exports were byte-identical: SHA-256 `4568d2194f59c6d0d3118dd594531a517c83052c40fcec28896d5b348182ab44`. |
+| Textured animated | NPC 40 Shark; model 2848; sequence 10; materials 157/171 | Supported | 70 textured faces, 31 type-0 mappings, 39 documented face-local fallbacks. Two complete 18-cell exports were byte-identical: PNG SHA-256 `4568d2194f59c6d0d3118dd594531a517c83052c40fcec28896d5b348182ab44`; manifest SHA-256 `c49d42c26770f3524cfce9f9c6b572567ab3db71252aede3e92bf7e442f36a5d`. |
 | Multipart | NPC 42 Sheep; models 20283/20289/20285 | Model assembly supported; materials unsupported | Three components combine with 430 textured faces. Materials require operations 32, 36, 38, and 15; export reports them and stops. |
 | Recolored/retextured multipart | NPC 0 Hans; six component models; five recolors | Model assembly/recolor metadata supported; materials unsupported | Retextured material IDs 228/292/258/257/262/527/272/254 require operation 36 (texture dependency). No substitution occurs. |
 | Alpha/mapping stress | NPC 61 Spider; model 24613; material 111 | Unsupported material, diagnosed | 298 textured faces use advanced mappings; graph requires operation 34 (Perlin noise). |

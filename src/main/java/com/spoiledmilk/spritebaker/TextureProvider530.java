@@ -13,5 +13,5 @@ public final class TextureProvider530 implements MaterialProvider530 {
         TextureMaterial530 hit=loaded.get(id);if(hit!=null)return hit;MaterialDefinition530 def=definitions[id];int size=def.lowDetail?64:128;
         ProceduralTexture530Decoder.Decoded decoded=decoder.decode(id,cache.loadFile(9,id,0),size);TextureMaterial530 material=new TextureMaterial530(def,size,decoded.pixels,decoded.operationTypes);loaded.put(id,material);return material;
     }
-    public Map<Integer,TextureMaterial530> loaded(){return Map.copyOf(loaded);}
+    public Map<Integer,TextureMaterial530> loaded(){return java.util.Collections.unmodifiableMap(new LinkedHashMap<>(loaded));}
 }
