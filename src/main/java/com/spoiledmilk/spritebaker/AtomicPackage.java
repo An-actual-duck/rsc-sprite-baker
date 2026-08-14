@@ -12,11 +12,10 @@ final class AtomicPackage implements AutoCloseable {
     static final String MARKER=".sprite-baker-handoff-v1";
     final Path destination,staging;private Path backup;private boolean published;
     AtomicPackage(Path destination)throws IOException{
-        this.destination=destination.toAbsolutePath().normalize();Path parent=this.destination.getParent();if(parent==null)throw new IOException("output directory needs a parent");Files.createDirectories(parent);
-        if(Files.isSymbolicLink(this.destination))throw new IOException("output directory must not be a symbolic link: "+this.destination);
-        if(Files.exists(this.destination)&&(!Files.isDirectory(this.destination)||!Files.isRegularFile(this.destination.resolve(MARKER))))throw new IOException("refusing to replace output not owned by Sprite Baker: "+this.destination);
+        this.destination=destination.toAbsolutePath().normalize();Path parent=validateDestination(this.destination);Files.createDirectories(parent);
         staging=Files.createTempDirectory(parent,"."+this.destination.getFileName()+".staging-");Files.writeString(staging.resolve(MARKER),"schemaVersion=1\n");
     }
+    static Path validateDestination(Path destination)throws IOException{Path normalized=destination.toAbsolutePath().normalize(),parent=normalized.getParent();if(parent==null)throw new IOException("output directory needs a parent");if(Files.isSymbolicLink(normalized))throw new IOException("output directory must not be a symbolic link: "+normalized);if(Files.exists(normalized)&&(!Files.isDirectory(normalized)||!Files.isRegularFile(normalized.resolve(MARKER))))throw new IOException("refusing to replace output not owned by Sprite Baker: "+normalized);return parent;}
     void publish()throws IOException{
         if(Files.exists(destination)){backup=destination.resolveSibling("."+destination.getFileName()+".backup-"+Long.toUnsignedString(System.nanoTime()));atomicMove(destination,backup);}
         try{atomicMove(staging,destination);published=true;}catch(IOException failure){if(backup!=null&&Files.exists(backup))try{atomicMove(backup,destination);}catch(IOException rollback){failure.addSuppressed(rollback);}throw failure;}

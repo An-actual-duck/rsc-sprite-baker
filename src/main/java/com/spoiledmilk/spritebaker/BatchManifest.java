@@ -29,12 +29,13 @@ public final class BatchManifest {
             if(version!=SCHEMA_VERSION)throw new IOException("unsupported batch manifest schemaVersion "+version+" (expected "+SCHEMA_VERSION+")");
             BatchManifest manifest=gson().fromJson(root,BatchManifest.class);
             if(manifest.entries==null||manifest.entries.isEmpty())throw new IOException("batch manifest entries must not be empty");
-            if(manifest.cache==null)manifest.cache=new CacheExpectation();
+            if(manifest.cache==null||!sha256(manifest.cache.dataFileSha256)||!sha256(manifest.cache.referenceIndexSha256))throw new IOException("batch manifest must pin dataFileSha256 and referenceIndexSha256");
             return manifest;
         }catch(com.google.gson.JsonParseException|IllegalStateException e){throw new IOException("invalid batch manifest JSON: "+e.getMessage(),e);}
     }
 
     static Gson gson(){return new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();}
+    private static boolean sha256(String value){return value!=null&&value.matches("(?i)[0-9a-f]{64}");}
 
     public static final class CacheExpectation {
         public String dataFileSha256;
