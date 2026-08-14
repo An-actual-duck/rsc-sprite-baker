@@ -1,0 +1,25 @@
+.gradle/
+.idea/
+.vscode/
+build/
+out/
+target/
+*.class
+*.iml
+
+# Local inputs and generated assets must never be committed.
+cache/
+caches/
+models/
+exports/
+captures/
+workspace/
+*.dat2
+*.idx*
+*.jcache
+
+# Local configuration may contain machine-specific paths.
+.env
+.env.*
+local.properties
+
