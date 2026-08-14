@@ -18,7 +18,13 @@ public final class SpriteProject {
     public TargetSheet sheet=new TargetSheet();
 
     public static SpriteProject load(Path path) throws IOException {
-        try(Reader reader=Files.newBufferedReader(path)){return gson().fromJson(reader,SpriteProject.class);}
+        try(Reader reader=Files.newBufferedReader(path)){
+            SpriteProject project=gson().fromJson(reader,SpriteProject.class);
+            if(project.visual==null)project.visual=new VisualSettings();
+            if(project.sheet==null)project.sheet=new TargetSheet();
+            project.schemaVersion=2;
+            return project;
+        }
     }
     public void save(Path path) throws IOException {
         Path parent=path.toAbsolutePath().getParent(); if(parent!=null)Files.createDirectories(parent);

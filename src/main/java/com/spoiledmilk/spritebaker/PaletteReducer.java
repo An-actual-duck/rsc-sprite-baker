@@ -6,6 +6,7 @@ import java.util.Set;
 /** Deterministic fixed-cube palette reduction with optional ordered dithering. */
 public final class PaletteReducer {
     public static final String UNMODIFIED = "Unmodified color";
+    public static final String RSC_125 = "RSC 125-color cube";
     public static final String RSC_64 = "RSC 64-color cube";
     public static final String RSC_27 = "RSC 27-color cube";
     public static final String NO_DITHER = "No dithering";
@@ -17,7 +18,7 @@ public final class PaletteReducer {
     private PaletteReducer() { }
 
     static void validate(String palette, String dithering) {
-        if (!Set.of(UNMODIFIED, RSC_64, RSC_27).contains(palette)) throw new IllegalArgumentException("unknown palette: " + palette);
+        if (!Set.of(UNMODIFIED, RSC_125, RSC_64, RSC_27).contains(palette)) throw new IllegalArgumentException("unknown palette: " + palette);
         if (!Set.of(NO_DITHER, ORDERED_4X4).contains(dithering)) throw new IllegalArgumentException("unknown dithering: " + dithering);
     }
 
@@ -29,7 +30,7 @@ public final class PaletteReducer {
                 source.getRGB(0, 0, source.getWidth(), source.getHeight(), null, 0, source.getWidth()), 0, source.getWidth());
             return output;
         }
-        int levels = RSC_64.equals(settings.palette) ? 4 : 3;
+        int levels = RSC_125.equals(settings.palette) ? 5 : RSC_64.equals(settings.palette) ? 4 : 3;
         double step = 255.0 / (levels - 1);
         for (int y = 0; y < source.getHeight(); y++) {
             for (int x = 0; x < source.getWidth(); x++) {

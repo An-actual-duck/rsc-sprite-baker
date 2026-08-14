@@ -2,6 +2,7 @@ package com.spoiledmilk.spritebaker;
 
 import static org.junit.jupiter.api.Assertions.*;
 import java.nio.file.Path;
+import java.nio.file.Files;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -13,5 +14,6 @@ class TargetSheetTest {
     }
     @Test void sharedRowsPopulateFiveDirectionsButRespectOverrides(){TargetSheet sheet=new TargetSheet();sheet.override(1,2,pose(7));sheet.assignShared(1,pose(8));for(int c=0;c<5;c++)assertEquals(c==2?7:8,sheet.cells[1][c].pose.sequenceId);assertNull(sheet.cells[1][5].pose);}
     @Test void projectPersistsSequenceFrameCycleTimeLocksAndVisuals(@TempDir Path dir)throws Exception{SpriteProject p=new SpriteProject();p.npcId=72;p.sheet.override(2,5,pose(9));p.sheet.cells[2][5].locked=true;p.visual.cellWidth=72;p.visual.pitchDegrees=19;p.visual.palette=PaletteReducer.RSC_27;p.visual.preset="Custom";Path file=dir.resolve("project.json");p.save(file);SpriteProject loaded=SpriteProject.load(file);assertEquals(9,loaded.sheet.cells[2][5].pose.sequenceId);assertEquals(4,loaded.sheet.cells[2][5].pose.frameIndex);assertEquals(60,loaded.sheet.cells[2][5].pose.timeMillis);assertTrue(loaded.sheet.cells[2][5].locked);assertEquals(72,loaded.visual.cellWidth);assertEquals(19,loaded.visual.pitchDegrees);assertEquals(PaletteReducer.RSC_27,loaded.visual.palette);}
+    @Test void phaseOneProjectMigratesToVisualSchema(@TempDir Path dir)throws Exception{Path file=dir.resolve("legacy.json");Files.writeString(file,"{\"schemaVersion\":1,\"npcId\":72}");SpriteProject loaded=SpriteProject.load(file);assertEquals(2,loaded.schemaVersion);assertNotNull(loaded.visual);assertNotNull(loaded.sheet);assertEquals("RSC restrained",loaded.visual.preset);}
     private static PoseSelection pose(int id){PoseSelection p=new PoseSelection();p.sequenceId=id;p.frameIndex=4;p.cycleOffset=3;p.timeMillis=60;p.source="test";return p;}
 }
