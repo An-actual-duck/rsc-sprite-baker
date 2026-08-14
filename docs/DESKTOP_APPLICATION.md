@@ -23,6 +23,11 @@ JAR or Java installation without invoking Maven. `Main` remains the Phase-1
 CLI and `SelectorMain` retains the argument-driven technical selector entry
 point; packaging changes neither interface.
 
+Phase 6 headless export uses `scripts/rsc-sprite-baker-headless` or
+`scripts\rsc-sprite-baker-headless.bat`. Its single-project, batch,
+validation-only, dry-run, and handoff package contracts are documented in
+[`BATCH_HANDOFF.md`](BATCH_HANDOFF.md).
+
 ## First launch
 
 The welcome flow offers New and Open without command-line arguments. A new

@@ -100,6 +100,10 @@ stored as portable project files without source assets.
 4. Keep generated sprites and their provenance review separate from tool
    releases.
 
+The Sprite Baker-owned portion is implemented by the versioned manifest,
+validation report, atomic handoff package, and generic mapping contract in
+`BATCH_HANDOFF.md`. Runtime import remains a separate Core-owned decision.
+
 ## Deferred decisions
 
 - Public source license and dependency policy.

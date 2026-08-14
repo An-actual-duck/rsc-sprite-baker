@@ -21,9 +21,14 @@ diagonal, side, diagonal-away, away, and combat views.
 
 ## Current status
 
-Phase 5 provides a runnable desktop application with guided first launch,
-portable project lifecycle, recent projects, lazy NPC search, compatibility
-status, animation discovery, and responsive background rendering/export. See
+Phase 6 adds deterministic single-project and manifest-driven headless export,
+validation-only/dry-run modes, atomic package publication, and a versioned
+asset-free handoff contract. See
+[`docs/BATCH_HANDOFF.md`](docs/BATCH_HANDOFF.md) for commands, schemas, and the
+remaining Core integration decisions. Phase 5 provides a runnable desktop
+application with guided first launch, portable project lifecycle, recent
+projects, lazy NPC search, compatibility status, animation discovery, and
+responsive background rendering/export. See
 [`docs/DESKTOP_APPLICATION.md`](docs/DESKTOP_APPLICATION.md) for packaging and
 end-user workflow evidence. See
 [`docs/TEXTURE_COMPATIBILITY.md`](docs/TEXTURE_COMPATIBILITY.md) for Phase 4's
