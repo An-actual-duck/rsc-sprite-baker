@@ -237,9 +237,74 @@ render-compatible and lacks only automatic standing metadata.
 
 ## Recommended next batch
 
-Operation 38 is now the largest material blocker at 2,749 diagnostic
-occurrences, followed by operation 32 at 2,242, operation 27 at 1,753, and
-operation 15 at 1,139. Keep each addition tied to pinned client semantics and
+The operation-13 audit originally recommended operation 38. Its completed
+result is recorded below.
+
+## 2026-08-15 operation-38 audit
+
+The pre-change census was byte-identical to the operation-13 result at
+SHA-256 `aee3fd87547103c91294f16d3654fa6fea9549d0d095166c61ede737bc969502`.
+Two independent post-change runs and the packaged-JAR census were byte-identical
+at SHA-256
+`a4c14dafc32ee1f98432f144affb967f811e811b8725076a2eedf90bd25df167`.
+The cache identity remained unchanged.
+
+| Category | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Ready | 437 | 463 | +26 |
+| Missing automatic animations | 153 | 159 | +6 |
+| Unsupported material | 3,438 | 3,405 | -33 |
+| Unsupported model | 3,946 | 3,946 | 0 |
+| Morph/internal definition | 612 | 612 | 0 |
+| Other failure | 4 | 5 | +1 |
+
+Operation 38 accounted for 2,749 NPC/material diagnostic occurrences. It now
+accounts for zero. In total, 2,257 NPC reasons changed: 33 clear material
+validation entirely while 2,224 remain unsupported materials because a later
+graph node is now reachable. Of the 33 category changes, 26 become ready, six
+need only automatic animation metadata, and NPC 8108 (Crate) reaches a precise
+automatic-sequence failure: sequence 10362 contains unsupported opcode 36.
+No texture, color, or average-material fallback is introduced.
+
+Remaining unsupported-operation diagnostic occurrences are:
+
+| Operation | Before | After |
+| ---: | ---: | ---: |
+| 4 | 284 | 284 |
+| 5 | 135 | 2,178 |
+| 6 | 1,150 | 1,150 |
+| 9 | 520 | 520 |
+| 12 | 30 | 30 |
+| 15 | 1,139 | 1,329 |
+| 19 | 228 | 228 |
+| 20 | 137 | 137 |
+| 22 | 41 | 41 |
+| 27 | 1,753 | 1,756 |
+| 32 | 2,242 | 2,242 |
+| 38 | 2,749 | 0 |
+| 39 | 111 | 111 |
+
+The increases in operations 5, 15, and 27 are newly reachable diagnostics
+within nested graphs. Operations 13, 34, and 36 remain at zero. The 3,946
+unsupported-model results remain split between `BufferUnderflowException`
+(1,954 definitions) and invalid decoded offsets (`newPosition > limit`, 1,992
+definitions).
+
+NPC 131 (Penguin) is the packaged-render representative. Model 21547,
+materials 182/347/171, 391 textured faces, standing sequence 5668, walking
+sequence 5666, all 18 cells, visible pixels, and transparency validated. The
+PNG SHA-256 is
+`60e9aeac8cee9c931e7d556aec83e8e9bffca11872a03525cd0a2a1f9bac6f55`
+and provenance SHA-256 is
+`f4317ff64c54458196e69c59ce67b0d6f718676105310422488d8cb90cbe3c14`.
+NPC 125, NPC 61, and NPC 72 remain ready; NPC 40 remains model/material
+render-compatible and lacks only automatic standing metadata.
+
+## Recommended next batch
+
+Operation 32 is now the largest material blocker at 2,242 diagnostic
+occurrences, followed by operation 5 at 2,178, operation 27 at 1,756, and
+operation 15 at 1,329. Keep each addition tied to pinned client semantics and
 neutral fixtures, rerun this census after every operation, and preserve exact
-fail-closed diagnostics. The unchanged model-decoder clusters and portal
-animation failure remain separate focused batches.
+fail-closed diagnostics. The unchanged model-decoder clusters and newly
+exposed sequence-10362 failure remain separate focused batches.

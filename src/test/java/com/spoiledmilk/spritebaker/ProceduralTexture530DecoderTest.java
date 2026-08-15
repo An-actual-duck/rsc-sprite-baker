@@ -50,8 +50,19 @@ class ProceduralTexture530DecoderTest {
         assertArrayEquals(new int[]{0x0000ff,0x0000ff,0xff0000,0xff0000},java.util.Arrays.copyOfRange(decoded.pixels,0,4));
         assertEquals(java.util.List.of(36),decoded.operationTypes);
     }
+    @Test void operation38DrawsParameterizedWrappedLinesWithoutDependencies()throws Exception{
+        ProceduralTexture530Decoder.Decoded decoded=new ProceduralTexture530Decoder().decode(907,lineNoise(),8,
+            id->{throw new AssertionError("operation 38 must not resolve texture "+id);});
+        assertArrayEquals(new int[]{0,5263440,0,0,0,0,0,0,0,0,4408131,0,0,0,0,0},
+            java.util.Arrays.copyOfRange(decoded.pixels,0,16));
+        assertEquals(java.util.List.of(38),decoded.operationTypes);
+        UnsupportedTextureFormatException error=assertThrows(UnsupportedTextureFormatException.class,
+            ()->new ProceduralTexture530Decoder().decode(908,new byte[]{1,0,38,1,1,5,0,0,0},8));
+        assertTrue(error.getMessage().contains("operation parameter 5 for LineNoise"));
+    }
     static byte[] hashNoise(){return new byte[]{1,0,13,1,0,0,0,0};}
     static byte[] defaultNoise(){return new byte[]{1,0,34,1,0,0,0,0};}
     static byte[] textureDependency(int id){return new byte[]{1,0,36,1,1,0,(byte)(id>>>8),(byte)id,0,0,0};}
+    static byte[] lineNoise(){return new byte[]{1,0,38,1,5,0,7,1,0,6,2,4,3,4,0,4,8,0,0,0,0};}
     private static void bytes(ByteArrayOutputStream out,int... values){for(int value:values)out.write(value);}
 }

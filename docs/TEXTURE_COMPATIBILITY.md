@@ -13,10 +13,12 @@ linked.
 The supported procedural operations are deliberately limited to the first
 verified textured NPC: monochrome/color fill (0/1), horizontal/vertical
 gradient (2/3), multiply combine (7 function 3), linear curve parsing (8),
-custom sampled color gradient (10 preset 0), hash noise (13), and range (30). Texture generation
-uses the software client's 64/128 material-size flag and horizontal order. It
-uses a fixed, manifest-recorded gamma of 1.0 instead of the source client's
-preference-dependent and randomly perturbed brightness value.
+custom sampled color gradient (10 preset 0), hash noise (13), range (30),
+multi-octave gradient noise (34), nested texture dependencies (36), and line
+noise (38). Texture generation uses the software client's 64/128 material-size
+flag and horizontal order. It uses a fixed, manifest-recorded gamma of 1.0
+instead of the source client's preference-dependent and randomly perturbed
+brightness value.
 Operation 13 is the client's zero-child monochrome hash-noise node and has no
 serialized parameters. For every texel, it hashes the 12-bit X/Y fractions
 with Java `int` overflow, masks the polynomial result to a non-negative integer,
@@ -37,6 +39,16 @@ rejects dependency cycles with their exact path, and rejects chains deeper than
 64 graphs. This follows the revision-client `TextureOpTexture` contract while
 retaining the baker's fixed gamma policy; the primary trace is
 [`TextureOpTexture.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOpTexture.java).
+Operation 38 is the client's zero-child monochrome line-noise node and has no
+external texture or sprite dependencies. Its serialized parameters are an
+unsigned 8-bit seed (code 0), unsigned 16-bit line count (code 1), unsigned
+8-bit line length (code 2), unsigned 16-bit base angle (code 3), and unsigned
+16-bit angle range (code 4), with defaults 0, 2000, 16, 0, and 4096. The
+implementation preserves the client's Java-seeded bounded RNG, 256-entry
+12-bit sine/cosine tables, angle indexing, integer endpoint calculations,
+wrapped coordinates, fixed-point intensity ramp, and Bresenham-style line
+drawing. Unexpected parameters fail closed. The primary trace is
+[`TextureOp38.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOp38.java).
 Other operation IDs, combine modes,
 curve interpolation modes, presets, and sprite dependencies produce an exact
 material error in the selector and exporter. Average material colors are
@@ -71,6 +83,7 @@ reference-index SHA-256
 | Recolored/retextured multipart | NPC 0 Hans; six component models; five recolors | Model assembly/recolor metadata supported; materials unsupported | Retextured material IDs 228/292/258/257/262/527/272/254 resolve nested textures and report any later unsupported graph operation. No substitution occurs. |
 | Alpha/mapping stress | NPC 61 Spider; model 24613; material 111 | Supported | Operation 34 now decodes; models, material, standing sequence 6247, and walking sequence 6248 validate. Its 298 textured faces continue to use the documented advanced-mapping fallback. |
 | Hash-noise multipart | NPC 125 Ice warrior; seven component models; materials 249/291/303/302 | Supported | Operation 13 now decodes; standing sequence 842, walking sequence 841, and all 1,076 textured faces validate. |
+| Line-noise animated | NPC 131 Penguin; model 21547; materials 182/347/171 | Supported | Operation 38 now decodes; standing sequence 5668, walking sequence 5666, and all 391 textured faces validate in a packaged 18-cell render. |
 | Known difficult model | model 23905 | Unsupported model | RuneLite model decoder throws `BufferUnderflowException`. |
 | Known difficult model | model 23889 | Unsupported model | RuneLite model decoder reports an invalid offset (`newPosition > limit`). |
 
@@ -97,7 +110,7 @@ replaceable and persists the choices normally.
 ## Remaining limitations
 
 - The procedural graph language is intentionally incomplete. Sprite-backed,
-  emboss, line-noise, and other unverified operations remain
+  emboss, and other unverified operations remain
   unsupported. See `COMPATIBILITY_CENSUS.md` for exact current frequencies.
 - Advanced type 1/2/3 mapping parameters are not decoded by the RuneLite model
   dependency; only the traced revision-software face-local behavior is used.
