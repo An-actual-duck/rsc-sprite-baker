@@ -17,6 +17,13 @@ custom sampled color gradient (10 preset 0), and range (30). Texture generation
 uses the software client's 64/128 material-size flag and horizontal order. It
 uses a fixed, manifest-recorded gamma of 1.0 instead of the source client's
 preference-dependent and randomly perturbed brightness value.
+Operation 34 is the client's zero-child monochrome multi-octave gradient-noise
+node. The decoder preserves its 12-bit fixed-point interpolation, Java-seeded
+permutation table, normalization flag, octave trimming, persistence or explicit
+signed amplitudes, independent X/Y scales, and unsigned seed. Its output enters
+the same material-provider and textured-rasterizer path as every other decoded
+graph. The primary trace is
+[`TextureOp34.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOp34.java).
 Operation 36 resolves another procedural texture by its unsigned 16-bit ID,
 preserving the dependency's 64/128 size and using deterministic nearest-neighbor
 sampling when sizes differ. The provider caches successful dependencies,
@@ -56,7 +63,7 @@ reference-index SHA-256
 | Textured animated | NPC 40 Shark; model 2848; sequence 10; materials 157/171 | Supported | 70 textured faces, 31 type-0 mappings, 39 documented face-local fallbacks. Two complete 18-cell exports were byte-identical: PNG SHA-256 `4568d2194f59c6d0d3118dd594531a517c83052c40fcec28896d5b348182ab44`; manifest SHA-256 `c49d42c26770f3524cfce9f9c6b572567ab3db71252aede3e92bf7e442f36a5d`. |
 | Multipart | NPC 42 Sheep; models 20283/20289/20285 | Model assembly supported; materials unsupported | Three components combine with 430 textured faces. Operation 36 is resolved; remaining unsupported operations are reported and export stops. |
 | Recolored/retextured multipart | NPC 0 Hans; six component models; five recolors | Model assembly/recolor metadata supported; materials unsupported | Retextured material IDs 228/292/258/257/262/527/272/254 resolve nested textures and report any later unsupported graph operation. No substitution occurs. |
-| Alpha/mapping stress | NPC 61 Spider; model 24613; material 111 | Unsupported material, diagnosed | 298 textured faces use advanced mappings; graph requires operation 34 (Perlin noise). |
+| Alpha/mapping stress | NPC 61 Spider; model 24613; material 111 | Supported | Operation 34 now decodes; models, material, standing sequence 6247, and walking sequence 6248 validate. Its 298 textured faces continue to use the documented advanced-mapping fallback. |
 | Known difficult model | model 23905 | Unsupported model | RuneLite model decoder throws `BufferUnderflowException`. |
 | Known difficult model | model 23889 | Unsupported model | RuneLite model decoder reports an invalid offset (`newPosition > limit`). |
 
@@ -82,8 +89,8 @@ replaceable and persists the choices normally.
 
 ## Remaining limitations
 
-- The procedural graph language is intentionally incomplete. Perlin/noise,
-  sprite-backed, emboss, line-noise, and other unverified operations remain
+- The procedural graph language is intentionally incomplete. Sprite-backed,
+  emboss, line-noise, and other unverified operations remain
   unsupported. See `COMPATIBILITY_CENSUS.md` for exact current frequencies.
 - Advanced type 1/2/3 mapping parameters are not decoded by the RuneLite model
   dependency; only the traced revision-software face-local behavior is used.
