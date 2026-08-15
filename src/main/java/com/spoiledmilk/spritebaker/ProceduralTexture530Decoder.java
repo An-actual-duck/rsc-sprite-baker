@@ -30,7 +30,7 @@ public final class ProceduralTexture530Decoder {
     }
 
     private static Node create(int id,int type,DependencyResolver dependencies){switch(type){
-        case 0:return new Fill(true);case 1:return new Fill(false);case 2:return new Gradient(true);case 3:return new Gradient(false);
+        case 0:return new Fill(true);case 1:return new Fill(false);case 2:return new Gradient(true);case 3:return new Gradient(false);case 5:return new BoxBlur();
         case 7:return new Combine();case 8:return new Curve();case 10:return new ColorGradient();case 13:return new HashNoise();case 30:return new Range();case 32:return new BumpLighting();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();
         default:throw new UnsupportedTextureFormatException(id,"procedural operation "+type);
     }}
@@ -40,6 +40,36 @@ public final class ProceduralTexture530Decoder {
     private abstract static class Node{int cache;Node[] children;abstract int childCount();void decode(int id,int code,BinaryInput in){throw new UnsupportedTextureFormatException(id,"operation parameter "+code+" for "+getClass().getSimpleName());}void finish(int id){}abstract int[] rgb(int x,int y,int size)throws IOException;int mono(int x,int y,int size)throws IOException{int[] c=rgb(x,y,size);return(c[0]+c[1]+c[2])/3;}}
     private static final class Fill extends Node{final boolean mono;int value=4096,r,g,b;Fill(boolean mono){this.mono=mono;}int childCount(){return 0;}void decode(int id,int code,BinaryInput in){if(code!=0)super.decode(id,code,in);if(mono)value=in.u16();else{int color=in.u24();r=(color>>12)&4080;g=(color>>4)&4080;b=(color&255)<<4;}}int[] rgb(int x,int y,int size){return mono?new int[]{value,value,value}:new int[]{r,g,b};}}
     private static final class Gradient extends Node{final boolean horizontal;Gradient(boolean horizontal){this.horizontal=horizontal;}int childCount(){return 0;}int[] rgb(int x,int y,int size){int v=((horizontal?x:y)<<12)/size;return new int[]{v,v,v};}}
+    private static final class BoxBlur extends Node{
+        int horizontalRadius=1,verticalRadius=1,cachedSize=-1;boolean monochrome;int[][][] image;
+        int childCount(){return 1;}
+        void decode(int id,int code,BinaryInput in){switch(code){case 0:horizontalRadius=in.u8();break;case 1:verticalRadius=in.u8();break;case 2:monochrome=in.u8()==1;break;default:super.decode(id,code,in);}}
+        int[] rgb(int x,int y,int size)throws IOException{
+            if(cachedSize!=size)generate(size);if(monochrome){int value=image[0][y][x];return new int[]{value,value,value};}
+            return new int[]{image[0][y][x],image[1][y][x],image[2][y][x]};
+        }
+        private void generate(int size)throws IOException{
+            cachedSize=size;int channels=monochrome?1:3,mask=size-1;
+            int horizontalWidth=horizontalRadius+horizontalRadius+1,horizontalFactor=65536/horizontalWidth;
+            int verticalHeight=verticalRadius+verticalRadius+1,verticalFactor=65536/verticalHeight;
+            int[][][] source=new int[channels][size][size],horizontal=new int[channels][size][size];image=new int[channels][size][size];
+            for(int y=0;y<size;y++)for(int x=0;x<size;x++){int[] pixel=children[0].rgb(x,y,size);for(int channel=0;channel<channels;channel++)source[channel][y][x]=pixel[channel];}
+            for(int channel=0;channel<channels;channel++)for(int y=0;y<size;y++){
+                int sum=0;for(int offset=-horizontalRadius;offset<=horizontalRadius;offset++)sum+=source[channel][y][offset&mask];
+                for(int x=0;x<size;x++){
+                    horizontal[channel][y][x]=horizontalFactor*sum>>16;
+                    sum-=source[channel][y][x-horizontalRadius&mask];sum+=source[channel][y][horizontalRadius+x+1&mask];
+                }
+            }
+            for(int channel=0;channel<channels;channel++)for(int x=0;x<size;x++){
+                int sum=0;for(int offset=-verticalRadius;offset<=verticalRadius;offset++)sum+=horizontal[channel][offset&mask][x];
+                for(int y=0;y<size;y++){
+                    image[channel][y][x]=verticalFactor*sum>>16;
+                    sum-=horizontal[channel][y-verticalRadius&mask][x];sum+=horizontal[channel][verticalRadius+y+1&mask][x];
+                }
+            }
+        }
+    }
     private static final class Combine extends Node{int function=6;boolean monochrome;int childCount(){return 2;}void decode(int id,int code,BinaryInput in){if(code==0)function=in.u8();else if(code==1)monochrome=in.u8()==1;else super.decode(id,code,in);}void finish(int id){if(function!=3)throw new UnsupportedTextureFormatException(id,"combine function "+function);}int[] rgb(int x,int y,int size)throws IOException{int[] a=children[0].rgb(x,y,size),b=children[1].rgb(x,y,size);return new int[]{a[0]*b[0]>>12,a[1]*b[1]>>12,a[2]*b[2]>>12};}}
     private static final class Range extends Node{int min=1024,max=3072,range=2048;boolean monochrome;int childCount(){return 1;}void decode(int id,int code,BinaryInput in){if(code==0)min=in.u16();else if(code==1)max=in.u16();else if(code==2)monochrome=in.u8()==1;else super.decode(id,code,in);}void finish(int id){range=max-min;}int[] rgb(int x,int y,int size)throws IOException{int[] c=children[0].rgb(x,y,size);return new int[]{min+(range*c[0]>>12),min+(range*c[1]>>12),min+(range*c[2]>>12)};}}
     private static final class Curve extends Node{int mode;int[][] markers;int childCount(){return 1;}void decode(int id,int code,BinaryInput in){if(code!=0)super.decode(id,code,in);mode=in.u8();int n=in.u8();markers=new int[n][2];for(int i=0;i<n;i++){markers[i][0]=in.u16();markers[i][1]=in.u16();}}void finish(int id){if(mode!=0)throw new UnsupportedTextureFormatException(id,"curve interpolation "+mode);if(markers==null||markers.length<2)throw new UnsupportedTextureFormatException(id,"curve marker count");}int[] rgb(int x,int y,int size)throws IOException{int v=children[0].mono(x,y,size),i=1;while(i<markers.length&&v>=markers[i][0])i++;int result;if(i==markers.length)result=markers[i-1][1];else if(i==0)result=markers[0][1];else{int[] a=markers[i-1],b=markers[i];result=a[1]+(b[1]-a[1])*(v-a[0])/Math.max(1,b[0]-a[0]);}return new int[]{result,result,result};}}
