@@ -1,7 +1,7 @@
 @echo off
 setlocal
-set "APP_ROOT=%~dp0.."
-set "APP_JAR=%APP_ROOT%\target\rsc-sprite-baker.jar"
+set "APP_ROOT=%~dp0"
+set "APP_JAR=%APP_ROOT%rsc-sprite-baker.jar"
 
 set "JAVA_CMD=java"
 if defined JAVA_HOME if exist "%JAVA_HOME%\bin\java.exe" set "JAVA_CMD=%JAVA_HOME%\bin\java.exe"
@@ -17,16 +17,15 @@ if not defined JAVA_MAJOR (
   exit /b 1
 )
 if "%JAVA_MAJOR%"=="1" (
-  echo RSC Sprite Baker requires Java 11 or newer. Set JAVA_HOME to a compatible JDK.
+  echo RSC Sprite Baker requires Java 11 or newer. Set JAVA_HOME to a compatible installation.
   exit /b 1
 )
 if %JAVA_MAJOR% LSS 11 (
-  echo RSC Sprite Baker requires Java 11 or newer. Set JAVA_HOME to a compatible JDK.
+  echo RSC Sprite Baker requires Java 11 or newer. Set JAVA_HOME to a compatible installation.
   exit /b 1
 )
 if not exist "%APP_JAR%" (
   echo Application JAR not found: %APP_JAR%
-  echo Build it with: mvn clean package
   exit /b 1
 )
 

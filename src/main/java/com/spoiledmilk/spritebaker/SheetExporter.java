@@ -17,7 +17,11 @@ import net.runelite.cache.definitions.ModelDefinition;
 public final class SheetExporter {
     private static final double[] YAW={0,45,90,135,180,90};
     public void export(AnimationWorkspace workspace,SpriteProject project,Path outputDirectory)throws IOException{
+        export(workspace,project,DesktopExportPlan.legacy(outputDirectory,project.npcId));
+    }
+    void export(AnimationWorkspace workspace,SpriteProject project,DesktopExportPlan plan)throws IOException{
         project.visual.validate();
+        Path outputDirectory=plan.directory;
         Main.enforceOutputBoundary(outputDirectory.toAbsolutePath().normalize(),workspace.cachePath,Path.of("").toRealPath());
         Files.createDirectories(outputDirectory);
         List<ModelDefinition> poses=new ArrayList<>(); List<StaticRenderer.View> views=new ArrayList<>();
@@ -29,8 +33,8 @@ public final class SheetExporter {
         BufferedImage sheet=new BufferedImage(project.visual.cellWidth*6,project.visual.cellHeight*3,BufferedImage.TYPE_INT_ARGB);
         Graphics2D graphics=sheet.createGraphics(); int index=0;
         for(int r=0;r<3;r++)for(int c=0;c<6;c++)graphics.drawImage(renderer.renderStyled(List.of(poses.get(index++)),workspace.npc,YAW[c],viewport,project.visual,workspace.textures),c*project.visual.cellWidth,r*project.visual.cellHeight,null);
-        graphics.dispose(); Path png=outputDirectory.resolve("npc-"+project.npcId+"-rsc-sheet.png"); ImageIO.write(sheet,"PNG",png.toFile());
-        Path manifest=outputDirectory.resolve("npc-"+project.npcId+"-sheet-diagnostic.json");
+        graphics.dispose(); Path png=plan.png; ImageIO.write(sheet,"PNG",png.toFile());
+        Path manifest=plan.manifest;
         Map<String,Object> root=new LinkedHashMap<>();root.put("schemaVersion",2);root.put("npcId",project.npcId);
         Map<String,Object> cacheIdentity=new LinkedHashMap<>();cacheIdentity.put("directory",workspace.cachePath.toString());cacheIdentity.put("layout","JS5 dat2 with idx files");
         cacheIdentity.put("dataFile",fileIdentity(workspace.cachePath.resolve("main_file_cache.dat2")));cacheIdentity.put("referenceIndex",fileIdentity(workspace.cachePath.resolve("main_file_cache.idx255")));root.put("cache",cacheIdentity);

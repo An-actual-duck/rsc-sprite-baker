@@ -1,0 +1,26 @@
+Bundled 2009Scape Cache Notice
+==============================
+
+This distribution includes the NPC/model/animation cache selected from the
+2009Scape project. The distributor has reviewed the relevant asset terms and
+confirmed that these cache assets may be conveyed under the GNU Affero General
+Public License, version 3.
+
+Project: 2009Scape
+Original upstream source: https://gitlab.com/2009scape/2009scape
+Source mirror used for this build: https://github.com/An-actual-duck/open-rsc2-fun
+
+The cache files are copied without modification from the read-only source
+checkout. `CACHE-SOURCE.txt` records the exact source revision and URLs used by
+the packaging build. `CACHE-SHA256SUMS.txt` records every conveyed cache file.
+The complete, verbatim AGPL-3.0 text from that source checkout is included as
+`2009scape-AGPL-3.0.txt`.
+
+Corresponding source and the Git LFS-backed cache objects can be obtained at no
+charge from the recorded source repository and exact revision. Clone that
+repository, check out the recorded revision, and fetch its Git LFS objects.
+No warranty is provided; see the included license for the controlling terms.
+
+RSC Sprite Baker itself and its separately licensed dependencies are distinct
+from the bundled cache. See `THIRD_PARTY_NOTICES.md` and the Sprite Baker source
+repository for their notices and source.

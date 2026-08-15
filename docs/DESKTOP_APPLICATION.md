@@ -2,6 +2,10 @@
 
 ## Build and launch
 
+For the normal end-user archive and its no-setup workflow, start with
+[`DESKTOP_DISTRIBUTION.md`](DESKTOP_DISTRIBUTION.md). The material below also
+documents the retained advanced project-oriented interface.
+
 RSC Sprite Baker requires Java 11 or newer. Build the tested, dependency-bundled
 application JAR with:
 
@@ -28,14 +32,13 @@ Phase 6 headless export uses `scripts/rsc-sprite-baker-headless` or
 validation-only, dry-run, and handoff package contracts are documented in
 [`BATCH_HANDOFF.md`](BATCH_HANDOFF.md).
 
-## First launch
+## Advanced project-oriented launch
 
-The application opens immediately into a persistent desktop shell with a
-normal taskbar entry. Its File menu and central actions provide Create New
-Project and Open Existing Project; Open Recent appears once a project has been
-opened successfully. Cancelling a form, correcting invalid input, or failing
-to load a project always leaves a visible shell or editor rather than an
-ownerless background JVM.
+Launching `SelectorMain` with explicit arguments opens the retained portable
+project editor. The former guided project forms remain in the codebase for
+this advanced workflow; they are not exposed by the packaged JAR's ordinary
+`DesktopMain` entry point. The ordinary desktop instead opens the NPC browser
+directly and discovers the adjacent cache and exports folders automatically.
 
 Create New Project is one owned form. It displays independently browsable and
 clearly labeled fields for:
@@ -61,8 +64,8 @@ inputs.
 
 The editor File menu provides New Project, Open Project, Open Recent, Save,
 Save As, export-folder selection, and Exit through owned platform controls.
-Closing an editor returns to the application shell; File > Exit terminates the
-desktop process. The NPC menu
+Closing an advanced editor terminates its standalone process when no other
+window remains; File > Exit terminates the desktop process explicitly. The NPC menu
 opens lazy name/ID search and detailed compatibility diagnostics. Selecting a
 different NPC creates a new project so an existing project's persisted
 selections are never silently repurposed. Edited projects carry a title-bar

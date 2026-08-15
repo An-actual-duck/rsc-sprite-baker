@@ -17,6 +17,11 @@ public final class DesktopWorkflow {
         if(!Files.isRegularFile(checkedProject))throw new IOException("project file does not exist: "+checkedProject);
         SpriteProject project=SpriteProject.load(checkedProject);return new DesktopSession(checkedCache,checkedProject,validateExport(exportDirectory),project);
     }
+    public static DesktopSession transientSession(Path cache,Path exportDirectory,int npcId)throws IOException{
+        if(npcId<0)throw new IOException("NPC ID must be zero or greater");
+        SpriteProject project=new SpriteProject();project.npcId=npcId;
+        return DesktopSession.transientDesktop(validateCache(cache),validateExport(exportDirectory),project);
+    }
     public static Path validateCache(Path path)throws IOException{
         Path directory=path.toRealPath();if(!Files.isDirectory(directory))throw new IOException("cache path is not a directory: "+directory);
         if(!Files.isRegularFile(directory.resolve("main_file_cache.dat2"))||!Files.isRegularFile(directory.resolve("main_file_cache.idx255")))throw new IOException("not a JS5 cache directory (dat2/idx255 missing): "+directory);

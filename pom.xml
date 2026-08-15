@@ -12,6 +12,7 @@
   <properties>
     <maven.compiler.release>11</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.build.outputTimestamp>2026-08-14T00:00:00Z</project.build.outputTimestamp>
     <runelite.version>1.12.35</runelite.version>
     <junit.version>5.11.4</junit.version>
     <exec.mainClass>com.spoiledmilk.spritebaker.Main</exec.mainClass>

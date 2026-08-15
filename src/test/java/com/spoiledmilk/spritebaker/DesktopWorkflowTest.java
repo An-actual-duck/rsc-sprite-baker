@@ -13,4 +13,9 @@ class DesktopWorkflowTest {
         DesktopSession opened=DesktopWorkflow.open(cache,project,export);assertEquals(123,opened.project.npcId);assertEquals(cache.toRealPath(),opened.cacheDirectory);
     }
     @Test void rejectsDirectoryWithoutJs5IdentityFiles(@TempDir Path dir){assertThrows(java.io.IOException.class,()->DesktopWorkflow.validateCache(dir));}
+    @Test void constructsTransientDesktopSessionWithoutProjectFile(@TempDir Path dir)throws Exception{
+        Path cache=dir.resolve("cache");Files.createDirectories(cache);Files.createFile(cache.resolve("main_file_cache.dat2"));Files.createFile(cache.resolve("main_file_cache.idx255"));Path export=dir.resolve("exports");
+        DesktopSession session=DesktopWorkflow.transientSession(cache,export,72);
+        assertTrue(session.transientDesktop);assertNull(session.projectFile);assertEquals(72,session.project.npcId);assertTrue(Files.isDirectory(export));try(java.util.stream.Stream<Path> paths=Files.list(dir)){assertEquals(0,paths.filter(path->path.getFileName().toString().endsWith(".json")).count());}
+    }
 }
