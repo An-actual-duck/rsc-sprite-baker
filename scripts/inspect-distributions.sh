@@ -39,6 +39,7 @@ for platform in linux windows; do
   test -f "$root/licenses/CACHE-SHA256SUMS.txt"
   test -f "$root/THIRD_PARTY_NOTICES.md"
   test -d "$root/exports"
+  test -z "$(find "$root/exports" -mindepth 1 -print -quit)"
   test "$(find "$root/cache" -maxdepth 1 -type f -name 'main_file_cache.*' | wc -l)" -eq 31
   test -z "$(find "$root" -type l -print -quit)"
   (cd "$root/cache" && sha256sum -c "$root/licenses/CACHE-SHA256SUMS.txt" >/dev/null)
@@ -56,6 +57,8 @@ done
 
 test -x "$work/linux/RSC Sprite Baker/Start RSC Sprite Baker.sh"
 test -f "$work/windows/RSC Sprite Baker/Start RSC Sprite Baker.cmd"
+test ! -e "$work/linux/RSC Sprite Baker/Start RSC Sprite Baker.cmd"
+test ! -e "$work/windows/RSC Sprite Baker/Start RSC Sprite Baker.sh"
 if find "$work/linux/RSC Sprite Baker/cache" -perm /222 -print -quit | grep -q .; then echo "Linux cache is writable" >&2; exit 1; fi
 
 echo "Distribution archive inspection passed."

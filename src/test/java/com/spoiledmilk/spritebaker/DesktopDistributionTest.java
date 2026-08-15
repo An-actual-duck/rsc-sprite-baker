@@ -48,6 +48,33 @@ class DesktopDistributionTest {
         assertThrows(java.io.IOException.class, () -> DesktopDistribution.discover(new String[0], Map.of(), properties, directory, directory));
     }
 
+    @Test
+    void rejectsExportSymlinkResolvingInsideReadOnlyCache(@TempDir Path directory) throws Exception {
+        Path cache = cache(directory.resolve("cache"));
+        Path actualExport = Files.createDirectories(cache.resolve("exports"));
+        Path exportLink = directory.resolve("exports-link");
+        try {
+            Files.createSymbolicLink(exportLink, actualExport);
+        } catch (UnsupportedOperationException | java.io.IOException e) {
+            org.junit.jupiter.api.Assumptions.abort("symbolic links are unavailable: " + e);
+        }
+        Properties properties = new Properties();
+        properties.setProperty(DesktopDistribution.HOME_PROPERTY, directory.toString());
+        properties.setProperty(DesktopDistribution.CACHE_PROPERTY, cache.toString());
+        properties.setProperty(DesktopDistribution.EXPORT_PROPERTY, exportLink.toString());
+        assertThrows(java.io.IOException.class, () -> DesktopDistribution.discover(new String[0], Map.of(), properties, directory, directory));
+    }
+
+    @Test
+    void rejectsUnexpectedDesktopArguments(@TempDir Path directory) throws Exception {
+        Path root = directory.resolve("app");
+        cache(root.resolve("cache"));
+        Properties properties = new Properties();
+        properties.setProperty(DesktopDistribution.HOME_PROPERTY, root.toString());
+        assertThrows(java.io.IOException.class, () -> DesktopDistribution.discover(new String[]{"--project", "anything.json"}, Map.of(), properties, root, directory));
+        assertThrows(java.io.IOException.class, () -> DesktopDistribution.discover(new String[]{"--cache"}, Map.of(), properties, root, directory));
+    }
+
     private static Path cache(Path directory) throws Exception {
         Files.createDirectories(directory);
         Files.createFile(directory.resolve("main_file_cache.dat2"));

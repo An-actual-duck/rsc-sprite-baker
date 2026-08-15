@@ -1,5 +1,5 @@
 RSC Sprite Baker — Quick Start
-================================
+==============================
 
 Linux
 -----
@@ -9,17 +9,20 @@ Windows
 -------
 Run `Start RSC Sprite Baker.cmd` from this folder.
 
-Java 11 or newer must be installed. The application automatically uses the
-bundled read-only `cache` directory. Browse for an NPC, customize its poses and
-visual settings, then choose Export. PNG sheets and provenance manifests are
-written to the adjacent `exports` directory automatically.
+Java 11 or newer must be installed. Leave this folder together and launch it
+with the platform file above; do not run the JAR directly. The application
+automatically uses the bundled read-only `cache` directory. Browse for an NPC,
+customize its poses and visual settings, then choose Export. PNG sheets and
+provenance manifests are written to this folder's `exports` directory
+automatically.
 
 Ordinary desktop work is temporary: changing NPCs or closing the editor may
 discard adjustments that have not been exported. The application warns before
 discarding changed work.
 
 Advanced automation and portable-project workflows remain available through
-the documented command-line entry points in the source repository:
+the documented command-line entry points in the source repository. They are
+not required for ordinary desktop use:
 https://github.com/An-actual-duck/rsc-sprite-baker
 
 Licensing and source information for the bundled cache is in `licenses`.

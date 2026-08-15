@@ -21,14 +21,21 @@ diagonal, side, diagonal-away, away, and combat views.
 
 ## Current status
 
-Phase 6 adds deterministic single-project and manifest-driven headless export,
-validation-only/dry-run modes, atomic package publication, and a versioned
-asset-free handoff contract. See
+The current desktop distribution is a zero-configuration workflow: users
+launch the platform start file, browse/select an NPC from the bundled
+read-only licensed cache, customize the sheet, and export PNG + provenance to
+the adjacent `exports` folder. No cache, project, or export path setup is part
+of the ordinary workflow. See
+[`docs/DESKTOP_DISTRIBUTION.md`](docs/DESKTOP_DISTRIBUTION.md) for the build,
+license/provenance, and terminal inspection contract.
+
+Phase 6 also retains deterministic single-project and manifest-driven
+headless export, validation-only/dry-run modes, atomic package publication,
+and a versioned asset-free handoff contract. See
 [`docs/BATCH_HANDOFF.md`](docs/BATCH_HANDOFF.md) for commands, schemas, and the
-remaining Core integration decisions. Phase 5 provides a runnable desktop
-application with guided first launch, portable project lifecycle, recent
-projects, lazy NPC search, compatibility status, animation discovery, and
-responsive background rendering/export. See
+remaining Core integration decisions. The advanced portable-project desktop
+entry point remains available through `SelectorMain`; the packaged JAR starts
+the simplified desktop by default. See
 [`docs/DESKTOP_APPLICATION.md`](docs/DESKTOP_APPLICATION.md) for packaging and
 end-user workflow evidence. See
 [`docs/TEXTURE_COMPATIBILITY.md`](docs/TEXTURE_COMPATIBILITY.md) for Phase 4's

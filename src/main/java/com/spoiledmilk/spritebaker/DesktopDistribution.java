@@ -62,6 +62,8 @@ final class DesktopDistribution {
         export = export.toAbsolutePath().normalize();
         if (export.startsWith(cache)) throw new IOException("Export directory must remain outside the read-only cache: " + export);
         Files.createDirectories(export);
+        export = export.toRealPath();
+        if (export.startsWith(cache)) throw new IOException("Export directory must remain outside the read-only cache: " + export);
         if (!Files.isDirectory(export) || !Files.isWritable(export)) throw new IOException("Export directory is not writable: " + export);
         return new DesktopDistribution(root, cache, export);
     }
