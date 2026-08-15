@@ -11,6 +11,7 @@ final class BinaryInput {
     int u8() { return Byte.toUnsignedInt(data[position++]); }
     int i8() { return data[position++]; }
     int u16() { return (u8() << 8) | u8(); }
+    int i16() { int value = u16(); return value > 32767 ? value - 65536 : value; }
     int i32() { return (u8() << 24) | (u8() << 16) | (u8() << 8) | u8(); }
     int u24() { return (u8() << 16) | (u8() << 8) | u8(); }
     int signedShortSmart() {
