@@ -30,7 +30,7 @@ public final class ProceduralTexture530Decoder {
     }
 
     private static Node create(int id,int type,DependencyResolver dependencies){switch(type){
-        case 0:return new Fill(true);case 1:return new Fill(false);case 2:return new Gradient(true);case 3:return new Gradient(false);case 5:return new BoxBlur();
+        case 0:return new Fill(true);case 1:return new Fill(false);case 2:return new Gradient(true);case 3:return new Gradient(false);case 4:return new BrickTiles();case 5:return new BoxBlur();
         case 7:return new Combine();case 8:return new Curve();case 10:return new ColorGradient();case 13:return new HashNoise();case 30:return new Range();case 32:return new BumpLighting();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();
         default:throw new UnsupportedTextureFormatException(id,"procedural operation "+type);
     }}
@@ -40,6 +40,38 @@ public final class ProceduralTexture530Decoder {
     private abstract static class Node{int cache;Node[] children;abstract int childCount();void decode(int id,int code,BinaryInput in){throw new UnsupportedTextureFormatException(id,"operation parameter "+code+" for "+getClass().getSimpleName());}void finish(int id){}abstract int[] rgb(int x,int y,int size)throws IOException;int mono(int x,int y,int size)throws IOException{return rgb(x,y,size)[0];}}
     private static final class Fill extends Node{final boolean mono;int value=4096,r,g,b;Fill(boolean mono){this.mono=mono;}int childCount(){return 0;}void decode(int id,int code,BinaryInput in){if(code!=0)super.decode(id,code,in);if(mono)value=in.u16();else{int color=in.u24();r=(color>>12)&4080;g=(color>>4)&4080;b=(color&255)<<4;}}int[] rgb(int x,int y,int size){return mono?new int[]{value,value,value}:new int[]{r,g,b};}}
     private static final class Gradient extends Node{final boolean horizontal;Gradient(boolean horizontal){this.horizontal=horizontal;}int childCount(){return 0;}int[] rgb(int x,int y,int size){int v=((horizontal?x:y)<<12)/size;return new int[]{v,v,v};}}
+    private static final class BrickTiles extends Node{
+        int columns=4,rows=8,horizontalJitter=409,verticalJitter=204,rowOffset=1024,verticalPhase,mortar=81,brightnessVariation=1024;
+        int columnWidth,mortarHalf;int[] rowBounds;int[][] columnBounds,brightness;
+        int childCount(){return 0;}
+        void decode(int id,int code,BinaryInput in){switch(code){case 0:columns=in.u8();break;case 1:rows=in.u8();break;case 2:horizontalJitter=in.u16();break;case 3:verticalJitter=in.u16();break;case 4:rowOffset=in.u16();break;case 5:verticalPhase=in.u16();break;case 6:mortar=in.u16();break;case 7:brightnessVariation=in.u16();break;default:super.decode(id,code,in);}}
+        void finish(int id){
+            if(columns<=0||rows<=0)throw new UnsupportedTextureFormatException(id,"brick grid "+columns+"x"+rows);
+            Random random=new Random(rows);int rowHeight=4096/rows,rowHalf=rowHeight/2;columnWidth=4096/columns;int columnHalf=columnWidth/2;
+            mortarHalf=mortar/2;rowBounds=new int[rows+1];columnBounds=new int[rows][columns+1];brightness=new int[rows][columns];
+            for(int row=0;row<rows;row++){
+                if(row>0){int variation=(randomBound(4096,random)-2048)*verticalJitter>>12;int height=rowHeight+(variation*rowHalf>>12);rowBounds[row]=rowBounds[row-1]+height;}
+                for(int column=0;column<columns;column++){
+                    if(column>0){int variation=(randomBound(4096,random)-2048)*horizontalJitter>>12;int width=columnWidth+(columnHalf*variation>>12);columnBounds[row][column]=columnBounds[row][column-1]+width;}
+                    brightness[row][column]=brightnessVariation<=0?4096:4096-randomBound(brightnessVariation,random);
+                }
+                columnBounds[row][columns]=4096;
+            }
+            rowBounds[rows]=4096;
+        }
+        int[] rgb(int x,int y,int size){
+            int yFraction=(y<<12)/size+verticalPhase;while(yFraction<0)yFraction+=4096;while(yFraction>4096)yFraction-=4096;
+            int rowIndex=0;while(rows>rowIndex&&yFraction>=rowBounds[rowIndex])rowIndex++;int row=rowIndex-1,rowUpper=rowBounds[rowIndex],rowLower=rowBounds[row];
+            int value=0;if(rowLower+mortarHalf<yFraction&&rowUpper-mortarHalf>yFraction){
+                int signedOffset=(rowIndex&1)==0?rowOffset:-rowOffset,xFraction=(x<<12)/size+(columnWidth*signedOffset>>12);
+                while(xFraction<0)xFraction+=4096;while(xFraction>4096)xFraction-=4096;
+                int columnIndex=0;while(columns>columnIndex&&xFraction>=columnBounds[row][columnIndex])columnIndex++;
+                int column=columnIndex-1,columnUpper=columnBounds[row][columnIndex],columnLower=columnBounds[row][column];
+                if(columnLower+mortarHalf<xFraction&&columnUpper-mortarHalf>xFraction)value=brightness[row][column];
+            }
+            return new int[]{value,value,value};
+        }
+    }
     private static final class BoxBlur extends Node{
         int horizontalRadius=1,verticalRadius=1,cachedSize=-1;boolean monochrome;int[][][] image;
         int childCount(){return 1;}
