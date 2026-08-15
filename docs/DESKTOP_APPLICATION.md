@@ -35,11 +35,10 @@ validation-only, dry-run, and handoff package contracts are documented in
 ## Advanced project-oriented launch
 
 Launching `SelectorMain` with explicit arguments opens the retained portable
-project editor. The former guided project shell and its helpers remain in the
-codebase for this advanced workflow; they are not exposed by the packaged
-JAR's ordinary `DesktopMain` entry point. The ordinary desktop instead opens a
-persistent Browse NPCs shell and discovers the adjacent cache and exports
-folders automatically.
+project editor. The former guided project forms remain in the codebase for
+this advanced workflow; they are not exposed by the packaged JAR's ordinary
+`DesktopMain` entry point. The ordinary desktop instead opens the NPC browser
+directly and discovers the adjacent cache and exports folders automatically.
 
 Create New Project is one owned form. It displays independently browsable and
 clearly labeled fields for:
@@ -65,8 +64,8 @@ inputs.
 
 The editor File menu provides New Project, Open Project, Open Recent, Save,
 Save As, export-folder selection, and Exit through owned platform controls.
-Closing an editor returns to the application shell; File > Exit terminates the
-desktop process. The NPC menu
+Closing an advanced editor terminates its standalone process when no other
+window remains; File > Exit terminates the desktop process explicitly. The NPC menu
 opens lazy name/ID search and detailed compatibility diagnostics. Selecting a
 different NPC creates a new project so an existing project's persisted
 selections are never silently repurposed. Edited projects carry a title-bar

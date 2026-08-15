@@ -2,7 +2,7 @@ package com.spoiledmilk.spritebaker;
 
 import java.nio.file.Path;
 
-/** Paths selected by the desktop shell. Cache and export paths stay outside the portable project. */
+/** Desktop workflow paths. Cache and export paths stay outside the portable project. */
 public final class DesktopSession {
     public final Path cacheDirectory;
     public Path projectFile;

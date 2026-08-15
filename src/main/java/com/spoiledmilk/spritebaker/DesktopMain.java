@@ -1,26 +1,14 @@
 package com.spoiledmilk.spritebaker;
 
-import java.awt.BorderLayout;
 import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
 import java.awt.GraphicsEnvironment;
 import java.awt.Window;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
-import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
@@ -29,7 +17,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 /** Zero-configuration desktop entry point. Advanced project/CLI entry points remain available. */
 public final class DesktopMain {
-    private static AppShell shell;
+    private static DesktopController desktop;
     private static boolean exiting;
 
     private DesktopMain(){}
@@ -43,11 +31,12 @@ public final class DesktopMain {
             try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); }
             catch (Exception ignored) {}
             try {
-                shell = new AppShell(DesktopDistribution.discover(args));
+                desktop = new DesktopController(DesktopDistribution.discover(args));
+                desktop.openBrowser();
             } catch (Exception e) {
-                shell = new AppShell(e);
+                showError(null, e);
+                System.exit(2);
             }
-            shell.openInitialView();
         });
     }
 
@@ -112,11 +101,9 @@ public final class DesktopMain {
                     }
                     SelectorMain.SelectorFrame frame = new SelectorMain.SelectorFrame(workspace, session);
                     frame.setVisible(true);
-                    if (shell != null) shell.setVisible(false);
                     if (ownerWindow instanceof SelectorMain.SelectorFrame) ownerWindow.dispose();
                 } catch (Exception e) {
                     showError(ownerWindow, e);
-                    showShellIfNoEditor();
                 }
             }
         };
@@ -159,21 +146,14 @@ public final class DesktopMain {
     }
 
     static void editorClosed(boolean transientDesktop) {
-        if (transientDesktop && !exiting && shell != null && shell.startupError == null) shell.browseNpcs();
-        else showShellIfNoEditor();
+        if (transientDesktop && !exiting && desktop != null) desktop.openBrowser();
     }
 
     static void exitApplication() {
+        if (exiting) return;
         exiting = true;
         for (Window window : Window.getWindows()) window.dispose();
         System.exit(0);
-    }
-
-    private static void showShellIfNoEditor() {
-        if (exiting || shell == null || hasVisibleEditor()) return;
-        shell.setVisible(true);
-        shell.setExtendedState(JFrame.NORMAL);
-        shell.toFront();
     }
 
     private static boolean hasVisibleEditor() {
@@ -233,105 +213,34 @@ public final class DesktopMain {
 
     private static Window ownerWindow(Component owner) {
         if (owner instanceof Window) return (Window)owner;
-        Window found = owner == null ? null : SwingUtilities.getWindowAncestor(owner);
-        return found == null ? shell : found;
+        return owner == null ? null : SwingUtilities.getWindowAncestor(owner);
     }
 
-    static final class AppShell extends JFrame {
+    private static final class DesktopController {
         private final DesktopDistribution distribution;
-        private final Exception startupError;
         private NpcBrowserDialog browser;
 
-        AppShell(DesktopDistribution distribution) {
-            this(distribution, null);
-        }
-
-        AppShell(Exception error) {
-            this(null, error);
-        }
-
-        private AppShell(DesktopDistribution distribution, Exception startupError) {
-            super("RSC Sprite Baker");
+        DesktopController(DesktopDistribution distribution) {
             this.distribution = distribution;
-            this.startupError = startupError;
-            setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-            addWindowListener(new java.awt.event.WindowAdapter() {
-                public void windowClosing(java.awt.event.WindowEvent e) { exitApplication(); }
-            });
-            setJMenuBar(menuBar());
-            setLayout(new BorderLayout());
-            JPanel content = new JPanel(new BorderLayout(12, 12));
-            content.setBorder(BorderFactory.createEmptyBorder(38, 48, 38, 48));
-            JLabel title = new JLabel("RSC Sprite Baker", JLabel.CENTER);
-            title.setFont(title.getFont().deriveFont(Font.BOLD, 28f));
-            content.add(title, BorderLayout.NORTH);
-            JPanel actions = new JPanel(new FlowLayout(FlowLayout.CENTER, 18, 32));
-            JButton browse = new JButton(startupError == null ? "Browse NPCs" : "Cache Not Available");
-            browse.setPreferredSize(new Dimension(240, 56));
-            browse.setEnabled(startupError == null);
-            browse.addActionListener(e -> browseNpcs());
-            actions.add(browse);
-            content.add(actions, BorderLayout.CENTER);
-            String message = startupError == null
-                ? "Choose an NPC, customize its sprite sheet, and export. No project setup required."
-                : "The bundled cache could not be opened. See Help > Startup Details.";
-            content.add(new JLabel(message, JLabel.CENTER), BorderLayout.SOUTH);
-            add(content, BorderLayout.CENTER);
-            setSize(720, 340);
-            setMinimumSize(new Dimension(600, 290));
-            setLocationByPlatform(true);
         }
 
-        private JMenuBar menuBar() {
-            JMenuBar bar = new JMenuBar();
-            JMenu npc = new JMenu("NPC");
-            JMenuItem browse = item("Browse NPCs…", this::browseNpcs);
-            browse.setEnabled(startupError == null);
-            npc.add(browse);
-            bar.add(npc);
-            JMenu help = new JMenu("Help");
-            help.add(item("About", this::about));
-            if (startupError != null) help.add(item("Startup Details", () -> showError(this, startupError)));
-            bar.add(help);
-            return bar;
-        }
-
-        private void browseNpcs() {
-            if (distribution == null) return;
+        private void openBrowser() {
             if (browser != null && browser.isDisplayable()) {
-                setVisible(false);
                 browser.setVisible(true);
                 browser.toFront();
                 return;
             }
-            browser = new NpcBrowserDialog(this, distribution.cacheDirectory, entry -> openTransient(this, entry, distribution));
-            browser.addWindowListener(new java.awt.event.WindowAdapter() {
-                public void windowClosed(java.awt.event.WindowEvent e) { showShellIfNoEditor(); }
+            NpcBrowserDialog opened = new NpcBrowserDialog(null, distribution.cacheDirectory,
+                entry -> openTransient(browser, entry, distribution));
+            browser = opened;
+            opened.addWindowListener(new java.awt.event.WindowAdapter() {
+                public void windowClosed(java.awt.event.WindowEvent e) {
+                    if (exiting || hasVisibleEditor()) return;
+                    if (opened.selectedNpc()) SwingUtilities.invokeLater(DesktopController.this::openBrowser);
+                    else exitApplication();
+                }
             });
-            setVisible(false);
-            browser.setVisible(true);
-        }
-
-        private void about() {
-            String paths = distribution == null ? "" : "\n\nExports: " + distribution.exportDirectory;
-            JOptionPane.showMessageDialog(this,
-                "RSC Sprite Baker\n\nBrowse an NPC, customize the sheet, then export PNG + provenance." + paths +
-                "\n\nBundled cache licensing and source details are included in the distribution's licenses folder.",
-                "About RSC Sprite Baker", JOptionPane.INFORMATION_MESSAGE);
-        }
-
-        private JMenuItem item(String label, Runnable action) {
-            JMenuItem item = new JMenuItem(label);
-            item.addActionListener(e -> action.run());
-            return item;
-        }
-
-        private void openInitialView() {
-            if (startupError != null) {
-                setVisible(true);
-                return;
-            }
-            browseNpcs();
+            opened.setVisible(true);
         }
     }
 }

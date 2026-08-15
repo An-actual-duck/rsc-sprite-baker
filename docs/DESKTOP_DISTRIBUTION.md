@@ -14,9 +14,10 @@ through a strictly read-only storage implementation. A selected NPC opens as a
 temporary editing session with discovered movement poses and conservative
 combat suggestions. Export writes a human-readable PNG and provenance JSON to
 the adjacent `exports` directory. Existing output is never replaced without a
-confirmation prompt. Closing the initial browser reveals a small fallback
-shell so the process never becomes an ownerless background application.
-Closing a temporary NPC editor returns directly to the NPC browser.
+confirmation prompt. Closing a temporary NPC editor returns directly to the
+NPC browser; closing the browser exits the application. There is no
+intermediate landing screen in the ordinary workflow. A startup failure is
+reported directly and then exits.
 
 Temporary adjustments are considered safe to discard after a successful
 export. Closing or switching away before export prompts the user. Ordinary
