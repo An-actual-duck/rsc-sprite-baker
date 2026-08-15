@@ -42,7 +42,10 @@ end-user workflow evidence. See
 fail-closed textured compatibility matrix and provenance,
 [`docs/RSC_VISUAL_PRESETS.md`](docs/RSC_VISUAL_PRESETS.md) for the visual
 pipeline, and [`docs/ANIMATION_COMPATIBILITY.md`](docs/ANIMATION_COMPATIBILITY.md)
-for the client animation trace. The Phase 1 CLI remains unchanged.
+for the client animation trace. The deterministic all-NPC terminal scanner,
+lazy browser compatibility status, and current 8,590-definition results are in
+[`docs/COMPATIBILITY_CENSUS.md`](docs/COMPATIBILITY_CENSUS.md). The Phase 1 CLI
+remains unchanged.
 
 ## Compatibility-spike CLI
 

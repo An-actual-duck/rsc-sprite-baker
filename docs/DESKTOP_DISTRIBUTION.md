@@ -27,7 +27,8 @@ preferences.
 ## Advanced interfaces retained
 
 Zero-configuration is the default, not a removal of the technical workflows.
-The shaded JAR still contains `SelectorMain`, `HeadlessMain`, and `Main`.
+The shaded JAR still contains `SelectorMain`, `HeadlessMain`, `Main`, and the
+terminal-only `CompatibilityCensusMain` broad-cache scanner.
 Developers can use the documented argument-driven portable-project selector,
 single-project headless export, deterministic batch export, validation, and
 dry-run interfaces. Those interfaces continue to accept explicit cache,
@@ -129,3 +130,23 @@ reported that other attempted NPCs did not load. NPC 72 demonstrates the basic
 zero-configuration workflow, but this handoff does not claim that every cache
 NPC is supported. Existing fail-closed model, texture, and animation limits
 still apply and should be reviewed per NPC before publishing derived output.
+
+## 2026-08-15 compatibility build inspection
+
+The broad-cache compatibility build passed Java 21 `mvn clean verify` with 62
+tests. With `SOURCE_DATE_EPOCH=1786752589`, the provenance-checked distribution
+builder copied the 31 licensed-cache files from the recorded sibling checkout
+into private staging, and the terminal inspector accepted launcher separation,
+empty exports directories, cache checksums and permissions, licenses/notices,
+safe archive paths, and all desktop/advanced entry points including
+`CompatibilityCensusMain`.
+
+- shaded JAR SHA-256: `8222938a4c4fbb28273be930d29e31dbc911ca4cfb7a540e781939b6dfb912fa`
+- Linux archive SHA-256: `18feece17a1e602890e344e41ebd37d38a717d57851f946580866935793ad371`
+  (76,980,696 bytes)
+- Windows archive SHA-256: `204bb8b638a5430e530c74da89af4c793fb4b5e6c33d860448e4f914e1f3fe4e`
+  (76,981,553 bytes)
+
+The packaged census entry point then reproduced the byte-identical report hash
+recorded in `COMPATIBILITY_CENSUS.md`. Cache dat2 and idx255 hashes were
+unchanged after the audit.
