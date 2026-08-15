@@ -19,6 +19,15 @@ class ProceduralTexture530DecoderTest {
         UnsupportedTextureFormatException e=assertThrows(UnsupportedTextureFormatException.class,()->new ProceduralTexture530Decoder().decode(901,fixture,4));
         assertTrue(e.getMessage().contains("operation 35"));
     }
+    @Test void operation13ReproducesFixedPointHashNoiseAndRejectsParameters(){
+        ProceduralTexture530Decoder.Decoded decoded=new ProceduralTexture530Decoder().decode(905,hashNoise(),8);
+        assertArrayEquals(new int[]{16053492,16053492,7500402,0,16185078,7697781,7763574,0,
+            0,14803425,0,6250335,2105376,14540253,0,6184542},java.util.Arrays.copyOfRange(decoded.pixels,0,16));
+        assertEquals(java.util.List.of(13),decoded.operationTypes);
+        UnsupportedTextureFormatException error=assertThrows(UnsupportedTextureFormatException.class,
+            ()->new ProceduralTexture530Decoder().decode(906,new byte[]{1,0,13,1,1,0,0,0,0},8));
+        assertTrue(error.getMessage().contains("operation parameter 0 for HashNoise"));
+    }
     @Test void operation34RendersDefaultSeededNoiseDeterministically(){
         byte[] fixture=defaultNoise();
         ProceduralTexture530Decoder.Decoded first=new ProceduralTexture530Decoder().decode(903,fixture,16);
@@ -41,6 +50,7 @@ class ProceduralTexture530DecoderTest {
         assertArrayEquals(new int[]{0x0000ff,0x0000ff,0xff0000,0xff0000},java.util.Arrays.copyOfRange(decoded.pixels,0,4));
         assertEquals(java.util.List.of(36),decoded.operationTypes);
     }
+    static byte[] hashNoise(){return new byte[]{1,0,13,1,0,0,0,0};}
     static byte[] defaultNoise(){return new byte[]{1,0,34,1,0,0,0,0};}
     static byte[] textureDependency(int id){return new byte[]{1,0,36,1,1,0,(byte)(id>>>8),(byte)id,0,0,0};}
     private static void bytes(ByteArrayOutputStream out,int... values){for(int value:values)out.write(value);}

@@ -31,7 +31,7 @@ public final class ProceduralTexture530Decoder {
 
     private static Node create(int id,int type,DependencyResolver dependencies){switch(type){
         case 0:return new Fill(true);case 1:return new Fill(false);case 2:return new Gradient(true);case 3:return new Gradient(false);
-        case 7:return new Combine();case 8:return new Curve();case 10:return new ColorGradient();case 30:return new Range();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);
+        case 7:return new Combine();case 8:return new Curve();case 10:return new ColorGradient();case 13:return new HashNoise();case 30:return new Range();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);
         default:throw new UnsupportedTextureFormatException(id,"procedural operation "+type);
     }}
     @FunctionalInterface public interface DependencyResolver{Dependency resolve(int textureId)throws IOException;}
@@ -44,6 +44,15 @@ public final class ProceduralTexture530Decoder {
     private static final class Range extends Node{int min=1024,max=3072,range=2048;boolean monochrome;int childCount(){return 1;}void decode(int id,int code,BinaryInput in){if(code==0)min=in.u16();else if(code==1)max=in.u16();else if(code==2)monochrome=in.u8()==1;else super.decode(id,code,in);}void finish(int id){range=max-min;}int[] rgb(int x,int y,int size)throws IOException{int[] c=children[0].rgb(x,y,size);return new int[]{min+(range*c[0]>>12),min+(range*c[1]>>12),min+(range*c[2]>>12)};}}
     private static final class Curve extends Node{int mode;int[][] markers;int childCount(){return 1;}void decode(int id,int code,BinaryInput in){if(code!=0)super.decode(id,code,in);mode=in.u8();int n=in.u8();markers=new int[n][2];for(int i=0;i<n;i++){markers[i][0]=in.u16();markers[i][1]=in.u16();}}void finish(int id){if(mode!=0)throw new UnsupportedTextureFormatException(id,"curve interpolation "+mode);if(markers==null||markers.length<2)throw new UnsupportedTextureFormatException(id,"curve marker count");}int[] rgb(int x,int y,int size)throws IOException{int v=children[0].mono(x,y,size),i=1;while(i<markers.length&&v>=markers[i][0])i++;int result;if(i==markers.length)result=markers[i-1][1];else if(i==0)result=markers[0][1];else{int[] a=markers[i-1],b=markers[i];result=a[1]+(b[1]-a[1])*(v-a[0])/Math.max(1,b[0]-a[0]);}return new int[]{result,result,result};}}
     private static final class ColorGradient extends Node{int[][] samples;int childCount(){return 1;}void decode(int id,int code,BinaryInput in){if(code!=0)super.decode(id,code,in);int preset=in.u8();if(preset!=0)throw new UnsupportedTextureFormatException(id,"color-gradient preset "+preset);int n=in.u8();samples=new int[n][4];for(int i=0;i<n;i++){samples[i][0]=in.u16();samples[i][1]=in.u8()<<4;samples[i][2]=in.u8()<<4;samples[i][3]=in.u8()<<4;}}void finish(int id){if(samples==null||samples.length<2)throw new UnsupportedTextureFormatException(id,"color-gradient sample count");}int[] rgb(int x,int y,int size)throws IOException{int v=children[0].mono(x,y,size),i=0;while(i<samples.length&&v>=samples[i][0])i++;if(i==0)return color(samples[0]);if(i==samples.length)return color(samples[i-1]);int[] a=samples[i-1],b=samples[i];int w=(v-a[0])*4096/Math.max(1,b[0]-a[0]);return new int[]{(a[1]*(4096-w)+b[1]*w)>>12,(a[2]*(4096-w)+b[2]*w)>>12,(a[3]*(4096-w)+b[3]*w)>>12};}private int[] color(int[] s){return new int[]{s[1],s[2],s[3]};}}
+    private static final class HashNoise extends Node{
+        int childCount(){return 0;}
+        int[] rgb(int x,int y,int size){
+            int xFraction=(x<<12)/size,yFraction=(y<<12)/size;
+            int coordinate=xFraction+yFraction*57,hash=coordinate^(coordinate<<1);
+            int value=(4096-((hash*(hash*hash*15731+789221)+1376312589)&Integer.MAX_VALUE)/262144)%4096;
+            return new int[]{value,value,value};
+        }
+    }
     private static final class PerlinNoise extends Node{
         boolean normalize=true;int octaves=4,persistence=1638,xScale=4,yScale=4,seed;short[] amplitudes,frequencies;byte[] permutation;
         int childCount(){return 0;}
