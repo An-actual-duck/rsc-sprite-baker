@@ -22,7 +22,7 @@ diagonal, side, diagonal-away, away, and combat views.
 ## Current status
 
 The current desktop distribution is a zero-configuration workflow: users
-launch the platform start file, browse/select an NPC from the bundled
+launch the platform start file directly into the NPC browser, select an NPC from the bundled
 read-only licensed cache, customize the sheet, and export PNG + provenance to
 the adjacent `exports` folder. No cache, project, or export path setup is part
 of the ordinary workflow. See

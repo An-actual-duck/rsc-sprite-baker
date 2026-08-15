@@ -9,12 +9,14 @@ The launcher anchors all ordinary paths to its own folder, regardless of the
 current working directory.
 
 The default desktop does not ask for cache, project, or export locations. It
-opens a persistent shell, reads the bundled `cache` directory through a
-strictly read-only storage implementation, and presents the NPC browser. A
-selected NPC opens as a temporary editing session with discovered movement
-poses and conservative combat suggestions. Export writes a human-readable PNG
-and provenance JSON to the adjacent `exports` directory. Existing output is
-never replaced without a confirmation prompt.
+opens directly to the NPC browser and reads the bundled `cache` directory
+through a strictly read-only storage implementation. A selected NPC opens as a
+temporary editing session with discovered movement poses and conservative
+combat suggestions. Export writes a human-readable PNG and provenance JSON to
+the adjacent `exports` directory. Existing output is never replaced without a
+confirmation prompt. Closing the initial browser reveals a small fallback
+shell so the process never becomes an ownerless background application.
+Closing a temporary NPC editor returns directly to the NPC browser.
 
 Temporary adjustments are considered safe to discard after a successful
 export. Closing or switching away before export prompts the user. Ordinary

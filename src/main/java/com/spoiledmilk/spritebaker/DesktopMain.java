@@ -47,7 +47,7 @@ public final class DesktopMain {
             } catch (Exception e) {
                 shell = new AppShell(e);
             }
-            shell.setVisible(true);
+            shell.openInitialView();
         });
     }
 
@@ -158,8 +158,9 @@ public final class DesktopMain {
         }
     }
 
-    static void editorClosed() {
-        showShellIfNoEditor();
+    static void editorClosed(boolean transientDesktop) {
+        if (transientDesktop && !exiting && shell != null && shell.startupError == null) shell.browseNpcs();
+        else showShellIfNoEditor();
     }
 
     static void exitApplication() {
@@ -298,11 +299,16 @@ public final class DesktopMain {
         private void browseNpcs() {
             if (distribution == null) return;
             if (browser != null && browser.isDisplayable()) {
+                setVisible(false);
                 browser.setVisible(true);
                 browser.toFront();
                 return;
             }
             browser = new NpcBrowserDialog(this, distribution.cacheDirectory, entry -> openTransient(this, entry, distribution));
+            browser.addWindowListener(new java.awt.event.WindowAdapter() {
+                public void windowClosed(java.awt.event.WindowEvent e) { showShellIfNoEditor(); }
+            });
+            setVisible(false);
             browser.setVisible(true);
         }
 
@@ -318,6 +324,14 @@ public final class DesktopMain {
             JMenuItem item = new JMenuItem(label);
             item.addActionListener(e -> action.run());
             return item;
+        }
+
+        private void openInitialView() {
+            if (startupError != null) {
+                setVisible(true);
+                return;
+            }
+            browseNpcs();
         }
     }
 }

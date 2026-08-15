@@ -14,7 +14,7 @@ with the platform file above; do not run the JAR directly. The application
 automatically uses the bundled read-only `cache` directory. Browse for an NPC,
 customize its poses and visual settings, then choose Export. PNG sheets and
 provenance manifests are written to this folder's `exports` directory
-automatically.
+automatically. A normal launch opens directly to the NPC browser.
 
 Ordinary desktop work is temporary: changing NPCs or closing the editor may
 discard adjustments that have not been exported. The application warns before
