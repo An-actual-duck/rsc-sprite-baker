@@ -36,7 +36,7 @@ public final class CompatibilityCensus {
             while (operation.find()) operations.merge(operation.group(1), 1, Integer::sum);
             if (result.category == NpcCompatibility.Category.UNSUPPORTED_MODEL) {
                 Matcher cluster = MODEL_CLUSTER.matcher(result.reason);
-                modelClusters.merge(cluster.matches() ? cluster.group(1) : result.reason, 1, Integer::sum);
+                modelClusters.merge(normalizeModelFailure(cluster.matches() ? cluster.group(1) : result.reason), 1, Integer::sum);
             }
         }
         categories = ordered(categoryCounts);
@@ -58,5 +58,12 @@ public final class CompatibilityCensus {
 
     private static <K,V> Map<K,V> ordered(Map<K,V> source) {
         return java.util.Collections.unmodifiableMap(new java.util.LinkedHashMap<>(source));
+    }
+
+    private static String normalizeModelFailure(String failure) {
+        if (failure.startsWith("IllegalArgumentException: newPosition > limit:")) {
+            return "IllegalArgumentException: newPosition > limit";
+        }
+        return failure;
     }
 }
