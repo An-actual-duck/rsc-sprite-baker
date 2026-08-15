@@ -70,10 +70,36 @@ class ProceduralTexture530DecoderTest {
             ()->new ProceduralTexture530Decoder().decode(910,new byte[]{1,0,32,1,1,3,0,0,0,0},8));
         assertTrue(error.getMessage().contains("operation parameter 3 for BumpLighting"));
     }
+    @Test void operation5WrapsAndTruncatesEachMonochromeBlurPass(){
+        ProceduralTexture530Decoder.Decoded decoded=new ProceduralTexture530Decoder().decode(911,boxBlurMonochrome(),8);
+        assertArrayEquals(new int[]{3618615,2500134,3026478,3487029,2631720,2171169,3092271,3947580,
+            5723991,5395026,6513507,6118749,4144959,3289650,3684408,4868682},java.util.Arrays.copyOfRange(decoded.pixels,0,16));
+        assertTrue(java.util.Arrays.stream(decoded.pixels).allMatch(pixel->(pixel>>16&255)==(pixel>>8&255)&&(pixel>>8&255)==(pixel&255)));
+        assertEquals(java.util.List.of(13,5),decoded.operationTypes);
+    }
+    @Test void operation5PreservesColorChannelsAndRejectsUnknownParameters(){
+        ProceduralTexture530Decoder.Decoded decoded=new ProceduralTexture530Decoder().decode(912,boxBlurColor(),8);
+        assertArrayEquals(new int[]{8019538,9134923,10184515,8347471,6510427,4673383,5788768,6904153},
+            java.util.Arrays.copyOfRange(decoded.pixels,0,8));
+        assertTrue(java.util.Arrays.stream(decoded.pixels).anyMatch(pixel->(pixel>>16&255)!=(pixel>>8&255)));
+        assertEquals(java.util.List.of(2,10,5),decoded.operationTypes);
+        UnsupportedTextureFormatException error=assertThrows(UnsupportedTextureFormatException.class,
+            ()->new ProceduralTexture530Decoder().decode(913,new byte[]{1,0,5,1,1,3,0,0,0,0},8));
+        assertTrue(error.getMessage().contains("operation parameter 3 for BoxBlur"));
+    }
+    @Test void operation5ColorOutputFeedsMonochromeConsumersFromItsFirstChannel(){
+        ProceduralTexture530Decoder.Decoded decoded=new ProceduralTexture530Decoder().decode(914,boxBlurColorThenCurve(),8);
+        assertArrayEquals(new int[]{8026746,9145227,10197915,8355711,6513507,4671303,5789784,6908265},
+            java.util.Arrays.copyOfRange(decoded.pixels,0,8));
+        assertEquals(java.util.List.of(2,10,5,8),decoded.operationTypes);
+    }
     static byte[] hashNoise(){return new byte[]{1,0,13,1,0,0,0,0};}
     static byte[] defaultNoise(){return new byte[]{1,0,34,1,0,0,0,0};}
     static byte[] textureDependency(int id){return new byte[]{1,0,36,1,1,0,(byte)(id>>>8),(byte)id,0,0,0};}
     static byte[] lineNoise(){return new byte[]{1,0,38,1,5,0,7,1,0,6,2,4,3,4,0,4,8,0,0,0,0};}
     static byte[] bumpLighting(){return new byte[]{2,0,13,1,0,0,32,1,3,0,6,0,1,10,0,2,4,0,0,1,0,0};}
+    static byte[] boxBlurMonochrome(){return new byte[]{2,0,13,1,0,0,5,1,3,0,2,1,1,2,1,0,1,0,0};}
+    static byte[] boxBlurColor(){return new byte[]{3,0,2,1,0,0,10,1,1,0,0,2,0,0,16,64,(byte)128,16,0,(byte)240,(byte)128,32,0,0,5,1,3,0,2,1,1,2,0,1,2,0,0};}
+    static byte[] boxBlurColorThenCurve(){return new byte[]{4,0,2,1,0,0,10,1,1,0,0,2,0,0,16,64,(byte)128,16,0,(byte)240,(byte)128,32,0,0,5,1,3,0,2,1,1,2,0,1,0,8,1,1,0,0,2,0,0,0,0,16,0,16,0,2,3,0,0};}
     private static void bytes(ByteArrayOutputStream out,int... values){for(int value:values)out.write(value);}
 }
