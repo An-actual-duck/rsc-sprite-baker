@@ -14,17 +14,26 @@ The supported procedural operations are deliberately limited to the first
 verified textured NPC: monochrome/color fill (0/1), horizontal/vertical
 gradient (2/3), multiply combine (7 function 3), linear curve parsing (8),
 custom sampled color gradient (10 preset 0), hash noise (13), range (30),
-multi-octave gradient noise (34), nested texture dependencies (36), and line
-noise (38). Texture generation uses the software client's 64/128 material-size
-flag and horizontal order. It uses a fixed, manifest-recorded gamma of 1.0
-instead of the source client's preference-dependent and randomly perturbed
-brightness value.
+bump lighting (32), multi-octave gradient noise (34), nested texture
+dependencies (36), and line noise (38). Texture generation uses the software
+client's 64/128 material-size flag and horizontal order. It uses a fixed,
+manifest-recorded gamma of 1.0 instead of the source client's
+preference-dependent and randomly perturbed brightness value.
 Operation 13 is the client's zero-child monochrome hash-noise node and has no
 serialized parameters. For every texel, it hashes the 12-bit X/Y fractions
 with Java `int` overflow, masks the polynomial result to a non-negative integer,
 scales it, and applies Java signed remainder `% 4096`. Unexpected parameters
 fail closed. The primary trace is
 [`TextureOpNoise.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOpNoise.java).
+Operation 32 is the client's one-child monochrome bump-lighting node. Its
+serialized parameters are unsigned 16-bit gradient scale (code 0), horizontal
+light angle (code 1), and vertical light angle (code 2), with defaults 4096,
+3216, and 3216. The implementation preserves the 64-pixel half-scale rule,
+wrapped central differences, first-channel input rule for color children,
+client-generated 32,896-byte normal lookup table, fixed-point normal and light
+vectors, float angle conversion, and monochrome dot-product output. Unexpected
+parameters fail closed. The primary trace is
+[`TextureOp32.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOp32.java).
 Operation 34 is the client's zero-child monochrome multi-octave gradient-noise
 node. The decoder preserves its 12-bit fixed-point interpolation, Java-seeded
 permutation table, normalization flag, octave trimming, persistence or explicit
@@ -84,6 +93,7 @@ reference-index SHA-256
 | Alpha/mapping stress | NPC 61 Spider; model 24613; material 111 | Supported | Operation 34 now decodes; models, material, standing sequence 6247, and walking sequence 6248 validate. Its 298 textured faces continue to use the documented advanced-mapping fallback. |
 | Hash-noise multipart | NPC 125 Ice warrior; seven component models; materials 249/291/303/302 | Supported | Operation 13 now decodes; standing sequence 842, walking sequence 841, and all 1,076 textured faces validate. |
 | Line-noise animated | NPC 131 Penguin; model 21547; materials 182/347/171 | Supported | Operation 38 now decodes; standing sequence 5668, walking sequence 5666, and all 391 textured faces validate in a packaged 18-cell render. |
+| Bump-lit animated | NPC 1013 Swamp toad; model 3447; material 318 | Supported | Operation 32 now decodes; standing sequence 1018, walking sequence 1021, and all 155 textured faces validate in a packaged 18-cell render. |
 | Known difficult model | model 23905 | Unsupported model | RuneLite model decoder throws `BufferUnderflowException`. |
 | Known difficult model | model 23889 | Unsupported model | RuneLite model decoder reports an invalid offset (`newPosition > limit`). |
 

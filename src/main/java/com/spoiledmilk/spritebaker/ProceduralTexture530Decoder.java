@@ -31,7 +31,7 @@ public final class ProceduralTexture530Decoder {
 
     private static Node create(int id,int type,DependencyResolver dependencies){switch(type){
         case 0:return new Fill(true);case 1:return new Fill(false);case 2:return new Gradient(true);case 3:return new Gradient(false);
-        case 7:return new Combine();case 8:return new Curve();case 10:return new ColorGradient();case 13:return new HashNoise();case 30:return new Range();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();
+        case 7:return new Combine();case 8:return new Curve();case 10:return new ColorGradient();case 13:return new HashNoise();case 30:return new Range();case 32:return new BumpLighting();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();
         default:throw new UnsupportedTextureFormatException(id,"procedural operation "+type);
     }}
     @FunctionalInterface public interface DependencyResolver{Dependency resolve(int textureId)throws IOException;}
@@ -121,6 +121,39 @@ public final class ProceduralTexture530Decoder {
         }
     }
     private static final class TextureDependency extends Node{final DependencyResolver resolver;int textureId=-1;TextureDependency(DependencyResolver resolver){this.resolver=resolver;}int childCount(){return 0;}void decode(int id,int code,BinaryInput in){if(code!=0)super.decode(id,code,in);textureId=in.u16();}void finish(int id){if(textureId<0)throw new UnsupportedTextureFormatException(id,"texture dependency ID is absent");}int[] rgb(int x,int y,int size)throws IOException{Dependency dependency=resolver.resolve(textureId);if(dependency==null||dependency.size<=0||dependency.pixels.length!=dependency.size*dependency.size)throw new UnsupportedTextureFormatException(textureId,"invalid dependency pixels");int sx=x*dependency.size/size,sy=y*dependency.size/size;int pixel=dependency.pixels[sy*dependency.size+(dependency.size-1-sx)];return new int[]{pixel>>12&0xff0,pixel>>4&0xff0,(pixel&0xff)<<4};}}
+    private static final class BumpLighting extends Node{
+        private static final byte[] NORMALIZATION=normalization();
+        int scale=4096,horizontalAngle=3216,verticalAngle=3216;final int[] light=new int[3];
+        int childCount(){return 1;}
+        void decode(int id,int code,BinaryInput in){switch(code){case 0:scale=in.u16();break;case 1:horizontalAngle=in.u16();break;case 2:verticalAngle=in.u16();break;default:super.decode(id,code,in);}}
+        void finish(int id){
+            double verticalCosine=Math.cos((float)verticalAngle/4096.0F);
+            light[0]=(int)(verticalCosine*4096.0D*Math.sin((float)horizontalAngle/4096.0F));
+            light[1]=(int)(Math.cos((float)horizontalAngle/4096.0F)*verticalCosine*4096.0D);
+            light[2]=(int)(Math.sin((float)verticalAngle/4096.0F)*4096.0D);
+            int zSquare=light[2]*light[2]>>12,ySquare=light[1]*light[1]>>12,xSquare=light[0]*light[0]>>12;
+            int magnitude=(int)(Math.sqrt(xSquare+ySquare+zSquare>>12)*4096.0D);
+            if(magnitude!=0){light[2]=(light[2]<<12)/magnitude;light[0]=(light[0]<<12)/magnitude;light[1]=(light[1]<<12)/magnitude;}
+        }
+        int[] rgb(int x,int y,int size)throws IOException{
+            int gradientScale=(size==64?2048:4096)*scale>>12,mask=size-1;
+            int left=children[0].rgb(x-1&mask,y,size)[0],right=children[0].rgb(x+1&mask,y,size)[0];
+            int above=children[0].rgb(x,y-1&mask,size)[0],below=children[0].rgb(x,y+1&mask,size)[0];
+            int horizontal=(left-right)*gradientScale>>12,vertical=gradientScale*(below-above)>>12;
+            int horizontalIndex=horizontal>>4;if(horizontalIndex<0)horizontalIndex=-horizontalIndex;if(horizontalIndex>255)horizontalIndex=255;
+            int verticalIndex=vertical>>4;if(verticalIndex<0)verticalIndex=-verticalIndex;if(verticalIndex>255)verticalIndex=255;
+            int normalization=NORMALIZATION[(verticalIndex*(verticalIndex+1)>>1)+horizontalIndex]&0xff;
+            int normalVertical=vertical*normalization>>8,normalHorizontal=normalization*horizontal>>8,normalDepth=normalization*4096>>8;
+            int value=(normalDepth*light[2]>>12)+(normalVertical*light[1]>>12)+(light[0]*normalHorizontal>>12);
+            return new int[]{value,value,value};
+        }
+        private static byte[] normalization(){
+            byte[] values=new byte[32896];int index=0;
+            for(int vertical=0;vertical<256;vertical++)for(int horizontal=0;horizontal<=vertical;horizontal++)
+                values[index++]=(byte)(255.0D/Math.sqrt((float)(horizontal*horizontal+vertical*vertical+65535)/65535.0F));
+            return values;
+        }
+    }
     private static final class LineNoise extends Node{
         private static final int[] SINE=trigonometry(true),COSINE=trigonometry(false);
         int seed,lineCount=2000,length=16,baseAngle,angleRange=4096,cachedSize=-1;int[][] image;
