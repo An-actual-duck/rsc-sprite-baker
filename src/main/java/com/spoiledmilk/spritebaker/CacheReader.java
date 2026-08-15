@@ -27,7 +27,7 @@ public final class CacheReader implements Closeable {
     private final Framemap530Decoder framemapDecoder = new Framemap530Decoder();
 
     public CacheReader(Path cacheDirectory) throws IOException {
-        this.store = new Store(cacheDirectory.toFile());
+        this.store = new Store(new ReadOnlyCacheStorage(cacheDirectory));
         this.store.load();
     }
 

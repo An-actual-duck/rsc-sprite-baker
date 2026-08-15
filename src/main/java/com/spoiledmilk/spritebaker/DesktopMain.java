@@ -9,6 +9,7 @@ import java.awt.GraphicsEnvironment;
 import java.awt.Window;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -26,7 +27,7 @@ import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
-/** Runnable desktop entry point. CLI entry points remain Main and SelectorMain. */
+/** Zero-configuration desktop entry point. Advanced project/CLI entry points remain available. */
 public final class DesktopMain {
     private static AppShell shell;
     private static boolean exiting;
@@ -41,11 +42,25 @@ public final class DesktopMain {
         SwingUtilities.invokeLater(() -> {
             try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); }
             catch (Exception ignored) {}
-            shell = new AppShell();
+            try {
+                shell = new AppShell(DesktopDistribution.discover(args));
+            } catch (Exception e) {
+                shell = new AppShell(e);
+            }
             shell.setVisible(true);
         });
     }
 
+    private static void openTransient(Component owner, NpcCatalogEntry entry, DesktopDistribution distribution) {
+        try {
+            DesktopSession session = DesktopWorkflow.transientSession(distribution.cacheDirectory, distribution.exportDirectory, entry.id);
+            openSession(owner, session);
+        } catch (Exception e) {
+            showError(owner, e);
+        }
+    }
+
+    /** Retained for the advanced argument-driven selector. Not exposed by the ordinary desktop. */
     static void runWizard(Component owner, boolean create) {
         Window window = ownerWindow(owner);
         DesktopPreferences preferences = DesktopPreferences.load(DesktopPreferences.defaultFile());
@@ -55,6 +70,7 @@ public final class DesktopMain {
         if (session != null) openSession(owner, session);
     }
 
+    /** Retained for the advanced project workflow. */
     static void openRecent(Component owner, DesktopPreferences.RecentProject recent) {
         try {
             DesktopSession session = DesktopWorkflow.open(Path.of(recent.cacheDirectory), Path.of(recent.projectFile), Path.of(recent.exportDirectory));
@@ -66,11 +82,11 @@ public final class DesktopMain {
 
     static void openSession(Component owner, DesktopSession session) {
         Window ownerWindow = ownerWindow(owner);
-        JDialog progress = new JDialog(ownerWindow, "Opening project", java.awt.Dialog.ModalityType.APPLICATION_MODAL);
+        JDialog progress = new JDialog(ownerWindow, "Loading NPC", java.awt.Dialog.ModalityType.APPLICATION_MODAL);
         JProgressBar bar = new JProgressBar();
         bar.setIndeterminate(true);
         bar.setStringPainted(true);
-        bar.setString("Loading cache and NPC " + session.project.npcId + "…");
+        bar.setString("Loading NPC " + session.project.npcId + "…");
         progress.add(bar);
         progress.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
         progress.setSize(440, 90);
@@ -78,17 +94,22 @@ public final class DesktopMain {
 
         SwingWorker<AnimationWorkspace,Void> worker = new SwingWorker<>() {
             protected AnimationWorkspace doInBackground() throws Exception {
-                return new AnimationWorkspace(session.cacheDirectory, session.project.npcId);
+                AnimationWorkspace workspace = new AnimationWorkspace(session.cacheDirectory, session.project.npcId);
+                if (session.transientDesktop) prepareTransientProject(session.project, workspace);
+                return workspace;
             }
             protected void done() {
                 progress.dispose();
                 try {
                     AnimationWorkspace workspace = get();
-                    int standing = session.project.standingSequenceId;
-                    int walking = session.project.walkingSequenceId;
-                    AnimationDiscovery.populateKnown(session.project, workspace);
-                    session.dirty = standing != session.project.standingSequenceId || walking != session.project.walkingSequenceId;
-                    remember(session);
+                    if (session.transientDesktop) session.dirty = false;
+                    else {
+                        int standing = session.project.standingSequenceId;
+                        int walking = session.project.walkingSequenceId;
+                        AnimationDiscovery.populateKnown(session.project, workspace);
+                        session.dirty = standing != session.project.standingSequenceId || walking != session.project.walkingSequenceId;
+                        remember(session);
+                    }
                     SelectorMain.SelectorFrame frame = new SelectorMain.SelectorFrame(workspace, session);
                     frame.setVisible(true);
                     if (shell != null) shell.setVisible(false);
@@ -103,6 +124,40 @@ public final class DesktopMain {
         progress.setVisible(true);
     }
 
+    private static void prepareTransientProject(SpriteProject project, AnimationWorkspace workspace) throws Exception {
+        AnimationDiscovery.populateKnown(project, workspace);
+        PoseSelection standing = null;
+        PoseSelection left = null;
+        PoseSelection right = null;
+        if (project.standingSequenceId >= 0) {
+            Sequence530 sequence = workspace.cache.loadSequence(project.standingSequenceId);
+            standing = new PoseSelection(AnimationTimeline.sample(sequence, 0), "automatic-default");
+        }
+        if (project.walkingSequenceId >= 0) {
+            Sequence530 sequence = workspace.cache.loadSequence(project.walkingSequenceId);
+            left = new PoseSelection(AnimationTimeline.sample(sequence, sequence.totalMillis() / 3), "automatic-default");
+            right = new PoseSelection(AnimationTimeline.sample(sequence, sequence.totalMillis() * 2 / 3), "automatic-default");
+        }
+        if (left == null) left = standing;
+        if (right == null) right = standing;
+        PoseSelection[] movement = {standing, left, right};
+        for (int row = 0; row < movement.length; row++) {
+            if (movement[row] != null) for (int column = 0; column < 5; column++) project.sheet.suggest(row, column, movement[row]);
+        }
+
+        List<CombatCandidate> candidates = AnimationDiscovery.combatCandidates(workspace);
+        if (!candidates.isEmpty()) {
+            project.combatSequenceId = candidates.get(0).sequenceId;
+            Sequence530 combat = workspace.cache.loadSequence(project.combatSequenceId);
+            for (int row = 0; row < 3; row++) {
+                long time = combat.totalMillis() * row / 3;
+                project.sheet.suggest(row, 5, new PoseSelection(AnimationTimeline.sample(combat, time), "automatic-combat-candidate"));
+            }
+        } else {
+            for (int row = 0; row < 3; row++) if (movement[row] != null) project.sheet.suggest(row, 5, movement[row]);
+        }
+    }
+
     static void editorClosed() {
         showShellIfNoEditor();
     }
@@ -115,7 +170,6 @@ public final class DesktopMain {
 
     private static void showShellIfNoEditor() {
         if (exiting || shell == null || hasVisibleEditor()) return;
-        shell.refresh();
         shell.setVisible(true);
         shell.setExtendedState(JFrame.NORMAL);
         shell.toFront();
@@ -129,11 +183,11 @@ public final class DesktopMain {
     }
 
     static void remember(DesktopSession session) {
+        if (session.transientDesktop) return;
         try {
             DesktopPreferences preferences = DesktopPreferences.load(DesktopPreferences.defaultFile());
             preferences.remember(session);
             preferences.save(DesktopPreferences.defaultFile());
-            if (shell != null) shell.refresh();
         } catch (Exception ignored) {}
     }
 
@@ -159,9 +213,7 @@ public final class DesktopMain {
         int choice = save ? chooser.showSaveDialog(owner) : chooser.showOpenDialog(owner);
         if (choice != JFileChooser.APPROVE_OPTION) return null;
         Path path = chooser.getSelectedFile().toPath().toAbsolutePath().normalize();
-        if (save && !path.getFileName().toString().toLowerCase(java.util.Locale.ROOT).endsWith(".json")) {
-            path = path.resolveSibling(path.getFileName() + ".json");
-        }
+        if (save && !path.getFileName().toString().toLowerCase(java.util.Locale.ROOT).endsWith(".json")) path = path.resolveSibling(path.getFileName() + ".json");
         if (Files.isDirectory(path)) {
             JOptionPane.showMessageDialog(owner, "Select a project filename, not a directory.", "RSC Sprite Baker", JOptionPane.ERROR_MESSAGE);
             return null;
@@ -185,10 +237,22 @@ public final class DesktopMain {
     }
 
     static final class AppShell extends JFrame {
-        private final JMenu recent = new JMenu("Open Recent");
+        private final DesktopDistribution distribution;
+        private final Exception startupError;
+        private NpcBrowserDialog browser;
 
-        AppShell() {
+        AppShell(DesktopDistribution distribution) {
+            this(distribution, null);
+        }
+
+        AppShell(Exception error) {
+            this(null, error);
+        }
+
+        private AppShell(DesktopDistribution distribution, Exception startupError) {
             super("RSC Sprite Baker");
+            this.distribution = distribution;
+            this.startupError = startupError;
             setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
             addWindowListener(new java.awt.event.WindowAdapter() {
                 public void windowClosing(java.awt.event.WindowEvent e) { exitApplication(); }
@@ -196,48 +260,58 @@ public final class DesktopMain {
             setJMenuBar(menuBar());
             setLayout(new BorderLayout());
             JPanel content = new JPanel(new BorderLayout(12, 12));
-            content.setBorder(BorderFactory.createEmptyBorder(36, 48, 36, 48));
+            content.setBorder(BorderFactory.createEmptyBorder(38, 48, 38, 48));
             JLabel title = new JLabel("RSC Sprite Baker", JLabel.CENTER);
             title.setFont(title.getFont().deriveFont(Font.BOLD, 28f));
             content.add(title, BorderLayout.NORTH);
-            JPanel actions = new JPanel(new FlowLayout(FlowLayout.CENTER, 18, 28));
-            JButton create = new JButton("Create New Project");
-            create.setPreferredSize(new Dimension(210, 52));
-            create.addActionListener(e -> runWizard(this, true));
-            JButton open = new JButton("Open Existing Project");
-            open.setPreferredSize(new Dimension(210, 52));
-            open.addActionListener(e -> runWizard(this, false));
-            actions.add(create);
-            actions.add(open);
+            JPanel actions = new JPanel(new FlowLayout(FlowLayout.CENTER, 18, 32));
+            JButton browse = new JButton(startupError == null ? "Browse NPCs" : "Cache Not Available");
+            browse.setPreferredSize(new Dimension(240, 56));
+            browse.setEnabled(startupError == null);
+            browse.addActionListener(e -> browseNpcs());
+            actions.add(browse);
             content.add(actions, BorderLayout.CENTER);
-            JLabel note = new JLabel("Projects stay portable; cache and export locations remain local to this computer.", JLabel.CENTER);
-            content.add(note, BorderLayout.SOUTH);
+            String message = startupError == null
+                ? "Choose an NPC, customize its sprite sheet, and export. No project setup required."
+                : "The bundled cache could not be opened. See Help > Startup Details.";
+            content.add(new JLabel(message, JLabel.CENTER), BorderLayout.SOUTH);
             add(content, BorderLayout.CENTER);
-            setSize(680, 330);
-            setMinimumSize(new Dimension(560, 280));
+            setSize(720, 340);
+            setMinimumSize(new Dimension(600, 290));
             setLocationByPlatform(true);
-            refresh();
         }
 
         private JMenuBar menuBar() {
             JMenuBar bar = new JMenuBar();
-            JMenu file = new JMenu("File");
-            file.add(item("New Project…", () -> runWizard(this, true)));
-            file.add(item("Open Project…", () -> runWizard(this, false)));
-            file.add(recent);
-            file.addSeparator();
-            file.add(item("Exit", DesktopMain::exitApplication));
-            bar.add(file);
+            JMenu npc = new JMenu("NPC");
+            JMenuItem browse = item("Browse NPCs…", this::browseNpcs);
+            browse.setEnabled(startupError == null);
+            npc.add(browse);
+            bar.add(npc);
+            JMenu help = new JMenu("Help");
+            help.add(item("About", this::about));
+            if (startupError != null) help.add(item("Startup Details", () -> showError(this, startupError)));
+            bar.add(help);
             return bar;
         }
 
-        void refresh() {
-            recent.removeAll();
-            DesktopPreferences preferences = DesktopPreferences.load(DesktopPreferences.defaultFile());
-            recent.setEnabled(!preferences.recentProjects.isEmpty());
-            for (DesktopPreferences.RecentProject entry : preferences.recentProjects) {
-                recent.add(item(entry.toString(), () -> openRecent(this, entry)));
+        private void browseNpcs() {
+            if (distribution == null) return;
+            if (browser != null && browser.isDisplayable()) {
+                browser.setVisible(true);
+                browser.toFront();
+                return;
             }
+            browser = new NpcBrowserDialog(this, distribution.cacheDirectory, entry -> openTransient(this, entry, distribution));
+            browser.setVisible(true);
+        }
+
+        private void about() {
+            String paths = distribution == null ? "" : "\n\nExports: " + distribution.exportDirectory;
+            JOptionPane.showMessageDialog(this,
+                "RSC Sprite Baker\n\nBrowse an NPC, customize the sheet, then export PNG + provenance." + paths +
+                "\n\nBundled cache licensing and source details are included in the distribution's licenses folder.",
+                "About RSC Sprite Baker", JOptionPane.INFORMATION_MESSAGE);
         }
 
         private JMenuItem item(String label, Runnable action) {
