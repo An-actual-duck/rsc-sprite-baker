@@ -31,7 +31,7 @@ public final class ProceduralTexture530Decoder {
 
     private static Node create(int id,int type,DependencyResolver dependencies){switch(type){
         case 0:return new Fill(true);case 1:return new Fill(false);case 2:return new Gradient(true);case 3:return new Gradient(false);
-        case 7:return new Combine();case 8:return new Curve();case 10:return new ColorGradient();case 13:return new HashNoise();case 30:return new Range();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);
+        case 7:return new Combine();case 8:return new Curve();case 10:return new ColorGradient();case 13:return new HashNoise();case 30:return new Range();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();
         default:throw new UnsupportedTextureFormatException(id,"procedural operation "+type);
     }}
     @FunctionalInterface public interface DependencyResolver{Dependency resolve(int textureId)throws IOException;}
@@ -116,15 +116,43 @@ public final class ProceduralTexture530Decoder {
         private static int fade(int value){int cube=value*(value*value>>12)>>12;int factor=(value*(value*6-61440)>>12)+40960;return cube*factor>>12;}
         private static byte[] permutation(int seed){
             Random random=new Random(seed);byte[] values=new byte[512];for(int i=0;i<255;i++)values[i]=(byte)i;
-            for(int i=0;i<255;i++){int remaining=255-i,index=nextInt(remaining,random);byte value=values[index];values[index]=values[remaining];values[remaining]=values[511-i]=value;}
+            for(int i=0;i<255;i++){int remaining=255-i,index=randomBound(remaining,random);byte value=values[index];values[index]=values[remaining];values[remaining]=values[511-i]=value;}
             return values;
-        }
-        private static int nextInt(int bound,Random random){
-            if((bound&-bound)==bound)return(int)(((long)random.nextInt()&0xffffffffL)*bound>>32);
-            int threshold=Integer.MIN_VALUE-(int)(0x100000000L%bound),value;do value=random.nextInt();while(threshold<=value);
-            return((bound-1)&value>>31)+(value+(value>>>31))%bound;
         }
     }
     private static final class TextureDependency extends Node{final DependencyResolver resolver;int textureId=-1;TextureDependency(DependencyResolver resolver){this.resolver=resolver;}int childCount(){return 0;}void decode(int id,int code,BinaryInput in){if(code!=0)super.decode(id,code,in);textureId=in.u16();}void finish(int id){if(textureId<0)throw new UnsupportedTextureFormatException(id,"texture dependency ID is absent");}int[] rgb(int x,int y,int size)throws IOException{Dependency dependency=resolver.resolve(textureId);if(dependency==null||dependency.size<=0||dependency.pixels.length!=dependency.size*dependency.size)throw new UnsupportedTextureFormatException(textureId,"invalid dependency pixels");int sx=x*dependency.size/size,sy=y*dependency.size/size;int pixel=dependency.pixels[sy*dependency.size+(dependency.size-1-sx)];return new int[]{pixel>>12&0xff0,pixel>>4&0xff0,(pixel&0xff)<<4};}}
+    private static final class LineNoise extends Node{
+        private static final int[] SINE=trigonometry(true),COSINE=trigonometry(false);
+        int seed,lineCount=2000,length=16,baseAngle,angleRange=4096,cachedSize=-1;int[][] image;
+        int childCount(){return 0;}
+        void decode(int id,int code,BinaryInput in){switch(code){case 0:seed=in.u8();break;case 1:lineCount=in.u16();break;case 2:length=in.u8();break;case 3:baseAngle=in.u16();break;case 4:angleRange=in.u16();break;default:super.decode(id,code,in);}}
+        int[] rgb(int x,int y,int size){if(cachedSize!=size)generate(size);int value=image[y][x];return new int[]{value,value,value};}
+        private void generate(int size){
+            cachedSize=size;image=new int[size][size];int halfRange=angleRange>>1;Random random=new Random(seed);
+            for(int line=0;line<lineCount;line++){
+                int angle=angleRange>0?baseAngle+randomBound(angleRange,random)-halfRange:baseAngle;
+                int startX=randomBound(size,random),angleIndex=angle>>4&0xff,startY=randomBound(size,random);
+                int endX=startX+(length*COSINE[angleIndex]>>12),endY=startY+(SINE[angleIndex]*length>>12);
+                int deltaX=endX-startX,deltaY=endY-startY;if(deltaX==0&&deltaY==0)continue;
+                if(deltaX<0)deltaX=-deltaX;if(deltaY<0)deltaY=-deltaY;boolean steep=deltaY>deltaX;int temporary;
+                if(steep){temporary=startX;int swap=endX;endX=endY;endY=swap;startX=startY;startY=temporary;}
+                if(startX>endX){temporary=startX;int swap=startY;startX=endX;startY=endY;endY=swap;endX=temporary;}
+                deltaX=endX-startX;deltaY=endY-startY;if(deltaY<0)deltaY=-deltaY;int currentY=startY,error=-deltaX/2;
+                int initial=1024-(randomBound(4096,random)>>2),yStep=endY<=startY?-1:1,intensityStep=2048/deltaX;
+                for(int currentX=startX;currentX<endX;currentX++){
+                    error+=deltaY;int value=intensityStep*(currentX-startX)+initial+1024,wrappedY=currentY&(size-1);
+                    if(error>0){error-=deltaX;currentY+=yStep;}int wrappedX=currentX&(size-1);
+                    if(steep)image[wrappedY][wrappedX]=value;else image[wrappedX][wrappedY]=value;
+                }
+            }
+        }
+        private static int[] trigonometry(boolean sine){int[] table=new int[256];for(int i=0;i<256;i++){double radians=(double)i/255.0D*6.283185307179586D;table[i]=(int)((sine?Math.sin(radians):Math.cos(radians))*4096.0D);}return table;}
+    }
+    private static int randomBound(int bound,Random random){
+        if(bound<=0)throw new IllegalArgumentException("random bound must be positive");
+        if((bound&-bound)==bound)return(int)(((long)random.nextInt()&0xffffffffL)*bound>>32);
+        int threshold=Integer.MIN_VALUE-(int)(0x100000000L%bound),value;do value=random.nextInt();while(threshold<=value);
+        return((bound-1)&value>>31)+(value+(value>>>31))%bound;
+    }
     private static int clamp(int v,int min,int max){return Math.max(min,Math.min(max,v));}
 }
