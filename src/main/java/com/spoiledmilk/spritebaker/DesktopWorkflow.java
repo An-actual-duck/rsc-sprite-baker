@@ -22,6 +22,18 @@ public final class DesktopWorkflow {
         if(!Files.isRegularFile(directory.resolve("main_file_cache.dat2"))||!Files.isRegularFile(directory.resolve("main_file_cache.idx255")))throw new IOException("not a JS5 cache directory (dat2/idx255 missing): "+directory);
         return directory;
     }
-    private static Path validateProjectDestination(Path path)throws IOException{Path normalized=path.toAbsolutePath().normalize();Path parent=normalized.getParent();if(parent==null)throw new IOException("project needs a parent directory");Files.createDirectories(parent);return normalized;}
+    private static Path validateProjectDestination(Path path)throws IOException{Path normalized=path.toAbsolutePath().normalize();Path parent=normalized.getParent();if(parent==null)throw new IOException("project needs a parent directory");validateCreatableDirectory(parent,"Project location");Files.createDirectories(parent);if(Files.isDirectory(normalized))throw new IOException("project path is a directory: "+normalized);return normalized;}
     private static Path validateExport(Path path)throws IOException{Path normalized=path.toAbsolutePath().normalize();Files.createDirectories(normalized);if(!Files.isDirectory(normalized))throw new IOException("export path is not a directory: "+normalized);return normalized;}
+    static Path validateCreatableDirectory(Path path,String label)throws IOException{
+        Path normalized=path.toAbsolutePath().normalize();
+        if(Files.exists(normalized)){
+            if(!Files.isDirectory(normalized))throw new IOException(label+" must be a directory.");
+            if(!Files.isWritable(normalized))throw new IOException(label+" is not writable.");
+            return normalized;
+        }
+        Path ancestor=normalized.getParent();
+        while(ancestor!=null&&!Files.exists(ancestor))ancestor=ancestor.getParent();
+        if(ancestor==null||!Files.isDirectory(ancestor)||!Files.isWritable(ancestor))throw new IOException(label+" cannot be created here.");
+        return normalized;
+    }
 }
