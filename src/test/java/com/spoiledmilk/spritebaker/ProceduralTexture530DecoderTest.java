@@ -19,5 +19,14 @@ class ProceduralTexture530DecoderTest {
         UnsupportedTextureFormatException e=assertThrows(UnsupportedTextureFormatException.class,()->new ProceduralTexture530Decoder().decode(901,fixture,4));
         assertTrue(e.getMessage().contains("operation 34"));
     }
+    @Test void operation36SamplesNestedTextureAtDependencyResolution()throws Exception{
+        byte[] fixture=textureDependency(7);
+        int[] dependency={0x0000ff,0xff0000,0xffffff,0x000000}; // stored horizontally reversed
+        ProceduralTexture530Decoder.Decoded decoded=new ProceduralTexture530Decoder().decode(902,fixture,4,
+            id->{assertEquals(7,id);return new ProceduralTexture530Decoder.Dependency(2,dependency);});
+        assertArrayEquals(new int[]{0x0000ff,0x0000ff,0xff0000,0xff0000},java.util.Arrays.copyOfRange(decoded.pixels,0,4));
+        assertEquals(java.util.List.of(36),decoded.operationTypes);
+    }
+    static byte[] textureDependency(int id){return new byte[]{1,0,36,1,1,0,(byte)(id>>>8),(byte)id,0,0,0};}
     private static void bytes(ByteArrayOutputStream out,int... values){for(int value:values)out.write(value);}
 }

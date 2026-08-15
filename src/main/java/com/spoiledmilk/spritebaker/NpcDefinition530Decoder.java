@@ -134,6 +134,7 @@ public final class NpcDefinition530Decoder {
                 break;
             case 106:
             case 118:
+                npc.morphDefinition = true;
                 skipTransforms(in, opcode == 118);
                 break;
             case 249:
