@@ -88,15 +88,15 @@ or exported derivative is committed to this repository.
 
 ## 2026-08-14 terminal evidence
 
-Two consecutive `0.1.0` builds from Sprite Baker checkpoint `81034c9`, using
+Two consecutive `0.1.0` builds from Sprite Baker checkpoint `608352c`, using
 `SOURCE_DATE_EPOCH=1786680000`, and
 2009Scape cache source revision
 `b39b75e959bc68d54bf99392c22e85ef71273b84` produced identical inspected
 archives:
 
-- Linux tar.gz: `25a17f86c792c55f0678bdfd400da65e546f4b2119dc1c72cfe2d7fd8d4e46a9`
+- Linux tar.gz: `bc41011f934663311fba5022ab3f77b1ffc490e63ae7c70f59c59ecf77daeaeb`
   (74 MiB displayed size);
-- Windows zip: `f3d368df7e408e6620d14857ac8f617e28a10669ee1191175369a56f69d97a9c`
+- Windows zip: `d90b8330a914a436879c46108b7192dc39e8beb2d59a5cedd7bf1da4fd96a9d6`
   (74 MiB displayed size).
 
 The full Java 21 suite passed headlessly with 58 tests. The Linux launcher was
