@@ -82,3 +82,33 @@ final SHA-256 hashes and sizes only after inspection passes.
 
 The archives intentionally do not bundle a Java runtime. No cache, archive,
 or exported derivative is committed to this repository.
+
+## 2026-08-14 terminal evidence
+
+Two consecutive `0.1.0` builds from Sprite Baker checkpoint `0b79722` and
+2009Scape cache source revision
+`b39b75e959bc68d54bf99392c22e85ef71273b84` produced identical inspected
+archives:
+
+- Linux tar.gz: `a72de47ecdbf65fbfe4ee4511b3160c8b5d0f962a10000f27f8fc41f14a794c2`
+  (74 MiB displayed size);
+- Windows zip: `45ee1b22e2d70f098c7ad471ab22da5736bba5ecb41d131b31a614f55c5d857a`
+  (74 MiB displayed size).
+
+The full Java 21 suite passed headlessly with 58 tests. The Linux launcher was
+extracted, invoked from `/tmp` with AWT forced headless, reached the packaged
+desktop entry point, reported the expected graphical-environment diagnostic,
+and exited with status 2 without creating an export. This checks executable
+packaging without opening a GUI.
+
+A terminal-only NPC-72 static render then exercised the packaged read-only
+cache adapter against the real cache. Before and after hashes were identical:
+
+- `main_file_cache.dat2`:
+  `b5431211b019b9403b4cfca933f4c9635c1d5278d3730995dced0d8672b1cc91`;
+- `main_file_cache.idx255`:
+  `83a2292c515596af0423764c48e41dfe1aac482920dca0b89ecb343db6dd4c30`.
+
+The diagnostic PNG and JSON stayed in a private `/tmp` directory. No GUI was
+opened, no desktop input was synthesized, and no cache or derived asset was
+added to Git.
