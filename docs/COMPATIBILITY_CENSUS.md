@@ -427,10 +427,74 @@ model/material render-compatible and lacks only automatic standing metadata.
 
 ## Recommended next batch
 
-Operation 4 is now the largest material blocker at 1,822 diagnostic
-occurrences, followed by operation 27 at 1,756, operation 15 at 1,366,
-operation 6 at 1,165, operation 9 at 520, and operation 19 at 468. Keep each
-addition tied to pinned client semantics and neutral fixtures, rerun this
-census after every operation, and preserve exact fail-closed diagnostics. The
-unchanged model-decoder clusters and known animation/definition failures remain
-separate focused batches.
+The operation-5 audit originally recommended operation 4. Its completed result
+is recorded below.
+
+## 2026-08-15 operation-4 audit
+
+The pre-change census was byte-identical to the operation-5 result at SHA-256
+`fea51fedcd7945928da61d5cac4819d6d9ba3f0e4a29305063f047ea5d80831a`.
+Two independent post-change packaged-JAR runs were byte-identical at SHA-256
+`07cd3ac4661fe5520f6d40297655c541279f213caa8cf3e0867275e313285c9b`.
+The cache identity remained unchanged.
+
+| Category | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Ready | 539 | 539 | 0 |
+| Missing automatic animations | 178 | 178 | 0 |
+| Unsupported material | 3,310 | 3,310 | 0 |
+| Unsupported model | 3,946 | 3,946 | 0 |
+| Morph/internal definition | 612 | 612 | 0 |
+| Other failure | 5 | 5 | 0 |
+
+Operation 4 appeared in 1,284 NPC reasons and accounted for 1,822 NPC/material
+diagnostic occurrences. Both values are now zero, and all 1,284 reasons
+advance, but every affected NPC retains another unsupported material. No
+top-level category changes. Texture 261 now resolves in 280 NPC reasons;
+texture 203 instead reaches its precise combine-function-1 blocker in 1,124
+NPC reasons. No material, texture, color, or average-material fallback is
+introduced.
+
+Remaining unsupported-operation diagnostic occurrences are:
+
+| Operation | Before | After |
+| ---: | ---: | ---: |
+| 4 | 1,822 | 0 |
+| 6 | 1,165 | 1,165 |
+| 9 | 520 | 520 |
+| 12 | 30 | 30 |
+| 15 | 1,366 | 1,366 |
+| 17 | 4 | 4 |
+| 19 | 468 | 468 |
+| 20 | 150 | 150 |
+| 22 | 41 | 41 |
+| 27 | 1,756 | 1,756 |
+| 39 | 111 | 111 |
+
+No unsupported operation frequency increases; the newly exposed blocker is a
+previously diagnosed but unsupported combine mode rather than another
+operation ID. Operations 4, 5, 13, 32, 34, 36, and 38 are now at zero. The
+3,946 unsupported-model results remain split between `BufferUnderflowException`
+(1,954 definitions) and invalid decoded offsets (`newPosition > limit`, 1,992
+definitions).
+
+No affected NPC is eligible for a complete packaged export because each still
+has another unsupported material. Packaged-JAR verification therefore used
+newly resolved material 261 (operations 0/4/30) on a neutral in-memory textured
+triangle. Two renders were identical, contained 434 visible pixels, and had
+ARGB SHA-256
+`81706338fa2297a54f347e7a18fd34216b6d9f95065785d42adedbd07d0b8da0`.
+Material 203 continued to fail closed with `combine function 1`. NPC 78, NPC
+1013, NPC 131, NPC 125, NPC 61, and NPC 72 remain ready; NPC 40 remains
+model/material render-compatible and lacks only automatic standing metadata.
+
+## Recommended next batch
+
+Operation 27 is now the largest material blocker at 1,756 diagnostic
+occurrences, followed by operation 15 at 1,366, operation 6 at 1,165,
+operation 9 at 520, and operation 19 at 468. Combine function 1 is also a
+high-yield non-operation blocker exposed by this batch. Keep each addition tied
+to pinned client semantics and neutral fixtures, rerun this census after every
+addition, and preserve exact fail-closed diagnostics. The unchanged
+model-decoder clusters and known animation/definition failures remain separate
+focused batches.
