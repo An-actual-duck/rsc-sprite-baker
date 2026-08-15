@@ -110,10 +110,72 @@ and provenance SHA-256
 
 ## Recommended next batch
 
-Operation 34 is the next material target: it is the largest remaining blocker
-at 9,810 diagnostic occurrences. Operation 13 follows at 3,716, then operation
-38 at 2,558. Keep each operation bounded by primary-client semantics and neutral
-fixtures, rerun this census after each addition, and retain exact failure for
-every graph that still needs an unsupported operation. Model work should be a
-separate batch, beginning by identifying the format boundary behind the two
-decoder clusters rather than introducing alternate-model fallback.
+The operation-36 audit originally recommended operation 34. Its completed
+result is recorded below.
+
+## 2026-08-15 operation-34 audit
+
+The pre-change census was byte-identical to the operation-36 result at
+SHA-256 `2997f13601519f0cc8522b15a7ff288b2ac71c5eaccbabdd6d737a9a0fbaac29`.
+Two independent post-change runs were byte-identical at SHA-256
+`6508c7ade64b9835e6809d3101c8006612c217f4cf3feff36d74fe999672909c`.
+The cache identity remained unchanged.
+
+| Category | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Ready | 256 | 426 | +170 |
+| Missing automatic animations | 139 | 153 | +14 |
+| Unsupported material | 3,636 | 3,449 | -187 |
+| Unsupported model | 3,946 | 3,946 | 0 |
+| Morph/internal definition | 612 | 612 | 0 |
+| Other failure | 1 | 4 | +3 |
+
+Operation 34 appeared in 2,992 NPC reasons and accounted for 9,810
+NPC/material diagnostic occurrences. Both values are now zero. Of those 2,992
+NPCs, 187 clear material validation entirely: 170 become ready, 14 need only
+automatic animation metadata, and three portal definitions (6147, 6155, 7556)
+reach a precise sequence-6880 pose failure. The other 2,805 remain unsupported
+materials because decoding operation 34 exposes a later unsupported graph
+node. No color, average material, or texture fallback is introduced.
+
+Remaining unsupported-operation diagnostic occurrences are:
+
+| Operation | Before | After |
+| ---: | ---: | ---: |
+| 4 | 284 | 284 |
+| 5 | 109 | 135 |
+| 6 | 1,142 | 1,147 |
+| 9 | 520 | 520 |
+| 12 | 30 | 30 |
+| 13 | 3,716 | 7,688 |
+| 15 | 232 | 1,139 |
+| 19 | 169 | 228 |
+| 20 | 116 | 116 |
+| 22 | 41 | 41 |
+| 27 | 748 | 748 |
+| 32 | 561 | 720 |
+| 34 | 9,810 | 0 |
+| 38 | 2,558 | 2,749 |
+| 39 | 111 | 111 |
+
+The increases are newly reachable diagnostics within nested graphs. Operation
+36 remains at zero. The two model-decoder clusters are unchanged.
+
+NPC 61 (Spider, model 24613, material 111) is a representative transition to
+`ready`: standing sequence 6247 and walking sequence 6248 both validate. A
+packaged-JAR, validation-only 18-cell export passed with visible and transparent
+pixels; its PNG SHA-256 is
+`e18c39eaf24c19ba27fc8cd8f9d730bca74d01e1f4527edebc42c32127f0d26e`
+and provenance SHA-256 is
+`84ad898887dbbf55a01a43839fb47425c6040104016623d833ba21c8c351ce7d`.
+NPC 72 remains fully automatic and ready. NPC 40 remains model/material
+render-compatible and classified only by its absent standing metadata.
+
+## Recommended next batch
+
+Operation 13 is now the largest material blocker at 7,688 diagnostic
+occurrences, followed by operation 38 at 2,749, operation 15 at 1,139, and
+operation 32 at 720. Keep each addition tied to the pinned client semantics and
+neutral fixtures, rerun this census after every operation, and preserve exact
+fail-closed diagnostics. Treat the unchanged model-decoder clusters and the
+newly exposed portal animation failure as separate focused batches.
