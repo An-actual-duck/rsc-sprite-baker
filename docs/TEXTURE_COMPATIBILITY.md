@@ -13,10 +13,16 @@ linked.
 The supported procedural operations are deliberately limited to the first
 verified textured NPC: monochrome/color fill (0/1), horizontal/vertical
 gradient (2/3), multiply combine (7 function 3), linear curve parsing (8),
-custom sampled color gradient (10 preset 0), and range (30). Texture generation
+custom sampled color gradient (10 preset 0), hash noise (13), and range (30). Texture generation
 uses the software client's 64/128 material-size flag and horizontal order. It
 uses a fixed, manifest-recorded gamma of 1.0 instead of the source client's
 preference-dependent and randomly perturbed brightness value.
+Operation 13 is the client's zero-child monochrome hash-noise node and has no
+serialized parameters. For every texel, it hashes the 12-bit X/Y fractions
+with Java `int` overflow, masks the polynomial result to a non-negative integer,
+scales it, and applies Java signed remainder `% 4096`. Unexpected parameters
+fail closed. The primary trace is
+[`TextureOpNoise.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOpNoise.java).
 Operation 34 is the client's zero-child monochrome multi-octave gradient-noise
 node. The decoder preserves its 12-bit fixed-point interpolation, Java-seeded
 permutation table, normalization flag, octave trimming, persistence or explicit
@@ -64,6 +70,7 @@ reference-index SHA-256
 | Multipart | NPC 42 Sheep; models 20283/20289/20285 | Model assembly supported; materials unsupported | Three components combine with 430 textured faces. Operation 36 is resolved; remaining unsupported operations are reported and export stops. |
 | Recolored/retextured multipart | NPC 0 Hans; six component models; five recolors | Model assembly/recolor metadata supported; materials unsupported | Retextured material IDs 228/292/258/257/262/527/272/254 resolve nested textures and report any later unsupported graph operation. No substitution occurs. |
 | Alpha/mapping stress | NPC 61 Spider; model 24613; material 111 | Supported | Operation 34 now decodes; models, material, standing sequence 6247, and walking sequence 6248 validate. Its 298 textured faces continue to use the documented advanced-mapping fallback. |
+| Hash-noise multipart | NPC 125 Ice warrior; seven component models; materials 249/291/303/302 | Supported | Operation 13 now decodes; standing sequence 842, walking sequence 841, and all 1,076 textured faces validate. |
 | Known difficult model | model 23905 | Unsupported model | RuneLite model decoder throws `BufferUnderflowException`. |
 | Known difficult model | model 23889 | Unsupported model | RuneLite model decoder reports an invalid offset (`newPosition > limit`). |
 

@@ -173,9 +173,73 @@ render-compatible and classified only by its absent standing metadata.
 
 ## Recommended next batch
 
-Operation 13 is now the largest material blocker at 7,688 diagnostic
-occurrences, followed by operation 38 at 2,749, operation 15 at 1,139, and
-operation 32 at 720. Keep each addition tied to the pinned client semantics and
+The operation-34 audit originally recommended operation 13. Its completed
+result is recorded below.
+
+## 2026-08-15 operation-13 audit
+
+The pre-change census was byte-identical to the operation-34 result at
+SHA-256 `6508c7ade64b9835e6809d3101c8006612c217f4cf3feff36d74fe999672909c`.
+Two independent post-change runs and the packaged-JAR census were byte-identical
+at SHA-256
+`aee3fd87547103c91294f16d3654fa6fea9549d0d095166c61ede737bc969502`.
+The cache identity remained unchanged.
+
+| Category | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Ready | 426 | 437 | +11 |
+| Missing automatic animations | 153 | 153 | 0 |
+| Unsupported material | 3,449 | 3,438 | -11 |
+| Unsupported model | 3,946 | 3,946 | 0 |
+| Morph/internal definition | 612 | 612 | 0 |
+| Other failure | 4 | 4 | 0 |
+
+Operation 13 appeared in 2,519 NPC reasons and accounted for 7,688
+NPC/material diagnostic occurrences. Both values are now zero. Eleven NPCs
+clear material validation and become ready: Ice warrior definitions 125, 145,
+and 3073; Swarming turoth definitions 1611 and 1628; Turoth definitions 1622
+and 1627; and Charmed Warrior definitions 3104 through 3107. The other 2,508
+affected NPCs remain unsupported materials because a later graph node is now
+reachable. No texture, color, or average-material fallback is introduced.
+
+Remaining unsupported-operation diagnostic occurrences are:
+
+| Operation | Before | After |
+| ---: | ---: | ---: |
+| 4 | 284 | 284 |
+| 5 | 135 | 135 |
+| 6 | 1,147 | 1,150 |
+| 9 | 520 | 520 |
+| 12 | 30 | 30 |
+| 13 | 7,688 | 0 |
+| 15 | 1,139 | 1,139 |
+| 19 | 228 | 228 |
+| 20 | 116 | 137 |
+| 22 | 41 | 41 |
+| 27 | 748 | 1,753 |
+| 32 | 720 | 2,242 |
+| 38 | 2,749 | 2,749 |
+| 39 | 111 | 111 |
+
+The increases in operations 6, 20, 27, and 32 are newly reachable diagnostics
+within nested graphs. Operations 34 and 36 remain at zero, and model/animation
+failure counts do not change.
+
+NPC 125 (Ice warrior) is the packaged-render representative. Its seven
+component models, materials 249/291/303/302, 1,076 textured faces, standing
+sequence 842, walking sequence 841, all 18 cells, visible pixels, and
+transparency validated. The PNG SHA-256 is
+`340fe9d03a9816c1b47a22b9c44de8fa1a89795f88f46face4c1ce1e6e641ba7`
+and provenance SHA-256 is
+`84402a7ca4699ff12d12b9bc8f79388aab66e9233c2561cf31dcc68172a169b7`.
+NPC 61 and NPC 72 remain ready; NPC 40 remains model/material
+render-compatible and lacks only automatic standing metadata.
+
+## Recommended next batch
+
+Operation 38 is now the largest material blocker at 2,749 diagnostic
+occurrences, followed by operation 32 at 2,242, operation 27 at 1,753, and
+operation 15 at 1,139. Keep each addition tied to pinned client semantics and
 neutral fixtures, rerun this census after every operation, and preserve exact
-fail-closed diagnostics. Treat the unchanged model-decoder clusters and the
-newly exposed portal animation failure as separate focused batches.
+fail-closed diagnostics. The unchanged model-decoder clusters and portal
+animation failure remain separate focused batches.
