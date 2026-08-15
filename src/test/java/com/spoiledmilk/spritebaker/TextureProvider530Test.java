@@ -36,6 +36,16 @@ class TextureProvider530Test {
         assertTrue(provider.material(0)==material);
     }
 
+    @Test void decodesAndCachesOperation32WithoutExternalDependencies() throws Exception {
+        TextureProvider530 provider=provider(Map.of(0,ProceduralTexture530DecoderTest.bumpLighting()));
+        TextureMaterial530 material=provider.material(0);
+        assertEquals(java.util.List.of(13,32),material.operationTypes);
+        assertEquals(64,material.size);
+        assertEquals(8947848,material.pixels[0]);
+        assertEquals(1,provider.loaded().size());
+        assertTrue(provider.material(0)==material);
+    }
+
     private static TextureProvider530 provider(Map<Integer,byte[]> graphs) {
         MaterialDefinition530[] definitions = new MaterialDefinition530[graphs.size()];
         for (int id = 0; id < definitions.length; id++) definitions[id] = new MaterialDefinition530(id,true,true,true,true,false,0,0,0,0,0);

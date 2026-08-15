@@ -60,9 +60,20 @@ class ProceduralTexture530DecoderTest {
             ()->new ProceduralTexture530Decoder().decode(908,new byte[]{1,0,38,1,1,5,0,0,0},8));
         assertTrue(error.getMessage().contains("operation parameter 5 for LineNoise"));
     }
+    @Test void operation32LightsItsMonochromeInputWithExactFixedPointParameters(){
+        ProceduralTexture530Decoder.Decoded decoded=new ProceduralTexture530Decoder().decode(909,bumpLighting(),8);
+        assertArrayEquals(new int[]{5526612,7895160,0,7500402,11184810,7829367,0,7105644,
+            2500134,3421236,3815994,10921638,2236962,0,3815994,7039851},java.util.Arrays.copyOfRange(decoded.pixels,0,16));
+        assertTrue(java.util.Arrays.stream(decoded.pixels).allMatch(pixel->(pixel>>16&255)==(pixel>>8&255)&&(pixel>>8&255)==(pixel&255)));
+        assertEquals(java.util.List.of(13,32),decoded.operationTypes);
+        UnsupportedTextureFormatException error=assertThrows(UnsupportedTextureFormatException.class,
+            ()->new ProceduralTexture530Decoder().decode(910,new byte[]{1,0,32,1,1,3,0,0,0,0},8));
+        assertTrue(error.getMessage().contains("operation parameter 3 for BumpLighting"));
+    }
     static byte[] hashNoise(){return new byte[]{1,0,13,1,0,0,0,0};}
     static byte[] defaultNoise(){return new byte[]{1,0,34,1,0,0,0,0};}
     static byte[] textureDependency(int id){return new byte[]{1,0,36,1,1,0,(byte)(id>>>8),(byte)id,0,0,0};}
     static byte[] lineNoise(){return new byte[]{1,0,38,1,5,0,7,1,0,6,2,4,3,4,0,4,8,0,0,0,0};}
+    static byte[] bumpLighting(){return new byte[]{2,0,13,1,0,0,32,1,3,0,6,0,1,10,0,2,4,0,0,1,0,0};}
     private static void bytes(ByteArrayOutputStream out,int... values){for(int value:values)out.write(value);}
 }
