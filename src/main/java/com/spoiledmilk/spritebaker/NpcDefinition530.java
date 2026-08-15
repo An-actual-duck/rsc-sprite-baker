@@ -19,6 +19,7 @@ public final class NpcDefinition530 {
     public int heightScale = 128;
     public int ambient;
     public int contrast;
+    public boolean morphDefinition;
 
     public NpcDefinition530(int id) {
         this.id = id;
