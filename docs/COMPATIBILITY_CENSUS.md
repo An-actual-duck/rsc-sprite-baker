@@ -162,8 +162,13 @@ The increases are newly reachable diagnostics within nested graphs. Operation
 36 remains at zero. The two model-decoder clusters are unchanged.
 
 NPC 61 (Spider, model 24613, material 111) is a representative transition to
-`ready`: standing sequence 6247 and walking sequence 6248 both validate. NPC 72
-remains fully automatic and ready. NPC 40 remains model/material
+`ready`: standing sequence 6247 and walking sequence 6248 both validate. A
+packaged-JAR, validation-only 18-cell export passed with visible and transparent
+pixels; its PNG SHA-256 is
+`e18c39eaf24c19ba27fc8cd8f9d730bca74d01e1f4527edebc42c32127f0d26e`
+and provenance SHA-256 is
+`84ad898887dbbf55a01a43839fb47425c6040104016623d833ba21c8c351ce7d`.
+NPC 72 remains fully automatic and ready. NPC 40 remains model/material
 render-compatible and classified only by its absent standing metadata.
 
 ## Recommended next batch
