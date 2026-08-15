@@ -116,3 +116,16 @@ cache adapter against the real cache. Before and after hashes were identical:
 The diagnostic PNG and JSON stayed in a private `/tmp` directory. No GUI was
 opened, no desktop input was synthesized, and no cache or derived asset was
 added to Git.
+
+The final packaged Linux workflow was then exercised interactively by the
+user. Launch opened directly to the NPC browser with the intended streamlined
+load flow and no intermediate landing screen. NPC 72 loaded successfully;
+visual/pose edits and export behaved as intended; and closing the browser
+exited the application. This interactive validation was performed by the user,
+not by an automated desktop session.
+
+Compatibility breadth remains a known risk: during the same review the user
+reported that other attempted NPCs did not load. NPC 72 demonstrates the basic
+zero-configuration workflow, but this handoff does not claim that every cache
+NPC is supported. Existing fail-closed model, texture, and animation limits
+still apply and should be reviewed per NPC before publishing derived output.
