@@ -12,13 +12,24 @@ linked.
 
 The supported procedural operations are deliberately limited to the first
 verified textured NPC: monochrome/color fill (0/1), horizontal/vertical
-gradient (2/3), box blur (5), multiply combine (7 function 3), linear curve
-parsing (8), custom sampled color gradient (10 preset 0), hash noise (13),
-range (30), bump lighting (32), multi-octave gradient noise (34), nested
-texture dependencies (36), and line noise (38). Texture generation uses the
-software client's 64/128 material-size flag and horizontal order. It uses a
-fixed, manifest-recorded gamma of 1.0 instead of the source client's
-preference-dependent and randomly perturbed brightness value.
+gradient (2/3), randomized tiles (4), box blur (5), multiply combine (7
+function 3), linear curve parsing (8), custom sampled color gradient (10 preset
+0), hash noise (13), range (30), bump lighting (32), multi-octave gradient
+noise (34), nested texture dependencies (36), and line noise (38). Texture
+generation uses the software client's 64/128 material-size flag and horizontal
+order. It uses a fixed, manifest-recorded gamma of 1.0 instead of the source
+client's preference-dependent and randomly perturbed brightness value.
+Operation 4 is the client's zero-child monochrome randomized tile generator.
+Its serialized parameters are unsigned 8-bit column count (code 0) and row
+count/RNG seed (code 1), followed by unsigned 16-bit horizontal jitter (code
+2), vertical jitter (code 3), alternating row offset (code 4), vertical phase
+(code 5), mortar width (code 6), and brightness variation (code 7). Defaults
+are 4, 8, 409, 204, 1024, 0, 81, and 1024. The implementation preserves the
+client's bounded Java RNG sequence, 12-bit boundary calculations, alternating
+offset sign, 4096-period wrapping, strict mortar comparisons, and monochrome
+brightness output. Empty grids and unexpected parameters fail closed. The
+primary trace is
+[`TextureOp4.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOp4.java).
 Operation 5 is the client's one-child separable box blur. Its serialized
 parameters are unsigned 8-bit horizontal radius (code 0), vertical radius
 (code 1), and monochrome-output flag (code 2), with defaults 1, 1, and color
@@ -104,6 +115,7 @@ reference-index SHA-256
 | Line-noise animated | NPC 131 Penguin; model 21547; materials 182/347/171 | Supported | Operation 38 now decodes; standing sequence 5668, walking sequence 5666, and all 391 textured faces validate in a packaged 18-cell render. |
 | Bump-lit animated | NPC 1013 Swamp toad; model 3447; material 318 | Supported | Operation 32 now decodes; standing sequence 1018, walking sequence 1021, and all 155 textured faces validate in a packaged 18-cell render. |
 | Box-blurred animated | NPC 78 Giant bat; model 18898; materials 185/59 | Supported | Operation 5 now decodes; standing sequence 4914, walking sequence 4913, and all 524 textured faces validate in a packaged 18-cell render. |
+| Randomized-tile material | Material 261; operations 0/4/30 | Supported | Operation 4 now decodes. A packaged-JAR render on a neutral in-memory textured triangle was deterministic with 434 visible pixels and ARGB SHA-256 `81706338fa2297a54f347e7a18fd34216b6d9f95065785d42adedbd07d0b8da0`. No affected NPC clears its other material blockers yet. |
 | Known difficult model | model 23905 | Unsupported model | RuneLite model decoder throws `BufferUnderflowException`. |
 | Known difficult model | model 23889 | Unsupported model | RuneLite model decoder reports an invalid offset (`newPosition > limit`). |
 
