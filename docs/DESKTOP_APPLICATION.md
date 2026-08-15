@@ -30,24 +30,39 @@ validation-only, dry-run, and handoff package contracts are documented in
 
 ## First launch
 
-The welcome flow offers New and Open without command-line arguments. A new
-project walks through:
+The application opens immediately into a persistent desktop shell with a
+normal taskbar entry. Its File menu and central actions provide Create New
+Project and Open Existing Project; Open Recent appears once a project has been
+opened successfully. Cancelling a form, correcting invalid input, or failing
+to load a project always leaves a visible shell or editor rather than an
+ownerless background JVM.
 
-1. selecting a JS5 cache directory containing `main_file_cache.dat2` and
-   `main_file_cache.idx255`;
-2. choosing a portable `.json` Sprite Baker project file;
-3. choosing an export directory; and
-4. entering an initial NPC ID, after which the full NPC browser is available.
+Create New Project is one owned form. It displays independently browsable and
+clearly labeled fields for:
 
-Opening a project selects the same three paths but obtains its NPC ID and all
-visual/pose behavior from the project. Cache and export paths are deliberately
-not written into the project. Their machine-local association is stored in
-`~/.rsc-sprite-baker/preferences.json` solely for the ten-entry recent-project
-menu. A missing cache, stale recent path, malformed project, or incompatible
-NPC produces a user-visible error instead of silently changing inputs.
+1. a JS5 cache directory containing `main_file_cache.dat2` and
+   `main_file_cache.idx255` directly;
+2. a project location and separate project filename;
+3. an export directory; and
+4. an initial NPC ID, after which the full NPC browser is available.
 
-The File menu provides New, Open, Open Recent, Save, Save As, export-folder
-selection, and Exit through ordinary platform file choosers. The NPC menu
+The `.json` suffix is added automatically and the resulting path is shown in
+the form. Validation errors remain inline without closing the form. A replace
+warning appears only when that exact resulting JSON file already exists.
+Open Existing Project uses the same consolidated approach but accepts an
+existing JSON file and obtains its NPC ID and visual/pose behavior from it.
+
+Cache and export paths are deliberately not written into the portable project.
+Their latest safe locations and per-project associations are stored in
+`~/.rsc-sprite-baker/preferences.json` for reuse and for the ten-entry recent
+project menu. A missing cache, stale recent path, malformed project, or
+incompatible NPC produces a user-visible error instead of silently changing
+inputs.
+
+The editor File menu provides New Project, Open Project, Open Recent, Save,
+Save As, export-folder selection, and Exit through owned platform controls.
+Closing an editor returns to the application shell; File > Exit terminates the
+desktop process. The NPC menu
 opens lazy name/ID search and detailed compatibility diagnostics. Selecting a
 different NPC creates a new project so an existing project's persisted
 selections are never silently repurposed. Edited projects carry a title-bar
@@ -87,6 +102,24 @@ while background I/O runs, the completed operation does not incorrectly mark
 newer edits as saved.
 
 ## 2026-08-14 end-user evidence
+
+A second isolated first-run exercise covers the persistent shell and
+consolidated forms added after the original wizard test. With Java 21 and an
+empty `user.home`, the shaded JAR:
+
+- opened a durable `RSC Sprite Baker` application window with its own WM class
+  and taskbar entry;
+- kept the Create form open with inline errors when its required paths were
+  empty, then returned to the visible shell when that form was cancelled;
+- accepted the cache, project location, `exact-isolated-project` filename,
+  export location, and NPC 72 in one form and created exactly
+  `exact-isolated-project.json`;
+- reopened that project through Open Existing and again through Open Recent;
+- restored the shell when the editor closed; and
+- terminated the Java process cleanly when the shell closed.
+
+The isolated project, preferences, and all runtime output remained under
+`/tmp` and outside Git. No file in the read-only cache was modified.
 
 A clean workflow was exercised against the read-only cache at
 `/home/justin/2009scape/Server/data/cache`, with all output under
