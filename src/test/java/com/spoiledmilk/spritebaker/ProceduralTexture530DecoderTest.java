@@ -19,6 +19,37 @@ class ProceduralTexture530DecoderTest {
         UnsupportedTextureFormatException e=assertThrows(UnsupportedTextureFormatException.class,()->new ProceduralTexture530Decoder().decode(901,fixture,4));
         assertTrue(e.getMessage().contains("operation 35"));
     }
+    @Test void combineFunction6PreservesOperandOrderingColorAndMonochromeModes(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        ProceduralTexture530Decoder.Decoded color=decoder.decode(928,colorCombine(6,0),4);
+        ProceduralTexture530Decoder.Decoded monochrome=decoder.decode(929,colorCombine(6,1),4);
+        assertTrue(java.util.Arrays.stream(color.pixels).allMatch(pixel->pixel==0x10a0f0));
+        assertTrue(java.util.Arrays.stream(monochrome.pixels).allMatch(pixel->pixel==0x101010));
+        assertArrayEquals(color.pixels,decoder.decode(930,colorCombine(6,2),4).pixels);
+        assertEquals(java.util.List.of(1,1,7),color.operationTypes);
+    }
+    @Test void combineFunction6UsesJavaOverflowThenFinalTextureClamp(){
+        ProceduralTexture530Decoder.Decoded high=new ProceduralTexture530Decoder().decode(931,monochromeCombine(6,1,65535,65535),4);
+        assertTrue(java.util.Arrays.stream(high.pixels).allMatch(pixel->pixel==0xffffff));
+        ProceduralTexture530Decoder.Decoded ordered=new ProceduralTexture530Decoder().decode(932,monochromeCombine(6,1,1024,3072),4);
+        ProceduralTexture530Decoder.Decoded reversed=new ProceduralTexture530Decoder().decode(933,monochromeCombine(6,1,3072,1024),4);
+        assertTrue(java.util.Arrays.stream(ordered.pixels).allMatch(pixel->pixel==0xa0a0a0));
+        assertTrue(java.util.Arrays.stream(reversed.pixels).allMatch(pixel->pixel==0x606060));
+    }
+    @Test void combineFunction3RemainsExactAndOtherFunctionsFailClosed(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        assertTrue(java.util.Arrays.stream(decoder.decode(934,colorCombine(3,0),4).pixels).allMatch(pixel->pixel==0x0850a8));
+        assertTrue(java.util.Arrays.stream(decoder.decode(935,colorCombine(3,1),4).pixels).allMatch(pixel->pixel==0x080808));
+        for(int function=0;function<=12;function++)if(function!=3&&function!=6){
+            int unsupported=function;
+            UnsupportedTextureFormatException error=assertThrows(UnsupportedTextureFormatException.class,
+                ()->decoder.decode(936,colorCombine(unsupported,0),4));
+            assertTrue(error.getMessage().contains("combine function "+function));
+        }
+        UnsupportedTextureFormatException parameter=assertThrows(UnsupportedTextureFormatException.class,
+            ()->decoder.decode(937,new byte[]{1,0,7,1,1,2,0,0,0,0,0},4));
+        assertTrue(parameter.getMessage().contains("operation parameter 2 for Combine"));
+    }
     @Test void operation13ReproducesFixedPointHashNoiseAndRejectsParameters(){
         ProceduralTexture530Decoder.Decoded decoded=new ProceduralTexture530Decoder().decode(905,hashNoise(),8);
         assertArrayEquals(new int[]{16053492,16053492,7500402,0,16185078,7697781,7763574,0,
@@ -185,5 +216,7 @@ class ProceduralTexture530DecoderTest {
     static byte[] brickTiles(){return new byte[]{1,0,4,1,8,0,3,1,5,2,2,0,3,1,0,4,4,0,5,1,44,6,0,(byte)128,7,3,32,0,0,0};}
     static byte[] stripes(int mode){return new byte[]{1,0,27,1,3,0,3,1,6,0,2,(byte)mode,0,0,0};}
     static byte[] cellular(int selector,int metric,int jitter){return new byte[]{1,0,15,1,7,0,4,1,7,2,(byte)(jitter>>>8),(byte)jitter,3,(byte)selector,4,(byte)metric,5,3,6,6,0,0,0};}
+    static byte[] colorCombine(int function,int outputMode){return new byte[]{3,0,1,1,1,0,64,(byte)128,(byte)192,0,1,1,1,0,32,(byte)160,(byte)224,0,7,1,2,0,(byte)function,1,(byte)outputMode,0,1,2,0,0};}
+    static byte[] monochromeCombine(int function,int outputMode,int first,int second){return new byte[]{3,0,0,1,1,0,(byte)(first>>>8),(byte)first,0,0,1,1,0,(byte)(second>>>8),(byte)second,0,7,1,2,0,(byte)function,1,(byte)outputMode,0,1,2,0,0};}
     private static void bytes(ByteArrayOutputStream out,int... values){for(int value:values)out.write(value);}
 }
