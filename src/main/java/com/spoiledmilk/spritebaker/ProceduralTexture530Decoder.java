@@ -31,7 +31,7 @@ public final class ProceduralTexture530Decoder {
 
     private static Node create(int id,int type,DependencyResolver dependencies){switch(type){
         case 0:return new Fill(true);case 1:return new Fill(false);case 2:return new Gradient(true);case 3:return new Gradient(false);case 4:return new BrickTiles();case 5:return new BoxBlur();
-        case 7:return new Combine();case 8:return new Curve();case 10:return new ColorGradient();case 13:return new HashNoise();case 27:return new Stripes();case 30:return new Range();case 32:return new BumpLighting();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();
+        case 7:return new Combine();case 8:return new Curve();case 10:return new ColorGradient();case 13:return new HashNoise();case 15:return new CellularNoise();case 27:return new Stripes();case 30:return new Range();case 32:return new BumpLighting();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();
         default:throw new UnsupportedTextureFormatException(id,"procedural operation "+type);
     }}
     @FunctionalInterface public interface DependencyResolver{Dependency resolve(int textureId)throws IOException;}
@@ -113,6 +113,47 @@ public final class ProceduralTexture530Decoder {
             int coordinate=xFraction+yFraction*57,hash=coordinate^(coordinate<<1);
             int value=(4096-((hash*(hash*hash*15731+789221)+1376312589)&Integer.MAX_VALUE)/262144)%4096;
             return new int[]{value,value,value};
+        }
+    }
+    private static final class CellularNoise extends Node{
+        int xScale=5,yScale=5,seed,jitter=2048,selector=2,distanceMetric=1;byte[] permutation;short[] offsets;
+        int childCount(){return 0;}
+        void decode(int id,int code,BinaryInput in){switch(code){case 0:xScale=yScale=in.u8();break;case 1:seed=in.u8();break;case 2:jitter=in.u16();break;case 3:selector=in.u8();break;case 4:distanceMetric=in.u8();break;case 5:xScale=in.u8();break;case 6:yScale=in.u8();break;default:super.decode(id,code,in);}}
+        void finish(int id){
+            permutation=permutation(seed);offsets=new short[512];Random random=new Random(seed);
+            if(jitter>0)for(int i=0;i<offsets.length;i++)offsets[i]=(short)randomBound(jitter,random);
+        }
+        int[] rgb(int x,int y,int size){
+            int scaledY=yScale*((y<<12)/size)+2048,yCell=scaledY>>12,yNext=yCell+1;
+            int scaledX=xScale*((x<<12)/size)+2048,xCell=scaledX>>12,xNext=xCell+1;
+            int first=Integer.MAX_VALUE,second=Integer.MAX_VALUE,third=Integer.MAX_VALUE,fourth=Integer.MAX_VALUE;
+            for(int cellY=yCell-1;cellY<=yNext;cellY++){
+                int yHash=permutation[(yScale<=cellY?cellY-yScale:cellY)&0xff]&0xff;
+                for(int cellX=xCell-1;cellX<=xNext;cellX++){
+                    int offset=(permutation[((xScale<=cellX?cellX-xScale:cellX)+yHash)&0xff]&0xff)*2;
+                    int dx=scaledX-(cellX<<12)-offsets[offset],dy=scaledY-offsets[offset+1]-(cellY<<12);
+                    int distance=distance(dx,dy);
+                    if(distance<first){fourth=third;third=second;second=first;first=distance;}
+                    else if(distance<second){fourth=third;third=second;second=distance;}
+                    else if(distance<third){fourth=third;third=distance;}
+                    else if(distance<fourth){fourth=distance;}
+                }
+            }
+            int value=0;if(selector==0)value=first;else if(selector==1)value=second;else if(selector==2)value=second-first;else if(selector==3)value=third;else if(selector==4)value=fourth;
+            return new int[]{value,value,value};
+        }
+        private int distance(int dx,int dy){
+            if(distanceMetric==1)return dy*dy+dx*dx>>12;
+            if(distanceMetric==2)return (dx>=0?dx:-dx)+(dy<0?-dy:dy);
+            if(distanceMetric==3){dx=dx<0?-dx:dx;dy=dy>=0?dy:-dy;return dy>=dx?dy:dx;}
+            if(distanceMetric==4){dx=(int)(Math.sqrt((float)(dx<0?-dx:dx)/4096.0F)*4096.0D);dy=(int)(Math.sqrt((float)(dy>=0?dy:-dy)/4096.0F)*4096.0D);int sum=dy+dx;return sum*sum>>12;}
+            if(distanceMetric==5){dx*=dx;dy*=dy;return(int)(Math.sqrt(Math.sqrt((float)(dy+dx)/1.6777216E7F))*4096.0D);}
+            return(int)(Math.sqrt((float)(dy*dy+dx*dx)/1.6777216E7F)*4096.0D);
+        }
+        private static byte[] permutation(int seed){
+            Random random=new Random(seed);byte[] values=new byte[512];for(int i=0;i<255;i++)values[i]=(byte)i;
+            for(int i=0;i<255;i++){int remaining=255-i,index=randomBound(remaining,random);byte value=values[index];values[index]=values[remaining];values[remaining]=values[511-i]=value;}
+            return values;
         }
     }
     private static final class Stripes extends Node{
