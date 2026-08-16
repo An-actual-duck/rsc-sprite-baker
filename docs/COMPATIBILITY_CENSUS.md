@@ -633,3 +633,79 @@ at 199, and operation 39 at 111. Operation 21 is newly visible at 79.
 Combine functions 6 and 1 remain larger non-operation blockers and merit
 separate pinned-semantics work. Preserve the deterministic census and exact
 fail-closed policy; keep the unchanged model-decoder clusters separate.
+
+## 2026-08-16 combine-function-6 audit
+
+The pre-change census was byte-identical to the operation-15 result at SHA-256
+`0724d289d6ecc841f932679cb236c02572b0084bbbc70fead2f259d8f855dcf6`.
+Two independent post-change packaged-JAR runs were byte-identical at SHA-256
+`5dadc9321431bad2a648880c09d6c8e1339a644119441115829ff945dc1591ff`.
+The cache identity remained unchanged.
+
+| Category | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Ready | 561 | 1,132 | +571 |
+| Missing automatic animations | 178 | 218 | +40 |
+| Unsupported material | 3,288 | 2,675 | -613 |
+| Unsupported model | 3,946 | 3,946 | 0 |
+| Morph/internal definition | 612 | 612 | 0 |
+| Other failure | 5 | 7 | +2 |
+
+Combine function 6 appeared in 2,253 NPC reasons and accounted for 3,556
+NPC/material diagnostic occurrences. Both values are now zero. Of those
+definitions, 571 advance to ready, 40 advance to the precise missing-automatic-
+animations category, and Tegid (1213) plus Khazard launderer (8428) advance to
+precise sequence-decoder failures. The other 1,640 affected definitions retain
+another material blocker. No material, texture, color, or average-material
+fallback is introduced.
+
+Remaining unsupported-operation diagnostic occurrences are:
+
+| Operation | Before | After |
+| ---: | ---: | ---: |
+| 6 | 1,188 | 1,216 |
+| 9 | 520 | 520 |
+| 12 | 30 | 30 |
+| 17 | 4 | 4 |
+| 19 | 525 | 527 |
+| 20 | 199 | 199 |
+| 21 | 79 | 145 |
+| 22 | 41 | 41 |
+| 39 | 111 | 111 |
+
+Newly reachable graphs expose operation 21 in textures 63/206/162 (66
+additional occurrences), operation 6 in textures 361/281 (28 additional
+occurrences), and operation 19 in texture 335 (two additional occurrences).
+All other operation frequencies are unchanged. Remaining unsupported combine
+functions are function 1 at 1,926 occurrences, function 5 at 179, function 7
+at 37, and function 2 at one. Functions 3 and 6 are supported; every other
+function continues to fail closed. The 3,946 unsupported-model results remain
+split between `BufferUnderflowException` (1,954 definitions) and invalid
+decoded offsets (`newPosition > limit`, 1,992 definitions).
+
+NPC 11 (Tramp) is the complete color-output packaged-render representative.
+Its eight component models, materials 314/228/313/258/277/254, 907 textured
+faces, standing sequence 808, walking sequence 819, all 18 cells, visible
+pixels, and transparency validated with the default RSC-restrained settings.
+Two terminal-only packaged-JAR exports were byte-identical. The PNG SHA-256 is
+`75b22466987ea90dba6049a8e7cbc68356c6ad2ba3d219632e6c5f400ba63408`
+and provenance SHA-256 is
+`64871ea04125788d41866353dfc094e5314c0a5de063bb36657c3bc59127aba0`.
+
+NPC 3124 (Pyramid block) provides real-cache monochrome-output coverage for
+material 133. Its model 10817 and materials 133/270 rendered twice through the
+packaged JAR with the same default renderer settings. Both 128x128 PNGs had
+4,239 visible and 12,145 transparent pixels and SHA-256
+`8b0ea18f7a73abbf2cc271dcf58f8e190e514897ffb0ed7c482683edda604b2c`.
+It correctly remains missing automatic animations, so this is a static render
+rather than an invented animation assignment. NPC 72 remains ready; NPC 40
+remains model/material render-compatible and lacks only automatic standing
+metadata.
+
+## Recommended next batch
+
+Combine function 1 is now the largest remaining material blocker at 1,926
+diagnostic occurrences. Operation 6 follows at 1,216, then operation 19 at
+527, operation 9 at 520, and operation 20 at 199. Keep each combine function
+as a separate pinned-semantics batch, preserve explicit rejection for all
+others, and retain the deterministic census and fail-closed policy.
