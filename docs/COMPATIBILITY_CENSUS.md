@@ -565,3 +565,71 @@ occurrences, followed by operation 6 at 1,165, operation 9 at 520, operation
 non-operation blockers and merit separate pinned-semantics work. Preserve the
 same deterministic census and fail-closed policy; keep the unchanged model
 decoder clusters in their own focused batch.
+
+## 2026-08-15 operation-15 audit
+
+The pre-change census was byte-identical to the operation-27 result at SHA-256
+`1c9d88a59b7ccfba41f5dbeac9fd62f579cb83c23a629e2e23764216efd14cdd`.
+Two independent post-change packaged-JAR runs were byte-identical at SHA-256
+`0724d289d6ecc841f932679cb236c02572b0084bbbc70fead2f259d8f855dcf6`.
+The cache identity remained unchanged.
+
+| Category | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Ready | 545 | 561 | +16 |
+| Missing automatic animations | 178 | 178 | 0 |
+| Unsupported material | 3,304 | 3,288 | -16 |
+| Unsupported model | 3,946 | 3,946 | 0 |
+| Morph/internal definition | 612 | 612 | 0 |
+| Other failure | 5 | 5 | 0 |
+
+Operation 15 appeared in 1,143 NPC reasons and accounted for 1,366
+NPC/material diagnostic occurrences. Both values are now zero. The 16 newly
+ready definitions are NPCs 126, 188, 190, 566, 891, 959, 1334, 3131, 3244,
+4520, 4601, 6009, 6013, 6221, 6339, and 6345. The other 1,127 affected
+definitions retain another precise material blocker; no material, texture,
+color, or average-material fallback is introduced.
+
+Remaining unsupported-operation diagnostic occurrences are:
+
+| Operation | Before | After |
+| ---: | ---: | ---: |
+| 6 | 1,165 | 1,188 |
+| 9 | 520 | 520 |
+| 12 | 30 | 30 |
+| 15 | 1,366 | 0 |
+| 17 | 4 | 4 |
+| 19 | 468 | 525 |
+| 20 | 199 | 199 |
+| 21 | 0 | 79 |
+| 22 | 41 | 41 |
+| 39 | 111 | 111 |
+
+Newly reachable graphs expose operation 21 in textures 168/199/134/310 (79
+occurrences), operation 19 in textures 61/60/88/220 (57 additional
+occurrences), operation 6 in texture 172 (23 additional occurrences), and
+combine function 6 in texture 74 (three additional occurrences). All other
+operation and combine-function frequencies are unchanged. Operations 4, 5,
+13, 15, 27, 32, 34, 36, and 38 are now at zero. The 3,946 unsupported-model
+results remain split between `BufferUnderflowException` (1,954 definitions)
+and invalid decoded offsets (`newPosition > limit`, 1,992 definitions).
+
+NPC 126 (Otherworldly being) is the packaged-render representative. Models
+202/292/170/260, materials 268/252/256, 550 textured faces, standing sequence
+808, walking sequence 819, all 18 cells, visible pixels, and transparency
+validated with the documented default RSC-restrained renderer settings. Two
+terminal-only packaged-JAR exports were byte-identical. The PNG SHA-256 is
+`615fd903ef06e1fcd044695af0db234100940d5b519f1e78b2898ada02b73522`
+and provenance SHA-256 is
+`2bbc9fd0c5476fdf3602f4f20f9c7bd970137beb4f502b1a33aba66ea0b25496`.
+NPC 72 remains ready; NPC 40 remains model/material render-compatible and
+lacks only automatic standing metadata.
+
+## Recommended next batch
+
+Operation 6 is now the largest remaining opcode blocker at 1,188 diagnostic
+occurrences, followed by operation 19 at 525, operation 9 at 520, operation 20
+at 199, and operation 39 at 111. Operation 21 is newly visible at 79.
+Combine functions 6 and 1 remain larger non-operation blockers and merit
+separate pinned-semantics work. Preserve the deterministic census and exact
+fail-closed policy; keep the unchanged model-decoder clusters separate.
