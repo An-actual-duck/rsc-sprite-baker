@@ -31,7 +31,7 @@ public final class ProceduralTexture530Decoder {
 
     private static Node create(int id,int type,DependencyResolver dependencies){switch(type){
         case 0:return new Fill(true);case 1:return new Fill(false);case 2:return new Gradient(true);case 3:return new Gradient(false);case 4:return new BrickTiles();case 5:return new BoxBlur();
-        case 7:return new Combine();case 8:return new Curve();case 10:return new ColorGradient();case 13:return new HashNoise();case 30:return new Range();case 32:return new BumpLighting();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();
+        case 7:return new Combine();case 8:return new Curve();case 10:return new ColorGradient();case 13:return new HashNoise();case 27:return new Stripes();case 30:return new Range();case 32:return new BumpLighting();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();
         default:throw new UnsupportedTextureFormatException(id,"procedural operation "+type);
     }}
     @FunctionalInterface public interface DependencyResolver{Dependency resolve(int textureId)throws IOException;}
@@ -112,6 +112,23 @@ public final class ProceduralTexture530Decoder {
             int xFraction=(x<<12)/size,yFraction=(y<<12)/size;
             int coordinate=xFraction+yFraction*57,hash=coordinate^(coordinate<<1);
             int value=(4096-((hash*(hash*hash*15731+789221)+1376312589)&Integer.MAX_VALUE)/262144)%4096;
+            return new int[]{value,value,value};
+        }
+    }
+    private static final class Stripes extends Node{
+        int bands=10,dutyWidth=2048,mode;int[] starts,ends;
+        int childCount(){return 0;}
+        void decode(int id,int code,BinaryInput in){switch(code){case 0:bands=in.u8();break;case 1:dutyWidth=in.u16();break;case 2:mode=in.u8();break;default:super.decode(id,code,in);}}
+        void finish(int id){
+            if(bands<=0)throw new UnsupportedTextureFormatException(id,"stripe band count "+bands);
+            starts=new int[bands+1];ends=new int[bands+1];int interval=4096/bands,filledWidth=dutyWidth*interval>>12,position=0;
+            for(int band=0;band<bands;band++){starts[band]=position;ends[band]=position+filledWidth;position+=interval;}
+            starts[bands]=4096;ends[bands]=ends[0]+4096;
+        }
+        int[] rgb(int x,int y,int size){
+            int xFraction=(x<<12)/size,yFraction=(y<<12)/size,coordinate=0;
+            if(mode==0)coordinate=yFraction;else if(mode==1)coordinate=xFraction;else if(mode==2)coordinate=((xFraction+yFraction-4096)>>1)+2048;else if(mode==3)coordinate=((xFraction-yFraction)>>1)+2048;
+            int value=0;for(int band=0;band<bands;band++)if(starts[band]<=coordinate&&coordinate<starts[band+1]){if(coordinate<ends[band])value=4096;break;}
             return new int[]{value,value,value};
         }
     }

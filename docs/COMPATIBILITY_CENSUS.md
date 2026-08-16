@@ -498,3 +498,70 @@ to pinned client semantics and neutral fixtures, rerun this census after every
 addition, and preserve exact fail-closed diagnostics. The unchanged
 model-decoder clusters and known animation/definition failures remain separate
 focused batches.
+
+## 2026-08-15 operation-27 audit
+
+The pre-change census was byte-identical to the operation-4 result at SHA-256
+`07cd3ac4661fe5520f6d40297655c541279f213caa8cf3e0867275e313285c9b`.
+Two independent post-change packaged-JAR runs were byte-identical at SHA-256
+`1c9d88a59b7ccfba41f5dbeac9fd62f579cb83c23a629e2e23764216efd14cdd`.
+The cache identity remained unchanged.
+
+| Category | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Ready | 539 | 545 | +6 |
+| Missing automatic animations | 178 | 178 | 0 |
+| Unsupported material | 3,310 | 3,304 | -6 |
+| Unsupported model | 3,946 | 3,946 | 0 |
+| Morph/internal definition | 612 | 612 | 0 |
+| Other failure | 5 | 5 | 0 |
+
+Operation 27 appeared in 1,325 NPC reasons and accounted for 1,756
+NPC/material diagnostic occurrences. Both values are now zero. Jiminua (560),
+Irena (835 and 4988), Mouse (901), Crypt rat (2032), and A Meiyerditch child
+(4751) advance from unsupported material to ready. The other 1,319 affected
+definitions retain another precise material blocker; no material, texture,
+color, or average-material fallback is introduced.
+
+Remaining unsupported-operation diagnostic occurrences are:
+
+| Operation | Before | After |
+| ---: | ---: | ---: |
+| 6 | 1,165 | 1,165 |
+| 9 | 520 | 520 |
+| 12 | 30 | 30 |
+| 15 | 1,366 | 1,366 |
+| 17 | 4 | 4 |
+| 19 | 468 | 468 |
+| 20 | 150 | 199 |
+| 22 | 41 | 41 |
+| 27 | 1,756 | 0 |
+| 39 | 111 | 111 |
+
+The only newly exposed opcode blocker is operation 20 in texture 221, adding
+49 occurrences. Existing combine-function blockers are unchanged: function 1
+has 1,926 occurrences, function 6 has 3,553, function 5 has 179, function 7
+has 37, and function 2 has one. Operations 4, 5, 13, 27, 32, 34, 36, and 38
+are now at zero. The 3,946 unsupported-model results remain split between
+`BufferUnderflowException` (1,954 definitions) and invalid decoded offsets
+(`newPosition > limit`, 1,992 definitions).
+
+NPC 560 (Jiminua) is the packaged-render representative. Its seven component
+models, materials 228/249/59/268/291/251/252, 467 textured faces, standing
+sequence 808, walking sequence 819, all 18 cells, visible pixels, and
+transparency validated. Two terminal-only packaged-JAR exports were
+byte-identical. The PNG SHA-256 is
+`3f60507ff6e52631de4819e1fedf2ac9936081698212e2805938d007c0734d44`
+and provenance SHA-256 is
+`123054c082d2e1b4300e0c40c3039f4d1de3176d36128c90e8cc06591646ac4f`.
+NPC 72 remains ready; NPC 40 remains model/material render-compatible and
+lacks only automatic standing metadata.
+
+## Recommended next batch
+
+Operation 15 is now the largest remaining opcode blocker at 1,366 diagnostic
+occurrences, followed by operation 6 at 1,165, operation 9 at 520, operation
+19 at 468, and operation 20 at 199. Combine functions 6 and 1 are larger
+non-operation blockers and merit separate pinned-semantics work. Preserve the
+same deterministic census and fail-closed policy; keep the unchanged model
+decoder clusters in their own focused batch.
