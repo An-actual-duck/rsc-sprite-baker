@@ -12,8 +12,8 @@ linked.
 
 The supported procedural operations are deliberately limited to the first
 verified textured NPC: monochrome/color fill (0/1), horizontal/vertical
-gradient (2/3), randomized tiles (4), box blur (5), multiply/overlay combine
-(7 functions 3/6), linear curve parsing (8), custom sampled color gradient (10 preset
+gradient (2/3), randomized tiles (4), box blur (5), addition/multiply/overlay
+combine (7 functions 1/3/6), linear curve parsing (8), custom sampled color gradient (10 preset
 0), hash noise (13), cellular distance noise (15), stripes (27), range (30),
 bump lighting (32), multi-octave gradient
 noise (34), nested texture dependencies (36), and line noise (38). Texture
@@ -42,14 +42,18 @@ independently. Unexpected parameters fail closed. The primary trace is
 [`TextureOp5.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOp5.java).
 Combine operation 7 has two child inputs and defaults to overlay function 6.
 Parameter code 0 is the unsigned function ID; code 1 selects monochrome output
-only when its unsigned byte equals 1. Function 6 treats child 1 as the overlay
+only when its unsigned byte equals 1. Function 1 adds child 1 to child 0 with
+plain Java signed `int` arithmetic and no fixed-point rescaling. Color mode
+adds the corresponding RGB channels; monochrome mode adds the first channel
+from each child and repeats the result across RGB. Function 6 treats child 1 as the overlay
 control: values below 2048 produce `child1 * child0 >> 11`; values at or above
 2048 produce `4096 - ((4096 - child0) * (4096 - child1) >> 11)`. Color mode
 applies that branch independently to RGB. Monochrome mode reads the first
 channel of each child and repeats the result across RGB. Function 3 retains its
 `child1 * child0 >> 12` multiply behavior in both output modes. Calculations use
 Java signed `int` overflow and have no node-level clamp; only the existing final
-texture conversion clamps channels to 0..255. Every other function ID remains
+texture conversion clamps channels to 0..255. Functions 1 and 3 are
+commutative, but the decoded child ordering is preserved exactly. Every other function ID remains
 an explicit unsupported-material error. The primary trace is
 [`TextureOpCombine.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOpCombine.java).
 Operation 13 is the client's zero-child monochrome hash-noise node and has no
@@ -151,7 +155,7 @@ reference-index SHA-256
 | Untextured | NPC 72 Troll; model 3752 | Supported, unchanged | 390 vertices, 739 faces; Phase-1 PNG SHA-256 remains `b6d9ebd11c681dc61e40b5a5e4e063326a2e0071a0f7f2e57a178bf5c181e758`. |
 | Textured animated | NPC 40 Shark; model 2848; sequence 10; materials 157/171 | Supported | 70 textured faces, 31 type-0 mappings, 39 documented face-local fallbacks. Two complete 18-cell exports were byte-identical: PNG SHA-256 `4568d2194f59c6d0d3118dd594531a517c83052c40fcec28896d5b348182ab44`; manifest SHA-256 `c49d42c26770f3524cfce9f9c6b572567ab3db71252aede3e92bf7e442f36a5d`. |
 | Multipart | NPC 42 Sheep; models 20283/20289/20285 | Model assembly supported; materials unsupported | Three components combine with 430 textured faces. Operation 36 is resolved; remaining unsupported operations are reported and export stops. |
-| Recolored/retextured multipart | NPC 0 Hans; six component models; five recolors | Model assembly/recolor metadata supported; materials unsupported | Retextured material IDs 228/292/258/257/262/527/272/254 resolve nested textures and report any later unsupported graph operation. No substitution occurs. |
+| Additive-combined recolored/retextured multipart | NPC 0 Hans; six component models; five recolors; materials 228/292/258/257/262/527/272/254 | Supported | Combine function 1 now decodes, including the high-volume texture 203 graph. Standing sequence 9870, walking sequence 9869, all 676 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `261ccf8a8a762adf5ba6b64dd6f2b3eee3cf6d3f82b137645f5604c4778d06c6`). |
 | Alpha/mapping stress | NPC 61 Spider; model 24613; material 111 | Supported | Operation 34 now decodes; models, material, standing sequence 6247, and walking sequence 6248 validate. Its 298 textured faces continue to use the documented advanced-mapping fallback. |
 | Hash-noise multipart | NPC 125 Ice warrior; seven component models; materials 249/291/303/302 | Supported | Operation 13 now decodes; standing sequence 842, walking sequence 841, and all 1,076 textured faces validate. |
 | Line-noise animated | NPC 131 Penguin; model 21547; materials 182/347/171 | Supported | Operation 38 now decodes; standing sequence 5668, walking sequence 5666, and all 391 textured faces validate in a packaged 18-cell render. |
