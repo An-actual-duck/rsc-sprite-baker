@@ -12,8 +12,8 @@ linked.
 
 The supported procedural operations are deliberately limited to the first
 verified textured NPC: monochrome/color fill (0/1), horizontal/vertical
-gradient (2/3), randomized tiles (4), box blur (5), multiply combine (7
-function 3), linear curve parsing (8), custom sampled color gradient (10 preset
+gradient (2/3), randomized tiles (4), box blur (5), multiply/overlay combine
+(7 functions 3/6), linear curve parsing (8), custom sampled color gradient (10 preset
 0), hash noise (13), cellular distance noise (15), stripes (27), range (30),
 bump lighting (32), multi-octave gradient
 noise (34), nested texture dependencies (36), and line noise (38). Texture
@@ -40,6 +40,18 @@ and vertical passes. Monochrome mode reads a color child's first channel and
 replicates the blurred result; color mode blurs all three channels
 independently. Unexpected parameters fail closed. The primary trace is
 [`TextureOp5.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOp5.java).
+Combine operation 7 has two child inputs and defaults to overlay function 6.
+Parameter code 0 is the unsigned function ID; code 1 selects monochrome output
+only when its unsigned byte equals 1. Function 6 treats child 1 as the overlay
+control: values below 2048 produce `child1 * child0 >> 11`; values at or above
+2048 produce `4096 - ((4096 - child0) * (4096 - child1) >> 11)`. Color mode
+applies that branch independently to RGB. Monochrome mode reads the first
+channel of each child and repeats the result across RGB. Function 3 retains its
+`child1 * child0 >> 12` multiply behavior in both output modes. Calculations use
+Java signed `int` overflow and have no node-level clamp; only the existing final
+texture conversion clamps channels to 0..255. Every other function ID remains
+an explicit unsupported-material error. The primary trace is
+[`TextureOpCombine.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOpCombine.java).
 Operation 13 is the client's zero-child monochrome hash-noise node and has no
 serialized parameters. For every texel, it hashes the 12-bit X/Y fractions
 with Java `int` overflow, masks the polynomial result to a non-negative integer,
@@ -148,6 +160,8 @@ reference-index SHA-256
 | Randomized-tile material | Material 261; operations 0/4/30 | Supported | Operation 4 now decodes. A packaged-JAR render on a neutral in-memory textured triangle was deterministic with 434 visible pixels and ARGB SHA-256 `81706338fa2297a54f347e7a18fd34216b6d9f95065785d42adedbd07d0b8da0`. No affected NPC clears its other material blockers yet. |
 | Striped multipart | NPC 560 Jiminua; seven component models; materials 228/249/59/268/291/251/252 | Supported | Operation 27 now decodes; standing sequence 808, walking sequence 819, all 467 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders. |
 | Cellular-noise multipart | NPC 126 Otherworldly being; models 202/292/170/260; materials 268/252/256 | Supported | Operation 15 now decodes; standing sequence 808, walking sequence 819, all 550 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders. |
+| Overlay-combined multipart | NPC 11 Tramp; eight component models; materials 314/228/313/258/277/254 | Supported | Color-output combine function 6 now decodes; standing sequence 808, walking sequence 819, all 907 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders. |
+| Monochrome overlay | NPC 3124 Pyramid block; model 10817; materials 133/270 | Static render supported; automatic animations absent | Material 133 exercises monochrome combine function 6. Two packaged-JAR static renders were byte-identical with 4,239 visible pixels; the definition correctly remains in missing automatic animations. |
 | Known difficult model | model 23905 | Unsupported model | RuneLite model decoder throws `BufferUnderflowException`. |
 | Known difficult model | model 23889 | Unsupported model | RuneLite model decoder reports an invalid offset (`newPosition > limit`). |
 
