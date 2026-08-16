@@ -14,7 +14,8 @@ The supported procedural operations are deliberately limited to the first
 verified textured NPC: monochrome/color fill (0/1), horizontal/vertical
 gradient (2/3), randomized tiles (4), box blur (5), multiply combine (7
 function 3), linear curve parsing (8), custom sampled color gradient (10 preset
-0), hash noise (13), stripes (27), range (30), bump lighting (32), multi-octave gradient
+0), hash noise (13), cellular distance noise (15), stripes (27), range (30),
+bump lighting (32), multi-octave gradient
 noise (34), nested texture dependencies (36), and line noise (38). Texture
 generation uses the software client's 64/128 material-size flag and horizontal
 order. It uses a fixed, manifest-recorded gamma of 1.0 instead of the source
@@ -45,6 +46,22 @@ with Java `int` overflow, masks the polynomial result to a non-negative integer,
 scales it, and applies Java signed remainder `% 4096`. Unexpected parameters
 fail closed. The primary trace is
 [`TextureOpNoise.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOpNoise.java).
+Operation 15 is the client's zero-child monochrome cellular-distance node. Its
+serialized parameters are shared X/Y scale (code 0), unsigned seed (code 1),
+unsigned 16-bit feature-point jitter (code 2), nearest-distance selector (code
+3), distance metric (code 4), and independent X and Y scales (codes 5 and 6).
+Defaults are 5, 5, 0, 2048, selector 2, and squared-Euclidean metric 1. The
+implementation preserves the client's independently seeded permutation and
+512-entry signed-short offset tables, half-cell coordinate bias, periodic cell
+index wrapping, 3-by-3 feature search, Java integer overflow, and ordered four
+nearest distances. Metrics 0 through 5 are Euclidean, squared Euclidean,
+Manhattan, Chebyshev, squared sum-of-square-roots, and fourth-root distance;
+selectors 0 through 4 return the first, second, second-minus-first, third, and
+fourth distances. Other metric bytes use the client's Euclidean branch and
+other selector bytes produce zero. The node has no child, texture, sprite, or
+color input and always emits monochrome, repeated across RGB channels.
+Unexpected parameter codes fail closed. The primary trace is
+[`TextureOp15.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOp15.java).
 Operation 27 is the client's zero-child monochrome stripe node. Its serialized
 parameters are unsigned 8-bit band count (code 0), unsigned 16-bit duty width
 (code 1), and unsigned 8-bit coordinate mode (code 2), with defaults 10, 2048,
@@ -130,6 +147,7 @@ reference-index SHA-256
 | Box-blurred animated | NPC 78 Giant bat; model 18898; materials 185/59 | Supported | Operation 5 now decodes; standing sequence 4914, walking sequence 4913, and all 524 textured faces validate in a packaged 18-cell render. |
 | Randomized-tile material | Material 261; operations 0/4/30 | Supported | Operation 4 now decodes. A packaged-JAR render on a neutral in-memory textured triangle was deterministic with 434 visible pixels and ARGB SHA-256 `81706338fa2297a54f347e7a18fd34216b6d9f95065785d42adedbd07d0b8da0`. No affected NPC clears its other material blockers yet. |
 | Striped multipart | NPC 560 Jiminua; seven component models; materials 228/249/59/268/291/251/252 | Supported | Operation 27 now decodes; standing sequence 808, walking sequence 819, all 467 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders. |
+| Cellular-noise multipart | NPC 126 Otherworldly being; models 202/292/170/260; materials 268/252/256 | Supported | Operation 15 now decodes; standing sequence 808, walking sequence 819, all 550 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders. |
 | Known difficult model | model 23905 | Unsupported model | RuneLite model decoder throws `BufferUnderflowException`. |
 | Known difficult model | model 23889 | Unsupported model | RuneLite model decoder reports an invalid offset (`newPosition > limit`). |
 

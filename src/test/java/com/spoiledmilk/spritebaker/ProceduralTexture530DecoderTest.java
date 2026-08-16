@@ -135,6 +135,45 @@ class ProceduralTexture530DecoderTest {
             ()->new ProceduralTexture530Decoder().decode(921,new byte[]{1,0,27,1,1,0,0,0,0,0},8));
         assertTrue(bands.getMessage().contains("stripe band count 0"));
     }
+    @Test void operation15ReproducesEveryPinnedDistanceMetricWithoutDependencies()throws Exception{
+        int[][] expected={
+            {5723991,5197647,7829367,1052688,8421504,16250871,5460819,6776679},
+            {3487029,2763306,8092539,1447446,10395294,16777215,6250335,7829367},
+            {6250335,6316128,9605778,1973790,9605778,16777215,5987163,6579300},
+            {5723991,5131854,7237230,921102,5921370,13027014,5526612,7105644},
+            {9868950,11513775,16053492,4605510,10132122,16777215,9605778,8816262},
+            {5395026,5263440,5592405,592137,5460819,11974326,3618615,4539717}};
+        for(int metric=0;metric<expected.length;metric++){
+            ProceduralTexture530Decoder.Decoded decoded=new ProceduralTexture530Decoder().decode(922,cellular(2,metric,0x1234),8,
+                id->{throw new AssertionError("operation 15 must not resolve texture "+id);});
+            assertArrayEquals(expected[metric],java.util.Arrays.copyOfRange(decoded.pixels,0,8),"metric "+metric);
+            assertTrue(java.util.Arrays.stream(decoded.pixels).allMatch(pixel->(pixel>>16&255)==(pixel>>8&255)&&(pixel>>8&255)==(pixel&255)));
+            assertEquals(java.util.List.of(15),decoded.operationTypes);
+        }
+    }
+    @Test void operation15ReproducesEveryPinnedNearestDistanceSelector(){
+        int[][] expected={
+            {263172,197379,1315860,7237230,2236962,131586,2763306,2302755},
+            {3750201,2960685,9474192,8684676,12698049,16777215,9079434,10132122},
+            {3487029,2763306,8092539,1447446,10395294,16777215,6250335,7829367},
+            {14145495,10395294,10395294,9079434,16316664,16777215,16777215,16777215},
+            {16777215,15000804,11382189,16777215,16777215,16777215,16777215,16777215}};
+        for(int selector=0;selector<expected.length;selector++){
+            ProceduralTexture530Decoder.Decoded decoded=new ProceduralTexture530Decoder().decode(923,cellular(selector,1,0x1234),8);
+            assertArrayEquals(expected[selector],java.util.Arrays.copyOfRange(decoded.pixels,0,8),"selector "+selector);
+        }
+    }
+    @Test void operation15PreservesPinnedFallbackModesSignedOffsetsAndFailClosedParameters(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        assertArrayEquals(decoder.decode(924,cellular(2,0,0x1234),8).pixels,decoder.decode(924,cellular(2,6,0x1234),8).pixels);
+        assertTrue(java.util.Arrays.stream(decoder.decode(925,cellular(5,1,0x1234),8).pixels).allMatch(pixel->pixel==0));
+        int[] signedOffsets=decoder.decode(926,cellular(2,1,0xffff),8).pixels;
+        assertArrayEquals(new int[]{16777215,16777215,16777215,16777215,16777215,16777215,16777215,16777215},java.util.Arrays.copyOfRange(signedOffsets,0,8));
+        assertEquals(10921638,signedOffsets[25]);
+        UnsupportedTextureFormatException parameter=assertThrows(UnsupportedTextureFormatException.class,
+            ()->decoder.decode(927,new byte[]{1,0,15,1,1,7,0,0,0},8));
+        assertTrue(parameter.getMessage().contains("operation parameter 7 for CellularNoise"));
+    }
     static byte[] hashNoise(){return new byte[]{1,0,13,1,0,0,0,0};}
     static byte[] defaultNoise(){return new byte[]{1,0,34,1,0,0,0,0};}
     static byte[] textureDependency(int id){return new byte[]{1,0,36,1,1,0,(byte)(id>>>8),(byte)id,0,0,0};}
@@ -145,5 +184,6 @@ class ProceduralTexture530DecoderTest {
     static byte[] boxBlurColorThenCurve(){return new byte[]{4,0,2,1,0,0,10,1,1,0,0,2,0,0,16,64,(byte)128,16,0,(byte)240,(byte)128,32,0,0,5,1,3,0,2,1,1,2,0,1,0,8,1,1,0,0,2,0,0,0,0,16,0,16,0,2,3,0,0};}
     static byte[] brickTiles(){return new byte[]{1,0,4,1,8,0,3,1,5,2,2,0,3,1,0,4,4,0,5,1,44,6,0,(byte)128,7,3,32,0,0,0};}
     static byte[] stripes(int mode){return new byte[]{1,0,27,1,3,0,3,1,6,0,2,(byte)mode,0,0,0};}
+    static byte[] cellular(int selector,int metric,int jitter){return new byte[]{1,0,15,1,7,0,4,1,7,2,(byte)(jitter>>>8),(byte)jitter,3,(byte)selector,4,(byte)metric,5,3,6,6,0,0,0};}
     private static void bytes(ByteArrayOutputStream out,int... values){for(int value:values)out.write(value);}
 }
