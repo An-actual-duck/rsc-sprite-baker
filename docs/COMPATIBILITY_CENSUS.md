@@ -709,3 +709,73 @@ diagnostic occurrences. Operation 6 follows at 1,216, then operation 19 at
 527, operation 9 at 520, and operation 20 at 199. Keep each combine function
 as a separate pinned-semantics batch, preserve explicit rejection for all
 others, and retain the deterministic census and fail-closed policy.
+
+## 2026-08-16 combine-function-1 audit
+
+The fresh pre-change census reproduced the combine-function-6 result at
+SHA-256
+`5dadc9321431bad2a648880c09d6c8e1339a644119441115829ff945dc1591ff`.
+Two independent post-change packaged-JAR runs were byte-identical at SHA-256
+`d4a24f58cb3279bc893f1ea52247eb8eed3d44986870c9cb6dd954f621de4854`.
+The cache identity remained unchanged.
+
+| Category | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Ready | 1,132 | 1,786 | +654 |
+| Missing automatic animations | 218 | 246 | +28 |
+| Unsupported material | 2,675 | 1,993 | -682 |
+| Unsupported model | 3,946 | 3,946 | 0 |
+| Morph/internal definition | 612 | 612 | 0 |
+| Other failure | 7 | 7 | 0 |
+
+Combine function 1 appeared in 1,369 NPC reasons and accounted for 1,926
+NPC/material diagnostic occurrences, concentrated in textures 203 (1,517),
+132 (385), 233 (21), and 363 (3). Both totals are now zero. Of those
+definitions, 654 advance to ready and 28 advance to the precise missing-
+automatic-animations category. The other 687 definitions retain another
+precise material blocker. No material, texture, color, average-material, or
+other rendering fallback is introduced.
+
+Remaining unsupported-operation diagnostic occurrences are:
+
+| Operation | Before | After |
+| ---: | ---: | ---: |
+| 6 | 1,216 | 1,604 |
+| 9 | 520 | 520 |
+| 12 | 30 | 30 |
+| 17 | 4 | 4 |
+| 19 | 527 | 527 |
+| 20 | 199 | 220 |
+| 21 | 145 | 145 |
+| 22 | 41 | 41 |
+| 39 | 111 | 111 |
+
+Newly reachable graphs expose operation 6 in textures 132 (385 occurrences)
+and 363 (3), plus operation 20 in texture 233 (21). All other operation
+frequencies are unchanged. Remaining unsupported combine functions are
+function 5 at 179 occurrences, function 7 at 37, and function 2 at one.
+Functions 1, 3, and 6 are supported; every other function continues to fail
+closed. The 3,946 unsupported-model results remain split between
+`BufferUnderflowException` (1,954 definitions) and invalid decoded offsets
+(`newPosition > limit`, 1,992 definitions).
+
+NPC 0 (Hans) is the packaged-render representative for the high-volume
+texture-203 path. Its six component models, materials
+228/292/258/257/262/527/272/254, 676 textured faces, standing sequence 9870,
+walking sequence 9869, all 18 cells, visible pixels, and transparency validated
+with the default RSC-restrained settings. Two terminal-only exports from the
+shaded packaged JAR were byte-identical. The PNG SHA-256 is
+`261ccf8a8a762adf5ba6b64dd6f2b3eee3cf6d3f82b137645f5604c4778d06c6`
+and provenance SHA-256 is
+`5c0b71d5a0131362edb5a5c3f0ca18d45413d64fcf7ed4da77d4b3d2da6dd589`.
+NPC 72 remains ready; NPC 40 remains model/material render-compatible and
+lacks only automatic standing metadata.
+
+## Recommended next batch
+
+Operation 6 is now the largest remaining material blocker at 1,604 diagnostic
+occurrences, followed by operation 19 at 527, operation 9 at 520, operation 20
+at 220, and operation 21 at 145. Among combine functions, function 5 is the
+largest remaining blocker at 179 occurrences. Preserve the deterministic
+census, explicit rejection, and exact fail-closed rendering policy; keep the
+unchanged model-decoder clusters in their own focused batch.
