@@ -111,6 +111,30 @@ class ProceduralTexture530DecoderTest {
             ()->new ProceduralTexture530Decoder().decode(917,new byte[]{1,0,4,1,1,0,0,0,0,0},8));
         assertTrue(grid.getMessage().contains("brick grid 0x8"));
     }
+    @Test void operation27TransformsParameterizedStripesForEveryPinnedMode()throws Exception{
+        int[][] expected={
+            {16777215,16777215,16777215,16777215,16777215,16777215,16777215,16777215,0,0,0,0,0,0,0,0},
+            {0,16777215,0,0,16777215,0,0,16777215,0,16777215,0,0,16777215,0,0,16777215},
+            {16777215,16777215,0,0,0,0,16777215,16777215,0,16777215,16777215,0,0,0,0,16777215},
+            {0,0,0,16777215,16777215,0,0,0,0,0,16777215,16777215,0,0,0,16777215}};
+        for(int mode=0;mode<expected.length;mode++){
+            ProceduralTexture530Decoder.Decoded decoded=new ProceduralTexture530Decoder().decode(918,stripes(mode),8,
+                id->{throw new AssertionError("operation 27 must not resolve texture "+id);});
+            assertArrayEquals(expected[mode],java.util.Arrays.copyOfRange(decoded.pixels,0,16),"mode "+mode);
+            assertTrue(java.util.Arrays.stream(decoded.pixels).allMatch(pixel->pixel==0||pixel==0xffffff));
+            assertEquals(java.util.List.of(27),decoded.operationTypes);
+        }
+    }
+    @Test void operation27PreservesPinnedUnknownModeAndRejectsInvalidSerialization(){
+        ProceduralTexture530Decoder.Decoded unknownMode=new ProceduralTexture530Decoder().decode(919,stripes(4),8);
+        assertTrue(java.util.Arrays.stream(unknownMode.pixels).allMatch(pixel->pixel==0xffffff));
+        UnsupportedTextureFormatException parameter=assertThrows(UnsupportedTextureFormatException.class,
+            ()->new ProceduralTexture530Decoder().decode(920,new byte[]{1,0,27,1,1,3,0,0,0},8));
+        assertTrue(parameter.getMessage().contains("operation parameter 3 for Stripes"));
+        UnsupportedTextureFormatException bands=assertThrows(UnsupportedTextureFormatException.class,
+            ()->new ProceduralTexture530Decoder().decode(921,new byte[]{1,0,27,1,1,0,0,0,0,0},8));
+        assertTrue(bands.getMessage().contains("stripe band count 0"));
+    }
     static byte[] hashNoise(){return new byte[]{1,0,13,1,0,0,0,0};}
     static byte[] defaultNoise(){return new byte[]{1,0,34,1,0,0,0,0};}
     static byte[] textureDependency(int id){return new byte[]{1,0,36,1,1,0,(byte)(id>>>8),(byte)id,0,0,0};}
@@ -120,5 +144,6 @@ class ProceduralTexture530DecoderTest {
     static byte[] boxBlurColor(){return new byte[]{3,0,2,1,0,0,10,1,1,0,0,2,0,0,16,64,(byte)128,16,0,(byte)240,(byte)128,32,0,0,5,1,3,0,2,1,1,2,0,1,2,0,0};}
     static byte[] boxBlurColorThenCurve(){return new byte[]{4,0,2,1,0,0,10,1,1,0,0,2,0,0,16,64,(byte)128,16,0,(byte)240,(byte)128,32,0,0,5,1,3,0,2,1,1,2,0,1,0,8,1,1,0,0,2,0,0,0,0,16,0,16,0,2,3,0,0};}
     static byte[] brickTiles(){return new byte[]{1,0,4,1,8,0,3,1,5,2,2,0,3,1,0,4,4,0,5,1,44,6,0,(byte)128,7,3,32,0,0,0};}
+    static byte[] stripes(int mode){return new byte[]{1,0,27,1,3,0,3,1,6,0,2,(byte)mode,0,0,0};}
     private static void bytes(ByteArrayOutputStream out,int... values){for(int value:values)out.write(value);}
 }
