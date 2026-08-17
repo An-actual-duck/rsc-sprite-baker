@@ -141,3 +141,54 @@ geometry may be skipped, synthesized, or substituted. The principal known
 risk is that a footer-only patch could clear the exceptions while leaving
 complex mappings silently wrong; the follow-up must implement and test the
 entire pinned type-1 path.
+
+## 2026-08-17 bounded decoder resolution
+
+The recommended follow-up is implemented. `CacheReader` selects the local
+decoder only for `ff ff` files whose complete revision-530 calculation lands
+exactly at the 23-byte footer, has no particle extension, and contains only
+texture render types 0 through 3. Every calculated section is checked against
+the footer before decoding; smart reads are additionally bounded by their
+declared X/Y/Z, index, or texture-coordinate stream. Any other marker or
+structural result remains on RuneLite's existing loader path.
+
+The port retains vertices, faces, delta-coded indices, priorities, alpha,
+vertex and face bones, colors, face texture IDs, texture-coordinate references,
+and type-0 through type-3 mapping records. Complex P/M/N, unsigned-short scale
+fields, signed one-byte rotation/direction/translation fields, and type-2 cube
+bytes live in `ModelDefinition530` and survive component assembly, animation
+copies, and rendering. Assembly offsets only type-0 vertex triples; it does not
+misinterpret complex P/M/N as vertex indices. An unrepresentable combined
+texture-coordinate index fails explicitly. The renderer ports the pinned
+revision-530 GL type-1 cylindrical, type-2 cube, and type-3 spherical coordinate
+equations instead of substituting face-local coordinates.
+
+A read-only terminal scan of all 45,472 model archives found 5,778 old files
+and 39,694 exact type-1 matches. The corrected route loaded every match without
+failure. Of those, 35,218 contain complex mappings: 26,064 have one through six
+complex faces (the accidentally successful dependency range) and 9,154 have
+seven or more. This cache contains no type-2 or type-3 files; generated
+marker-routing tests prove those markers do not select the local decoder, and
+actual old-format model 25 decodes identically through `CacheReader` and
+RuneLite.
+
+The external evidence report is deterministic at SHA-256
+`8f2afa99639584aefb0463555f7d5c7a7ec66fa304f891fc31bdfb4d87e49181`.
+It records raw and decoded-array hashes for models 496, 277, 560, 2970, and
+541, representing the five audited signatures. Their decoded counts are,
+respectively, 117/226/7, 285/495/8, 133/250/9, 89/165/11, and 83/166/11 for
+vertices/faces/texture faces. Source model bytes and decoded assets remain
+outside this repository.
+
+The production effect and newly exposed blockers are recorded in
+[`COMPATIBILITY_CENSUS.md`](COMPATIBILITY_CENSUS.md). Unsupported-model
+definitions reach zero; no model-decoder cluster remains. The known risk is
+that type-2/type-3 routing is fixture-tested rather than cache-tested because
+the licensed cache contains no examples. Structurally mismatched type-1 files
+also have no cache representative; their dependency/fail-closed path is covered
+by generated unknown-type, extension, footer, stream-boundary, and truncation
+tests.
+
+The post-implementation audit completes with zero affected NPCs, zero failing
+models, and zero structural clusters; its external report SHA-256 is
+`009d8dbc0606c8aa154849dfa2be8b692e5cb0f8b5a1822b83395c238f0dcf16`.

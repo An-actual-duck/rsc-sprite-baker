@@ -251,3 +251,24 @@ Two shaded-JAR full-cache censuses were byte-identical at the hash recorded in
 pixels. Unsupported-material definitions reached zero. Cache identities
 remained unchanged, and no cache or rendered derivative entered the
 repository.
+
+## 2026-08-17 revision-530 type-1 decoder inspection
+
+The licensed-cache build passed all 200 Java 21 tests and the terminal archive
+inspector for both platforms. Inspection reconfirmed 31 exact read-only cache
+files, source/license records, empty adjacent exports, platform launchers, safe
+paths, and desktop plus advanced entry points. No GUI was launched or
+automated.
+
+- shaded JAR SHA-256: `cb818f29b619f136feada0d030917d39e57717e1e89c320b090b4d735e049ed3`
+  (6,347,696 bytes)
+- Linux archive SHA-256: `7482bc34618fc64ee3e0ba50ec15846a7c08e8a9629f22c1df61a59b3cef33e9`
+  (77,061,755 bytes)
+- Windows archive SHA-256: `1456912b8f4176c533c5b5d84e2a3d4683a0ae4cc73c44da592499de9a286934`
+  (77,061,991 bytes)
+
+Two full-cache censuses were byte-identical at the hash recorded in
+`COMPATIBILITY_CENSUS.md`. Five packaged terminal renders covered the audited
+7/8/9/10/11-complex-face signatures and confirmed visible plus transparent
+pixels. Unsupported-model definitions reached zero. Cache identities remained
+unchanged, and no cache or rendered derivative entered the repository.

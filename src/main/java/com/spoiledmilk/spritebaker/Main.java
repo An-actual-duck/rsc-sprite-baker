@@ -89,7 +89,7 @@ public final class Main {
         int beforeLast = data[data.length - 2];
         if (beforeLast == -1 && last == -3) return "runelite-type-3";
         if (beforeLast == -1 && last == -2) return "runelite-type-2";
-        if (beforeLast == -1 && last == -1) return "runelite-type-1";
+        if (beforeLast == -1 && last == -1) return "revision-530-type-1";
         return "runelite-old-format";
     }
 
@@ -184,7 +184,7 @@ public final class Main {
             "runeliteStore", "success",
             "runeliteModelLoader", "success for all selected component models",
             "runeliteNpcLoader", "not revision-530-safe; legacy opcodes 42 and 127 require the strict adapter",
-            "knownModelLimitation", "some revision-530 type-1 models fail RuneLite 1.12.35 decoding; no fallback is attempted",
+            "modelDecoder", "exactly framed revision-530 type-1 models use the bounded pinned decoder; other formats retain the RuneLite dependency path",
             "unsupported", List.of("textures", "animation transforms", "NPC morph resolution", "recolor palette opcode 42 application")));
         return root;
     }

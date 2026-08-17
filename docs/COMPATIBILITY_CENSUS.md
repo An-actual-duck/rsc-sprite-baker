@@ -2021,3 +2021,72 @@ The highest-yield signature has seven complex texture faces: 205 unique
 models referenced by 768 affected NPCs. The narrowest safe follow-up is a
 fully bounded revision-530 `ff ff` type-1 decoder, not a footer adjustment;
 the existing dependency path also omits the pinned complex texture fields.
+
+## 2026-08-17 revision-530 type-1 decoder result
+
+The bounded decoder resolves both prior unsupported-model clusters. Two final
+shaded-JAR censuses were byte-identical at SHA-256
+`743a4413ca89ea1f3b840a972563ccc37b41104e57bc06aa57ac2bca0b08e95d`.
+The before report was
+`dd70fc41f7dad7e9c7770c7d6b85acf0a996836fe8a34a4f0c74b0b6232c20fd`;
+cache identity is unchanged.
+
+| Category | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Ready | 3,323 | 6,664 | +3,341 |
+| Missing automatic animations | 674 | 1,046 | +372 |
+| Unsupported material | 0 | 53 | +53 |
+| Unsupported model | 3,946 | 0 | -3,946 |
+| Morph/internal definition | 612 | 612 | 0 |
+| Other failure | 35 | 215 | +180 |
+
+The 1,954 definitions previously ending in `BufferUnderflowException` now
+classify as 1,720 ready, 166 missing automatic animations, 42 precise
+animation/definition failures, and 26 unsupported materials. The other 1,992
+definitions previously ending in invalid decoded offsets now classify as
+1,621 ready, 206 missing automatic animations, 138 other failures, and 27
+unsupported materials. Thus all 3,946 definitions advance and the
+unsupported-model total, `BufferUnderflowException` cluster, and invalid-offset
+cluster all reach zero.
+
+Newly exposed material blockers are combine function 11 in texture 216 (45
+definitions), texture 653 (3), and texture 672 (1); combine function 9 in
+texture 330 (3); and missing metadata for texture ID 65535 (1). The 215 other
+failures are pre-existing fail-closed sequence/definition limitations newly
+reachable after model decoding; the largest are sequence 4689 trailing bytes
+(29), sequence 112 frame decoding (21), sequence 10920 opcode 24 (18), and
+sequence 10288 frame decoding (16). No unsupported procedural-operation or
+model-decoder cluster remains.
+
+The complete model-archive scan selected all 39,694 exact revision-530 type-1
+files, including 26,064 complex-mapped files with one through six faces and
+9,154 with seven or more, and loaded every selected file. Details and pinned
+field evidence are in
+[`MODEL_BUFFER_UNDERFLOW_AUDIT.md`](MODEL_BUFFER_UNDERFLOW_AUDIT.md).
+NPC 72 remains fully automatic and ready. NPC 40 remains render-compatible and
+still lacks only automatic standing metadata.
+
+Five validation-only packaged renders cover all audited signatures:
+
+| Complex faces | Model / NPC | Textured / type-0 / advanced | PNG SHA-256 |
+| ---: | --- | ---: | --- |
+| 7 | 496 / 36 (Wyson) | 1,190 / 152 / 1,038 | `a34b3ec8329abe74af4cce5c470f493fe173bd2d9c8579306a9a64c0cbaa22d9` |
+| 8 | 277 / 690 (Tower Archer) | 1,145 / 36 / 1,109 | `d2423a811e832bb93446fe6ab26d6214d8cc5d5ced9f36456977fe4b068df163` |
+| 9 | 560 / 1006 (Sea slug) | 250 / 0 / 250 | `05c70006bdd39189218ee046e014f7dd503e3e77d0ab4f01f07adf550e48dd3b` |
+| 10 | 2970 / 118 (Dwarf) | 381 / 11 / 370 | `a268aec2172bd36a4df90bf07526645b43cb0120bb528b64918556b66b1bbceb` |
+| 11 | 541 / 9 (Guard) | 1,428 / 24 / 1,404 | `b82d47a35ac9152facf18d03192d91b0d49b2251f01b89ec20a656dd2eba2157` |
+
+Each 768x384 render has visible and transparent pixels and uses the recorded
+RSC-restrained 128x128, 3x-supersampled settings. The historical provenance
+field name `advancedMappingFallbacks` is retained for schema compatibility,
+but these type-1 records now use the pinned cylindrical/cube/spherical mapping
+equations rather than a fallback. No source cache asset or rendered derivative
+is tracked.
+
+## Recommended next batch
+
+Model-format compatibility is complete for every model in this cache. The
+highest-yield newly exposed blocker is procedural combine function 11 (49
+definitions across textures 216, 653, and 672), followed by the newly reachable
+animation-decoder clusters. Keep the missing texture-65535 metadata case
+fail-closed unless its provenance can be established.

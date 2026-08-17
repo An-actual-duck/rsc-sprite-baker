@@ -21,6 +21,7 @@ public final class CacheReader implements Closeable {
     private final Store store;
     private final NpcDefinition530Decoder npcDecoder = new NpcDefinition530Decoder();
     private final ModelLoader modelLoader = new ModelLoader();
+    private final Revision530Type1ModelDecoder revision530Type1ModelDecoder = new Revision530Type1ModelDecoder();
     private final RenderAnimation530Decoder renderAnimationDecoder = new RenderAnimation530Decoder();
     private final Sequence530Decoder sequenceDecoder = new Sequence530Decoder();
     private final Frame530Decoder frameDecoder = new Frame530Decoder();
@@ -41,6 +42,9 @@ public final class CacheReader implements Closeable {
 
     public ModelDefinition loadModel(int id) throws IOException {
         byte[] data = loadFile(MODEL_INDEX, id, 0);
+        if (revision530Type1ModelDecoder.matches(data)) {
+            return revision530Type1ModelDecoder.decode(id, data);
+        }
         return modelLoader.load(id, data);
     }
 

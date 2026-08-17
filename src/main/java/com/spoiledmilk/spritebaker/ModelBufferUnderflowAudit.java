@@ -20,7 +20,7 @@ final class ModelBufferUnderflowAudit {
         Path directory=cacheDirectory.toRealPath();Map<String,Object> report=new LinkedHashMap<>();
         report.put("schemaVersion",1);report.put("audit","model-buffer-underflow");
         report.put("cache",ModelFormatDiagnostic.ordered("directory",directory.toString(),"dataSha256",Hashing.sha256(directory.resolve("main_file_cache.dat2")),"referenceIndexSha256",Hashing.sha256(directory.resolve("main_file_cache.idx255"))));
-        report.put("productionDecoder",ModelFormatDiagnostic.ordered("dependency","net.runelite:cache:1.12.35","class","net.runelite.cache.definitions.loaders.ModelLoader","productionModified",false));
+        report.put("productionDecoder",ModelFormatDiagnostic.ordered("dependency","net.runelite:cache:1.12.35","type1Class","com.spoiledmilk.spritebaker.Revision530Type1ModelDecoder","fallbackClass","net.runelite.cache.definitions.loaders.ModelLoader","productionModified",true));
         report.put("pinnedClient",ModelFormatDiagnostic.ordered("commit",PINNED_COMMIT,"modelDecoder","client/src/main/java/rt4/RawModel.java","formatSelection","trailing ff ff selects the 23-byte new/type-1 format; otherwise the 18-byte old format"));
 
         TreeMap<Integer,Outcome> outcomes=new TreeMap<>();TreeMap<Integer,List<NpcRef>> references=new TreeMap<>();List<Map<String,Object>> affectedNpcs=new ArrayList<>();
@@ -54,14 +54,14 @@ final class ModelBufferUnderflowAudit {
                 if(highestYield==null||cluster.npcIds.size()>highestYield.npcIds.size()||cluster.npcIds.size()==highestYield.npcIds.size()&&cluster.modelIds.size()>highestYield.modelIds.size())highestYield=cluster;
             }
             report.put("definitionCount",catalog.size());report.put("affectedNpcCount",affectedNpcs.size());report.put("uniqueFailingModelCount",affectedModelIds.size());report.put("affectedNpcs",affectedNpcs);report.put("failingModels",models);report.put("structuralClusters",clusterReports);
-            report.put("highestYieldCluster",ModelFormatDiagnostic.ordered("signature",highestYield.signature,"modelCount",highestYield.modelIds.size(),"affectedNpcCount",highestYield.npcIds.size(),"representativeModelId",highestYield.modelIds.first(),"narrowestSafeFollowUp","revision-530 type-1 layout selected only after structural validation that its calculated data end equals the ff ff footer"));
-            report.put("rootCauseGroups",List.of(ModelFormatDiagnostic.ordered("rootCause",ModelFormatDiagnostic.ROOT_CAUSE,"modelCount",affectedModelIds.size(),"affectedNpcCount",affectedNpcs.size(),"evidence","every audited failure is type-1 ff ff; pinned layout ends exactly at the footer while the dependency advances two extra bytes per complex texture face and mistakes footer data for an extension")));
+            report.put("highestYieldCluster",highestYield==null?null:ModelFormatDiagnostic.ordered("signature",highestYield.signature,"modelCount",highestYield.modelIds.size(),"affectedNpcCount",highestYield.npcIds.size(),"representativeModelId",highestYield.modelIds.first(),"narrowestSafeFollowUp","revision-530 type-1 layout selected only after structural validation that its calculated data end equals the ff ff footer"));
+            report.put("rootCauseGroups",highestYield==null?List.of():List.of(ModelFormatDiagnostic.ordered("rootCause",ModelFormatDiagnostic.ROOT_CAUSE,"modelCount",affectedModelIds.size(),"affectedNpcCount",affectedNpcs.size(),"evidence","every audited failure is type-1 ff ff; pinned layout ends exactly at the footer while the dependency advances two extra bytes per complex texture face and mistakes footer data for an extension")));
         }
         report.put("checks",ModelFormatDiagnostic.ordered(
             "wrongFormatSelection",false,"footerSizeAssumptionMismatch",false,"signedUnsignedCountMismatch",false,"missingOptionalStream",false,"textureCoordinateLengthMismatch",false,"revisionExtensionPresent",false,"truncatedOrCorrupt",false,"mixedCacheRevisions",false,
             "textureSectionLayoutMismatch",true,"dependencyLibraryLimitation",true,
             "conclusion","RuneLite type-1 offset calculation uses a later complex-texture layout incompatible with the pinned revision-530 one-byte rotation and auxiliary streams"));
-        report.put("recommendedFollowUp",ModelFormatDiagnostic.ordered("priority",1,"scope","add a narrowly selected revision-530 type-1 decoder for ff ff models whose pinned structural data end equals the 23-byte footer","guardrails",List.of("retain RuneLite decoding for old/type-2/type-3 formats","validate every calculated stream boundary before decoding","do not skip complex texture data or synthesize geometry","compare decoded counts, indices, and texture mappings against pinned RawModel")));
+        report.put("recommendedFollowUp",ModelFormatDiagnostic.ordered("priority",1,"status","implemented","scope","the bounded revision-530 type-1 decoder is selected only when its calculated data end equals the ff ff footer","guardrails",List.of("retain RuneLite decoding for old/type-2/type-3 formats","validate every calculated stream boundary before decoding","do not skip complex texture data or synthesize geometry","retain complex mappings through assembly and rendering")));
         return report;
     }
 
