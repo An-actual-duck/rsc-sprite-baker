@@ -850,3 +850,112 @@ diagnostic occurrences, followed by operation 9 at 520, operation 21 at 259,
 operation 20 at 230, and combine function 5 at 220. Preserve the deterministic
 census, explicit rejection, and exact fail-closed rendering policy; keep the
 unchanged model-decoder clusters in their own focused batch.
+
+## 2026-08-16 operations-19/9/21/20 audit
+
+The fresh pre-change census reproduced the operation-6 result at SHA-256
+`9bc28d667792f32e78d613fe938268a8bff5050a63b5daae42ea14ef93af9aef`.
+Each operation was committed and audited sequentially. The intermediate report
+hashes are operation 19
+`aa8a947bccb7307c40b0ff318f727a834c58f8b0f21fe17b0fff12b12395f0fc`,
+operation 9
+`fafb7c69f6a83db5b2e164e9c4e9c92a6fe11302760021b5aa899a37143b6ad0`,
+and operation 21
+`944a44d4c33ff5ebcf5c4ef9dc2d59e0e1b48073b26e7f13ca11956bddcee33e`.
+Two independent complete-batch packaged-JAR censuses were byte-identical at
+SHA-256
+`45119bbbc8911d4fa07c28ee9e608d3f656f1bbf829618c3095162fa2f629e0a`.
+The cache identity remained unchanged.
+
+| Stage | Ready | Missing automatic animations | Unsupported material | Other failure |
+| --- | ---: | ---: | ---: | ---: |
+| Before batch | 1,922 | 252 | 1,849 | 9 |
+| After operation 19 | 2,030 | 471 | 1,522 | 9 |
+| After operation 9 | 2,249 | 479 | 1,295 | 9 |
+| After operation 21 | 2,284 | 566 | 1,173 | 9 |
+| After operation 20 | 2,371 | 575 | 1,075 | 11 |
+| Combined change | +449 | +323 | -774 | +2 |
+
+The per-operation attribution is:
+
+- Operation 19 appeared in 1,052 NPC reasons and 1,421 diagnostic
+  occurrences. Both reach zero; 108 definitions become ready, 219 become
+  missing-automatic-animations, and 725 retain another material blocker.
+- Operation 9 appeared in 452 NPC reasons and 520 diagnostic occurrences at
+  its checkpoint. Both reach zero; 219 definitions become ready, eight become
+  missing-automatic-animations, and 225 retain another material blocker.
+- Operation 21 appeared in 226 NPC reasons and 259 diagnostic occurrences at
+  its checkpoint. Both reach zero; 35 definitions become ready, 87 become
+  missing-automatic-animations, and 104 retain another material blocker.
+- Operation 20 had grown from 230 baseline occurrences to 282 at its
+  checkpoint as earlier operations exposed more graphs. It appeared in 243
+  NPC reasons there. Both reach zero; 87 definitions become ready, nine become
+  missing-automatic-animations, two expose precise sequence failures, and 145
+  retain another material blocker.
+
+NPCs 8176 and 8177 (Fish) are the two newly visible non-material failures:
+automatic sequences 10426 and 10427 explicitly reject unsupported sequence
+opcodes 47 and 49. No material, texture, color, average-material, or other
+rendering fallback is introduced.
+
+Remaining unsupported-operation diagnostic occurrences are:
+
+| Operation | Before | After |
+| ---: | ---: | ---: |
+| 9 | 520 | 0 |
+| 12 | 30 | 30 |
+| 17 | 4 | 25 |
+| 19 | 1,421 | 0 |
+| 20 | 230 | 0 |
+| 21 | 259 | 0 |
+| 22 | 56 | 153 |
+| 39 | 126 | 126 |
+| 255 | 0 | 68 |
+
+Operation 19 exposes combine function 2 in texture 132 (+680), combine
+function 10 in texture 196 (+15), operation 20 in texture 80 (+4), and curve
+interpolation 2 in texture 186 (+2). Operation 9 exposes additional operation
+20 diagnostics in textures 221 (+38) and 267 (+10). Operation 21 exposes
+operation 255 in texture 168 (+68), operation 22 in textures 162 (+4) and 246
+(+3), and a fail-closed unexpected Fill parameter in texture 134 (+3).
+Operation 20 exposes operation 22 in textures 219 (+70) and 502 (+20),
+operation 17 in texture 233 (+21), combine function 10 in texture 675 (+10),
+and combine function 5 in texture 96 (+1).
+
+Final unsupported combine totals are function 2 at 681 occurrences, function
+5 at 221, function 7 at 37, function 10 at 25, and function 8 at 16. Curve
+interpolation remains at 18 occurrences for mode 1 and seven for mode 2. The
+3,946 unsupported-model results remain split between
+`BufferUnderflowException` (1,954 definitions) and invalid decoded offsets
+(`newPosition > limit`, 1,992 definitions). Morph/internal definitions remain
+612 and are unchanged.
+
+NPC 74 (Zombie) is the packaged-render representative for operations 19, 9,
+and 21. Its seven component models, materials
+393/314/84/59/392/118/288/238, 954 textured faces, standing sequence 5576,
+walking sequence 5577, all 18 cells, visible pixels, and transparency
+validated. Materials 393/84 directly contain operation 19, material 118
+contains operation 9, and material 238 contains operation 21. Two terminal-
+only exports from the shaded JAR were byte-identical: PNG SHA-256
+`22b554fd1f66ffd0c711b8105027b6b59e367de27f732664910f80362575530a`
+and provenance SHA-256
+`3d90b6644faeb436a2a41038211d42d27e0ecf0df82c21cc14215c75564dd9b1`.
+
+NPC 165 (Gnome shop keeper) represents operation 20 through material 221. Its
+three component models, materials 57/404/125/221/121, 213 textured faces,
+standing sequence 195, walking sequence 189, all 18 cells, visible pixels, and
+transparency validated in two byte-identical packaged-JAR exports. The PNG
+SHA-256 is
+`8948b63a22bdd364a73d5f5b85731c0fcf496728e9bb2611f8cdb99fe53416f1`
+and provenance SHA-256 is
+`acf5058594c6df238d1a927a43bc8819e71568e964cb51f6b57b7b4e4662496d`.
+NPC 72 remains ready; NPC 40 remains model/material render-compatible and
+lacks only automatic standing metadata.
+
+## Recommended next batch
+
+Combine function 2 is now the largest remaining material blocker at 681
+diagnostic occurrences, followed by combine function 5 at 221, operation 22
+at 153, operation 39 at 126, and operation 255 at 68. Preserve the sequential
+commit structure, deterministic census, explicit rejection, and exact fail-
+closed rendering policy; keep the unchanged model-decoder clusters separate.
