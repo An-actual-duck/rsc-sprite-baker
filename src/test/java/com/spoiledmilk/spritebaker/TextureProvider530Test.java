@@ -76,6 +76,46 @@ class TextureProvider530Test {
         assertTrue(provider.material(0)==material);
     }
 
+    @Test void decodesAndCachesColorOperation19WithoutExternalDependencies() throws Exception {
+        TextureProvider530 provider=provider(Map.of(0,ProceduralTexture530DecoderTest.coordinateDisplacement(0,2048,4096,32767)));
+        TextureMaterial530 material=provider.material(0);
+        assertEquals(java.util.List.of(3,10,0,0,19),material.operationTypes);
+        assertEquals(64,material.size);
+        assertEquals(0x13417e,material.pixels[0]);
+        assertEquals(1,provider.loaded().size());
+        assertTrue(provider.material(0)==material);
+    }
+
+    @Test void decodesAndCachesColorOperation9WithoutExternalDependencies() throws Exception {
+        TextureProvider530 provider=provider(Map.of(0,ProceduralTexture530DecoderTest.colorFlip(1,0,0)));
+        TextureMaterial530 material=provider.material(0);
+        assertEquals(java.util.List.of(2,10,9),material.operationTypes);
+        assertEquals(64,material.size);
+        assertEquals(0x104080,material.pixels[0]);
+        assertEquals(1,provider.loaded().size());
+        assertTrue(provider.material(0)==material);
+    }
+
+    @Test void decodesAndCachesColorOperation21WithoutExternalDependencies() throws Exception {
+        TextureProvider530 provider=provider(Map.of(0,ProceduralTexture530DecoderTest.interpolateColor(1024,0)));
+        TextureMaterial530 material=provider.material(0);
+        assertEquals(java.util.List.of(1,1,0,21),material.operationTypes);
+        assertEquals(64,material.size);
+        assertEquals(0x2898d8,material.pixels[0]);
+        assertEquals(1,provider.loaded().size());
+        assertTrue(provider.material(0)==material);
+    }
+
+    @Test void decodesAndCachesColorOperation20WithoutExternalDependencies() throws Exception {
+        TextureProvider530 provider=provider(Map.of(0,ProceduralTexture530DecoderTest.colorTile(64,1)));
+        TextureMaterial530 material=provider.material(0);
+        assertEquals(java.util.List.of(2,10,20),material.operationTypes);
+        assertEquals(64,material.size);
+        assertEquals(0x104080,material.pixels[0]);
+        assertEquals(1,provider.loaded().size());
+        assertTrue(provider.material(0)==material);
+    }
+
     @Test void decodesAndCachesOperation27WithoutExternalDependencies() throws Exception {
         TextureProvider530 provider=provider(Map.of(0,ProceduralTexture530DecoderTest.stripes(2)));
         TextureMaterial530 material=provider.material(0);

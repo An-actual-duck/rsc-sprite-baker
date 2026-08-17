@@ -31,7 +31,7 @@ public final class ProceduralTexture530Decoder {
 
     private static Node create(int id,int type,DependencyResolver dependencies){switch(type){
         case 0:return new Fill(true);case 1:return new Fill(false);case 2:return new Gradient(true);case 3:return new Gradient(false);case 4:return new BrickTiles();case 5:return new BoxBlur();case 6:return new Clamp();
-        case 7:return new Combine();case 8:return new Curve();case 10:return new ColorGradient();case 13:return new HashNoise();case 15:return new CellularNoise();case 27:return new Stripes();case 30:return new Range();case 32:return new BumpLighting();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();
+        case 7:return new Combine();case 8:return new Curve();case 9:return new Flip();case 10:return new ColorGradient();case 13:return new HashNoise();case 15:return new CellularNoise();case 19:return new CoordinateDisplacement();case 20:return new Tile();case 21:return new Interpolate();case 27:return new Stripes();case 30:return new Range();case 32:return new BumpLighting();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();
         default:throw new UnsupportedTextureFormatException(id,"procedural operation "+type);
     }}
     @FunctionalInterface public interface DependencyResolver{Dependency resolve(int textureId)throws IOException;}
@@ -128,6 +128,17 @@ public final class ProceduralTexture530Decoder {
             return second>=2048?4096-((4096-first)*(4096-second)>>11):second*first>>11;
         }
     }
+    private static final class Flip extends Node{
+        boolean horizontal=true,vertical=true,monochrome;
+        int childCount(){return 1;}
+        void decode(int id,int code,BinaryInput in){if(code==0)horizontal=in.u8()==1;else if(code==1)vertical=in.u8()==1;else if(code==2)monochrome=in.u8()==1;else super.decode(id,code,in);}
+        int[] rgb(int x,int y,int size)throws IOException{
+            int sampleX=horizontal?size-1-x:x,sampleY=vertical?size-1-y:y;
+            if(monochrome){int value=children[0].mono(sampleX,sampleY,size);return new int[]{value,value,value};}
+            return children[0].rgb(sampleX,sampleY,size);
+        }
+        int mono(int x,int y,int size)throws IOException{return monochrome?children[0].mono(horizontal?size-1-x:x,vertical?size-1-y:y,size):super.mono(x,y,size);}
+    }
     private static final class Range extends Node{int min=1024,max=3072,range=2048;boolean monochrome;int childCount(){return 1;}void decode(int id,int code,BinaryInput in){if(code==0)min=in.u16();else if(code==1)max=in.u16();else if(code==2)monochrome=in.u8()==1;else super.decode(id,code,in);}void finish(int id){range=max-min;}int[] rgb(int x,int y,int size)throws IOException{int[] c=children[0].rgb(x,y,size);return new int[]{min+(range*c[0]>>12),min+(range*c[1]>>12),min+(range*c[2]>>12)};}}
     private static final class Curve extends Node{int mode;int[][] markers;int childCount(){return 1;}void decode(int id,int code,BinaryInput in){if(code!=0)super.decode(id,code,in);mode=in.u8();int n=in.u8();markers=new int[n][2];for(int i=0;i<n;i++){markers[i][0]=in.u16();markers[i][1]=in.u16();}}void finish(int id){if(mode!=0)throw new UnsupportedTextureFormatException(id,"curve interpolation "+mode);if(markers==null||markers.length<2)throw new UnsupportedTextureFormatException(id,"curve marker count");}int[] rgb(int x,int y,int size)throws IOException{int v=children[0].mono(x,y,size),i=1;while(i<markers.length&&v>=markers[i][0])i++;int result;if(i==markers.length)result=markers[i-1][1];else if(i==0)result=markers[0][1];else{int[] a=markers[i-1],b=markers[i];result=a[1]+(b[1]-a[1])*(v-a[0])/Math.max(1,b[0]-a[0]);}return new int[]{result,result,result};}}
     private static final class ColorGradient extends Node{int[][] samples;int childCount(){return 1;}void decode(int id,int code,BinaryInput in){if(code!=0)super.decode(id,code,in);int preset=in.u8();if(preset!=0)throw new UnsupportedTextureFormatException(id,"color-gradient preset "+preset);int n=in.u8();samples=new int[n][4];for(int i=0;i<n;i++){samples[i][0]=in.u16();samples[i][1]=in.u8()<<4;samples[i][2]=in.u8()<<4;samples[i][3]=in.u8()<<4;}}void finish(int id){if(samples==null||samples.length<2)throw new UnsupportedTextureFormatException(id,"color-gradient sample count");}int[] rgb(int x,int y,int size)throws IOException{int v=children[0].mono(x,y,size),i=0;while(i<samples.length&&v>=samples[i][0])i++;if(i==0)return color(samples[0]);if(i==samples.length)return color(samples[i-1]);int[] a=samples[i-1],b=samples[i];int w=(v-a[0])*4096/Math.max(1,b[0]-a[0]);return new int[]{(a[1]*(4096-w)+b[1]*w)>>12,(a[2]*(4096-w)+b[2]*w)>>12,(a[3]*(4096-w)+b[3]*w)>>12};}private int[] color(int[] s){return new int[]{s[1],s[2],s[3]};}}
@@ -180,6 +191,51 @@ public final class ProceduralTexture530Decoder {
             for(int i=0;i<255;i++){int remaining=255-i,index=randomBound(remaining,random);byte value=values[index];values[index]=values[remaining];values[remaining]=values[511-i]=value;}
             return values;
         }
+    }
+    private static final class CoordinateDisplacement extends Node{
+        private static final int[] SINE=trigonometry(true),COSINE=trigonometry(false);
+        int scale=32768;boolean monochrome;
+        int childCount(){return 3;}
+        void decode(int id,int code,BinaryInput in){if(code==0)scale=in.u16()<<4;else if(code==1)monochrome=in.u8()==1;else super.decode(id,code,in);}
+        int[] rgb(int x,int y,int size)throws IOException{
+            if(monochrome){int value=monochrome(x,y,size);return new int[]{value,value,value};}
+            int angle=children[1].mono(x,y,size)*255>>12&0xff,magnitude=children[2].mono(x,y,size)*scale>>12;
+            int sampleX=x+(magnitude*COSINE[angle]>>12>>12)&size-1,sampleY=y+(SINE[angle]*magnitude>>12>>12)&size-1;
+            return children[0].rgb(sampleX,sampleY,size);
+        }
+        int mono(int x,int y,int size)throws IOException{
+            return monochrome?monochrome(x,y,size):super.mono(x,y,size);
+        }
+        private int monochrome(int x,int y,int size)throws IOException{
+            int angle=children[1].mono(x,y,size)>>4&0xff,magnitude=scale*children[2].mono(x,y,size)>>12;
+            int sampleX=x+(COSINE[angle]*magnitude>>12>>12)&size-1,sampleY=y+(SINE[angle]*magnitude>>12>>12)&size-1;
+            return children[0].mono(sampleX,sampleY,size);
+        }
+        private static int[] trigonometry(boolean sine){int[] table=new int[256];for(int i=0;i<256;i++){double radians=(double)i/255.0D*6.283185307179586D;table[i]=(int)((sine?Math.sin(radians):Math.cos(radians))*4096.0D);}return table;}
+    }
+    private static final class Tile extends Node{
+        int horizontalTiles=4,verticalTiles=4;
+        int childCount(){return 1;}
+        void decode(int id,int code,BinaryInput in){if(code==0)horizontalTiles=in.u8();else if(code==1)verticalTiles=in.u8();else super.decode(id,code,in);}
+        void finish(int id){if(horizontalTiles==0||verticalTiles==0)throw new UnsupportedTextureFormatException(id,"tile grid "+horizontalTiles+"x"+verticalTiles);}
+        int[] rgb(int x,int y,int size)throws IOException{
+            int tileWidth=size/horizontalTiles,tileHeight=size/verticalTiles;
+            int sampleX=tileWidth<=0?0:size*(x%tileWidth)/tileWidth,sampleY=tileHeight<=0?0:size*(y%tileHeight)/tileHeight;
+            return children[0].rgb(sampleX,sampleY,size);
+        }
+    }
+    private static final class Interpolate extends Node{
+        boolean monochrome;
+        int childCount(){return 3;}
+        void decode(int id,int code,BinaryInput in){if(code==0)monochrome=in.u8()==1;else super.decode(id,code,in);}
+        int[] rgb(int x,int y,int size)throws IOException{
+            int control=children[2].mono(x,y,size);
+            if(monochrome){int value=blend(children[0].mono(x,y,size),children[1].mono(x,y,size),control);return new int[]{value,value,value};}
+            int[] first=children[0].rgb(x,y,size),second=children[1].rgb(x,y,size);
+            return new int[]{blend(first[0],second[0],control),blend(first[1],second[1],control),blend(first[2],second[2],control)};
+        }
+        int mono(int x,int y,int size)throws IOException{return monochrome?blend(children[0].mono(x,y,size),children[1].mono(x,y,size),children[2].mono(x,y,size)):super.mono(x,y,size);}
+        private int blend(int first,int second,int control){if(control==4096)return first;if(control==0)return second;return (4096-control)*second+control*first>>12;}
     }
     private static final class Stripes extends Node{
         int bands=10,dutyWidth=2048,mode;int[] starts,ends;

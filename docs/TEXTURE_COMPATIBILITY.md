@@ -14,8 +14,9 @@ The supported procedural operations are deliberately limited to the first
 verified textured NPC: monochrome/color fill (0/1), horizontal/vertical
 gradient (2/3), randomized tiles (4), box blur (5), clamp (6),
 addition/multiply/overlay combine (7 functions 1/3/6), linear curve parsing
-(8), custom sampled color gradient (10 preset
-0), hash noise (13), cellular distance noise (15), stripes (27), range (30),
+(8), coordinate flip (9), custom sampled color gradient (10 preset
+0), hash noise (13), cellular distance noise (15), coordinate displacement
+(19), tiling (20), interpolation (21), stripes (27), range (30),
 bump lighting (32), multi-octave gradient
 noise (34), nested texture dependencies (36), and line noise (38). Texture
 generation uses the software client's 64/128 material-size flag and horizontal
@@ -69,6 +70,15 @@ texture conversion clamps channels to 0..255. Functions 1 and 3 are
 commutative, but the decoded child ordering is preserved exactly. Every other function ID remains
 an explicit unsupported-material error. The primary trace is
 [`TextureOpCombine.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOpCombine.java).
+Operation 9 is the client's one-child coordinate flip. Unsigned byte codes 0
+and 1 enable horizontal and vertical reversal only when equal to 1; both
+default to enabled. Code 2 similarly selects monochrome output, which defaults
+to color. Enabled axes sample `mask - coordinate`, disabled axes preserve the
+coordinate, and no fixed-point arithmetic or additional wrapping occurs.
+Color mode preserves all child channels; monochrome mode samples the child
+first/monochrome channel and repeats it across RGB. Unexpected parameters fail
+closed. The primary trace is
+[`TextureOpFlip.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOpFlip.java).
 Operation 13 is the client's zero-child monochrome hash-noise node and has no
 serialized parameters. For every texel, it hashes the 12-bit X/Y fractions
 with Java `int` overflow, masks the polynomial result to a non-negative integer,
@@ -91,6 +101,36 @@ other selector bytes produce zero. The node has no child, texture, sprite, or
 color input and always emits monochrome, repeated across RGB channels.
 Unexpected parameter codes fail closed. The primary trace is
 [`TextureOp15.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOp15.java).
+Operation 19 is the client's three-child coordinate-displacement node. Child
+0 is the sampled image, child 1 supplies angle, and child 2 supplies magnitude.
+Code 0 stores an unsigned 16-bit displacement scale shifted left four bits
+(default 32768); code 1 selects monochrome output only when equal to 1. Color
+angle quantization is `angle * 255 >> 12 & 255`, while monochrome uses
+`angle >> 4 & 255`. The exact 256-entry client sine/cosine tables, signed Java
+`int` overflow, two sequential 12-bit shifts, and mask-based X/Y wrapping are
+preserved. Color mode samples all source channels; monochrome samples the
+source first/monochrome channel. Unexpected parameters fail closed. The
+primary trace is
+[`TextureOp19.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOp19.java).
+Operation 20 is the client's one-child, color-only tiling node. Unsigned byte
+codes 0 and 1 select horizontal and vertical tile counts, both defaulting to
+4. Integer division determines tile dimensions; remainder followed by integer
+rescaling maps each texel back into the child image. When a positive tile count
+exceeds the texture dimension, that axis deliberately samples child coordinate
+zero. Zero counts fail closed before the client's otherwise unavoidable divide
+by zero. The node has no serialized output-mode flag; monochrome children are
+promoted to RGB by the normal child contract. The primary trace is
+[`TextureOpTile.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOpTile.java).
+Operation 21 is the client's three-child interpolator. Child 0 is selected at
+control 4096, child 1 at control zero, and child 2 supplies the first/
+monochrome control channel. Code 0 selects monochrome output only when equal to
+1. Other control values use
+`((4096 - control) * child1 + control * child0) >> 12` independently per
+channel, preserving operand ordering, signed Java `int` overflow,
+extrapolation outside 0..4096, and the exact zero/4096 fast paths. All children
+are sampled at unchanged coordinates, and no node-level clamp is added.
+Unexpected parameters fail closed. The primary trace is
+[`TextureOpInterpolate.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOpInterpolate.java).
 Operation 27 is the client's zero-child monochrome stripe node. Its serialized
 parameters are unsigned 8-bit band count (code 0), unsigned 16-bit duty width
 (code 1), and unsigned 8-bit coordinate mode (code 2), with defaults 10, 2048,
@@ -175,6 +215,8 @@ reference-index SHA-256
 | Bump-lit animated | NPC 1013 Swamp toad; model 3447; material 318 | Supported | Operation 32 now decodes; standing sequence 1018, walking sequence 1021, and all 155 textured faces validate in a packaged 18-cell render. |
 | Box-blurred animated | NPC 78 Giant bat; model 18898; materials 185/59 | Supported | Operation 5 now decodes; standing sequence 4914, walking sequence 4913, and all 524 textured faces validate in a packaged 18-cell render. |
 | Clamped animated | NPC 79 Death wing; model 18897; materials 182/281 | Supported | Material 281 directly exercises color-output operation 6. Standing sequence 4914, walking sequence 4913, all 645 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `77b981f62a7694755150cced94833cc320505f13492c8e2059ff525d2239ebfd`). |
+| Displaced/flipped/interpolated multipart | NPC 74 Zombie; seven component models; materials 393/314/84/59/392/118/288/238 | Supported | Materials 393/84 directly exercise operation 19, material 118 operation 9, and material 238 operation 21. Standing sequence 5576, walking sequence 5577, all 954 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `22b554fd1f66ffd0c711b8105027b6b59e367de27f732664910f80362575530a`). |
+| Tiled multipart | NPC 165 Gnome shop keeper; models 2909/2901/2917; materials 57/404/125/221/121 | Supported | Material 221 directly exercises operation 20. Standing sequence 195, walking sequence 189, all 213 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `8948b63a22bdd364a73d5f5b85731c0fcf496728e9bb2611f8cdb99fe53416f1`). |
 | Randomized-tile material | Material 261; operations 0/4/30 | Supported | Operation 4 now decodes. A packaged-JAR render on a neutral in-memory textured triangle was deterministic with 434 visible pixels and ARGB SHA-256 `81706338fa2297a54f347e7a18fd34216b6d9f95065785d42adedbd07d0b8da0`. No affected NPC clears its other material blockers yet. |
 | Striped multipart | NPC 560 Jiminua; seven component models; materials 228/249/59/268/291/251/252 | Supported | Operation 27 now decodes; standing sequence 808, walking sequence 819, all 467 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders. |
 | Cellular-noise multipart | NPC 126 Otherworldly being; models 202/292/170/260; materials 268/252/256 | Supported | Operation 15 now decodes; standing sequence 808, walking sequence 819, all 550 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders. |
