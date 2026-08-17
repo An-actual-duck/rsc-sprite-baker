@@ -74,7 +74,11 @@ overflow and division toward zero without another guard. Calculations use
 Java signed `int` overflow and have no node-level clamp; only the existing final
 texture conversion clamps channels to 0..255. Color mode applies each function
 independently to RGB, while monochrome mode reads the first channel and repeats
-it. Every other function ID remains
+it. Function 10 compares the two raw signed fixed-point operands and returns
+their maximum independently per color channel or for the monochrome first
+channel. It performs no arithmetic, division, zero handling, fixed-point
+rescaling, wrapping, or node-local clamp; upstream overflowed integers retain
+Java signed comparison. Every other function ID remains
 an explicit unsupported-material error. The primary trace is
 [`TextureOpCombine.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOpCombine.java).
 Operation 9 is the client's one-child coordinate flip. Unsigned byte codes 0
@@ -266,6 +270,7 @@ reference-index SHA-256
 | Subtractive/screen-combined multipart | NPC 284 Doric; seven component models; graph paths include textures 132/229 | Supported | Combine functions 2 and 5 preserve pinned operand, fixed-point, overflow, and output-mode behavior. Standing sequence 101, walking sequence 98, all 458 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `9042a427ddaa86ba8049fdb7cf7bcf4e0106d8684f2e280f5d59318d2dc962ad`). |
 | Color-dodge animated | NPC 3747 Spinner; model 14549; materials 168/183 | Supported | Material 183 exercises combine function 7 with pinned operand, shift-overflow, division, exact-denominator guard, and output-mode behavior. Standing sequence 3906, walking sequence 3907, all 388 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `4798059951d426fa3f13882fdad74de5ecf895c21c0eeab3dbfba609a598c621`). |
 | Waveform animated | NPC 4521 Enchanted Broom; model 16738; materials 185/275/206 | Supported | Material 275 exercises operation 12's linear triangle path, frequency 4, and serialized zero-byte fields. Standing/walking sequence 4372, all 216 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `a9e7a37220fc40e0fe2552fc16bc1ae78a5285b31a521a9df5bb0493cf359325`). |
+| Maximum-combined animated | NPC 1734 Magic tree; model 21838; materials 196/110/34/8 | Supported | Material 196 exercises combine function 10's signed per-channel maximum. Shared standing/walking sequence 5750, all 805 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `e631467a1125c36c2b02407b7ac7b6cc220de29740b46ef6393ff081dc7da566`). |
 | Inverted sprite-backed animated | NPC 146 Gull; model 26841; materials 364/471/57/439 | Supported | Operations 22 and 39 resolve the pinned invert and sprite-canvas path, including texture 366's external sprite dependency. Standing sequence 6771, walking sequence 6773, all 344 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `788ad30863f2b7d64217cfd9de81dff3734ea19300ac653a6bc80d84dedd7bd1`). |
 | Alpha/mapping stress | NPC 61 Spider; model 24613; material 111 | Supported | Operation 34 now decodes; models, material, standing sequence 6247, and walking sequence 6248 validate. Its 298 textured faces continue to use the documented advanced-mapping fallback. |
 | Hash-noise multipart | NPC 125 Ice warrior; seven component models; materials 249/291/303/302 | Supported | Operation 13 now decodes; standing sequence 842, walking sequence 841, and all 1,076 textured faces validate. |
@@ -306,7 +311,7 @@ replaceable and persists the choices normally.
 ## Remaining limitations
 
 - The procedural graph language is intentionally incomplete. Remaining
-  combine functions 8 and 10, curve interpolation modes 1 and 2, and one
+  combine function 8, curve interpolation modes 1 and 2, and one
   color-gradient sample-count variant fail
   closed. See `COMPATIBILITY_CENSUS.md` for exact current frequencies.
 - Advanced type 1/2/3 mapping parameters are not decoded by the RuneLite model
