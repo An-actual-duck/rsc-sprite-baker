@@ -262,9 +262,9 @@ automated.
 
 - shaded JAR SHA-256: `cb818f29b619f136feada0d030917d39e57717e1e89c320b090b4d735e049ed3`
   (6,347,696 bytes)
-- Linux archive SHA-256: `a4e9aac1654669a33c20bb8fdb97c6b2b24da6d920cb34f836b5709c555ff086`
-  (77,061,439 bytes)
-- Windows archive SHA-256: `f4fc36b19712e46d6d70d9fa5ad4c5a422d5a26b03cd5fdbf0e9cad5b1b75439`
+- Linux archive SHA-256: `7482bc34618fc64ee3e0ba50ec15846a7c08e8a9629f22c1df61a59b3cef33e9`
+  (77,061,755 bytes)
+- Windows archive SHA-256: `1456912b8f4176c533c5b5d84e2a3d4683a0ae4cc73c44da592499de9a286934`
   (77,061,991 bytes)
 
 Two full-cache censuses were byte-identical at the hash recorded in
