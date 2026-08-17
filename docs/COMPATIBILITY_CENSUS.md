@@ -1165,13 +1165,11 @@ definitions is `59, 91, 111, 134, 157, 168, 179, 182, 183, 192, 283, 297,
 the framing defect; the other IDs explain indirect dependency and multipart
 scope and must not be described as opcode-255 graphs.
 
-Production remains deliberately unchanged and fail-closed at the apparent
-255. No operation, material, color, texture, or average-material substitute
-was added. The narrowest safe follow-up is a separately reviewed correction
-of operation-0 parameter 0 to the pinned one-byte scaling rule, together with
-migration of legacy neutral fixtures that encoded a two-byte fill. That change
-must continue to reject the then-exposed operation 17 explicitly until its own
-semantics are implemented and tested.
+At this investigation checkpoint production remained deliberately unchanged
+and fail-closed at the apparent 255. No operation, material, color, texture, or
+average-material substitute was added. The separately reviewed operation-0
+correction described below subsequently applied the identified one-byte rule
+and continues to reject the then-exposed operation 17 explicitly.
 
 Two independent packaged-JAR full censuses remain byte-identical at SHA-256
 `f3fb5c74d0142ba7a0af455f457ce7b55445985ba689bd16eb4a44ef8c01eacb`:
@@ -1189,3 +1187,80 @@ artifacts were SHA-256
 (Linux) and
 `b325f0ed0294616f1f3a72cef826c5786d58a94a2d5fc90a52ec577586f49285`
 (Windows); neither archive is committed.
+
+## 2026-08-16 operation-0 framing correction
+
+Operation 0 parameter 0 now consumes exactly one unsigned byte and stores the
+pinned fixed-point value `(value << 12) / 255`. This is the narrow correction
+established by the preceding forensic investigation; operation 17 remains
+unimplemented and explicitly rejected, and no rendering fallback was added.
+
+Legacy neutral fixtures were handled according to what they were testing.
+Fixtures that genuinely represent operation-0 fill now serialize one byte.
+Fixtures that had used the old two-byte behavior merely to inject arbitrary
+16-bit constants into combine, displacement, interpolation, invert, or
+overflow tests now use supported monochrome range nodes with equal minimum and
+maximum. Their high-range fixed-point and Java-overflow coverage is therefore
+preserved without encoding invalid operation-0 data.
+
+Two independent full-cache censuses from the shaded JAR were byte-identical at
+SHA-256
+`5b48790613518af6b3bb45487518d5d502fa4ae88d27025033187b18731a6837`.
+The cache identity and every top-level category remain unchanged:
+
+| Category | Before | After |
+| --- | ---: | ---: |
+| Ready | 3,136 | 3,136 |
+| Missing automatic animations | 646 | 646 |
+| Unsupported material | 216 | 216 |
+| Unsupported model | 3,946 | 3,946 |
+| Morph/internal definition | 612 | 612 |
+| Other failure | 34 | 34 |
+
+All 62 definitions identified by the opcode-255 investigation advance beyond
+the false type. Their 70 repeated material-168 diagnostics change exactly from
+operation 255 to genuine unsupported operation 17; no affected definition
+changes top-level category because graph 168 still fails closed. Global
+operation-17 occurrences consequently rise from 25 to 95, while operation-255
+occurrences fall from 70 to zero. The complete operation totals are now
+operation 17 at 95 and operation 12 at 30.
+
+The correction also removes all three `operation parameter 18 for Fill`
+diagnostics in texture 134. Correct framing exposes combine function 10 there,
+raising its occurrences from 25 to 28. Other remaining material blockers are
+unchanged: combine function 7 at 53, combine function 8 at 16, curve
+interpolation mode 1 at 18, and curve interpolation mode 2 at seven. The first
+genuine blockers for the former opcode-255 definitions are therefore:
+
+- operation 17 in material 168 for all 62 definitions (70 repeated
+  diagnostics);
+- combine function 7 in material 183 for the six Spinner definitions;
+- curve interpolation mode 1 in material 415 for the 12 seasonal Elementals;
+- combine function 10 in material 134 for Bullrush NPC 3336.
+
+The operation-255 terminal audit remains usable after the correction. Schema
+2 labels the old two-byte parse as historical, traces the production one-byte
+framing, inventories the same 62 definitions and 25 component models through
+their material-168 operation-17 result, and records that no false opcode 255
+remains. Two independent reports were byte-identical at SHA-256
+`f07351d012865192921d33585da5e6a18fecc8a35c1750c4b450832479980e7f`.
+NPC 72 remains fully automatic and ready. NPC 40 remains
+model/material render-compatible and lacks only automatic standing metadata.
+
+The licensed-cache distribution build reran all 140 tests and passed terminal
+inspection for both archives, including the exact read-only cache payload,
+license/source records, empty adjacent exports folder, safe paths, and audit
+entry point. The external artifacts were SHA-256
+`8fc25bd7497e8eaae35bbaa7548cba8b519a12ba5b5f6907375de1080c5dd7fa`
+(Linux) and
+`a569149e39b38661eb5785513f31fe010641fb51d8f522c7bfd437cf292a6332`
+(Windows); neither is committed.
+
+## Recommended next batch
+
+Operation 17 is now the largest remaining opcode blocker at 95 diagnostic
+occurrences and is the required next material-semantics batch. It must be
+traced independently from the pinned client; the operation-0 correction does
+not establish its parameters or rendering behavior. Combine function 7 follows
+at 53 occurrences, operation 12 at 30, combine function 10 at 28, and combine
+function 8 at 16. Preserve explicit rejection and the no-substitution policy.

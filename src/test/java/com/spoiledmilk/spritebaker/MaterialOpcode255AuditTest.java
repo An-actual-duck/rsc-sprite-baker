@@ -10,8 +10,8 @@ class MaterialOpcode255AuditTest {
         MaterialOpcode255Audit.Trace legacy=MaterialOpcode255Audit.trace(graph,false),pinned=MaterialOpcode255Audit.trace(graph,true);
         assertEquals("apparent operation 255",legacy.stop);assertEquals(255,legacy.nodes.get(1).type);assertEquals(9,legacy.nodes.get(1).typeOffset);
         assertNull(pinned.stop);assertTrue(pinned.consumed==pinned.total);assertEquals(8,pinned.nodes.get(1).type);assertEquals(255,pinned.nodes.get(1).cache);assertEquals(8,pinned.nodes.get(1).typeOffset);assertEquals(9,pinned.nodes.get(1).cacheOffset);
-        UnsupportedTextureFormatException failure=assertThrows(UnsupportedTextureFormatException.class,()->new ProceduralTexture530Decoder().decode(168,graph,4));
-        assertTrue(failure.getMessage().contains("procedural operation 255"));
+        ProceduralTexture530Decoder.Decoded decoded=new ProceduralTexture530Decoder().decode(168,graph,4);
+        assertEquals(java.util.List.of(0,8),decoded.operationTypes);assertTrue(java.util.Arrays.stream(decoded.pixels).allMatch(pixel->pixel==0xcbcbcb));
     }
     @Test void pinnedTraceRejectsTruncationRatherThanInventingAnOperation(){
         byte[] graph=neutralGraph(),truncated=java.util.Arrays.copyOf(graph,graph.length-4);MaterialOpcode255Audit.Trace trace=MaterialOpcode255Audit.trace(truncated,true);

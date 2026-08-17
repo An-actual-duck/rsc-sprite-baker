@@ -182,13 +182,13 @@ curve interpolation modes, presets, and sprite dependencies produce an exact
 material error in the selector and exporter. Average material colors are
 recorded but never used as a hidden substitute.
 
-The apparent operation 255 reported for material 168 is a documented parser
-desynchronization, not an operation: operation-0 parameter 0 currently consumes
-two bytes in the baker but one unsigned byte in the pinned client, shifting a
-curve cache byte of 255 into the type field. Production intentionally remains
-fail-closed pending the separately reviewable operation-0 correction; see the
-forensic audit in `COMPATIBILITY_CENSUS.md`. No operation-255 decoder or visual
-substitution exists.
+The apparent operation 255 formerly reported for material 168 was a parser
+desynchronization, not an operation. Operation-0 parameter 0 now consumes the
+pinned one unsigned byte and scales it as `(value << 12) / 255`, so the curve
+cache byte of 255 remains correctly framed. Material 168 now reaches genuine
+unsupported operation 17 and fails closed there. See the forensic and
+follow-up audits in `COMPATIBILITY_CENSUS.md`; no operation-255 decoder or
+visual substitution exists.
 
 Type-0 mapping triangles use the model's decoded texture-coordinate triangle.
 For revision-530 type 1/2/3 mapping records, RuneLite preserves the render type
