@@ -116,6 +116,21 @@ class ProceduralTexture530DecoderTest {
             ()->new ProceduralTexture530Decoder().decode(906,new byte[]{1,0,13,1,1,0,0,0,0},8));
         assertTrue(error.getMessage().contains("operation parameter 0 for HashNoise"));
     }
+    @Test void operation22InvertsColorAndMonochromeChannelsWithoutChangingCoordinates(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        ProceduralTexture530Decoder.Decoded color=decoder.decode(969,invertColor(0),4);
+        ProceduralTexture530Decoder.Decoded monochrome=decoder.decode(970,invertColor(1),4);
+        assertTrue(java.util.Arrays.stream(color.pixels).allMatch(pixel->pixel==0xc08040));
+        assertTrue(java.util.Arrays.stream(monochrome.pixels).allMatch(pixel->pixel==0xc0c0c0));
+        assertArrayEquals(color.pixels,decoder.decode(971,invertColor(2),4).pixels);
+        assertEquals(java.util.List.of(1,22),color.operationTypes);
+    }
+    @Test void operation22PreservesSignedResultsAndRejectsUnknownParameters(){
+        assertTrue(java.util.Arrays.stream(new ProceduralTexture530Decoder().decode(972,invertMonochrome(65535),4).pixels).allMatch(pixel->pixel==0));
+        UnsupportedTextureFormatException error=assertThrows(UnsupportedTextureFormatException.class,
+            ()->new ProceduralTexture530Decoder().decode(973,new byte[]{1,0,22,1,1,1,0,0,0,0},4));
+        assertTrue(error.getMessage().contains("operation parameter 1 for Invert"));
+    }
     @Test void operation34RendersDefaultSeededNoiseDeterministically(){
         byte[] fixture=defaultNoise();
         ProceduralTexture530Decoder.Decoded first=new ProceduralTexture530Decoder().decode(903,fixture,16);
@@ -386,6 +401,8 @@ class ProceduralTexture530DecoderTest {
     static byte[] defaultTile(){return new byte[]{2,0,2,1,0,0,20,1,0,0,1,0,0};}
     static byte[] colorCombine(int function,int outputMode){return new byte[]{3,0,1,1,1,0,64,(byte)128,(byte)192,0,1,1,1,0,32,(byte)160,(byte)224,0,7,1,2,0,(byte)function,1,(byte)outputMode,0,1,2,0,0};}
     static byte[] monochromeCombine(int function,int outputMode,int first,int second){return new byte[]{3,0,0,1,1,0,(byte)(first>>>8),(byte)first,0,0,1,1,0,(byte)(second>>>8),(byte)second,0,7,1,2,0,(byte)function,1,(byte)outputMode,0,1,2,0,0};}
+    static byte[] invertColor(int outputMode){return new byte[]{2,0,1,1,1,0,64,(byte)128,(byte)192,0,22,1,1,0,(byte)outputMode,0,1,0,0};}
+    static byte[] invertMonochrome(int value){return new byte[]{2,0,0,1,1,0,(byte)(value>>>8),(byte)value,0,22,1,1,0,1,0,1,0,0};}
     static byte[] overflowingAddition(){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,17,0,0,1,1,0,255,255);for(int node=1;node<17;node++)bytes(out,0,7,1,2,0,1,1,1,node-1,node-1);bytes(out,16,0,0);return out.toByteArray();}
     private static void bytes(ByteArrayOutputStream out,int... values){for(int value:values)out.write(value);}
 }
