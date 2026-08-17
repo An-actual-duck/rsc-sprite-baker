@@ -224,13 +224,14 @@ public final class StaticRenderer {
         for(int i=0;i<npc.retextureFrom.length;i++)if(source==npc.retextureFrom[i])return Short.toUnsignedInt(npc.retextureTo[i]);
         return Short.toUnsignedInt(source);
     }
-    /** u0,v0,u1,v1,u2,v2. Advanced mapping records use the rev-530 software face-local fallback. */
+    /** u0,v0,u1,v1,u2,v2. Revision-530 type 1-3 records use the pinned GL mapping equations. */
     static double[] textureCoordinates(ModelDefinition m,int face){
         if(m.textureCoords==null||m.textureCoords[face]==-1)return new double[]{0,0,1,0,0,1};
         int t=Byte.toUnsignedInt(m.textureCoords[face]);
-        if(t>=m.numTextureFaces||m.textureRenderTypes==null||m.textureRenderTypes[t]!=0||m.texIndices1==null)return new double[]{0,0,1,0,0,1};
+        if(t>=m.numTextureFaces||m.textureRenderTypes==null||m.texIndices1==null)throw new IllegalArgumentException("model "+m.id+" face "+face+" has invalid texture mapping "+t);
+        if(m.textureRenderTypes[t]!=0){if(m instanceof ModelDefinition530)return Revision530TextureMapping.coordinates((ModelDefinition530)m,face,t);return new double[]{0,0,1,0,0,1};}
         int ta=Short.toUnsignedInt(m.texIndices1[t]),tb=Short.toUnsignedInt(m.texIndices2[t]),tc=Short.toUnsignedInt(m.texIndices3[t]);
-        if(ta>=m.vertexCount||tb>=m.vertexCount||tc>=m.vertexCount)return new double[]{0,0,1,0,0,1};
+        if(ta>=m.vertexCount||tb>=m.vertexCount||tc>=m.vertexCount)throw new IllegalArgumentException("model "+m.id+" texture face "+t+" has invalid vertex mapping");
         double ax=m.vertexX[ta],ay=m.vertexY[ta],az=m.vertexZ[ta],bx=m.vertexX[tb]-ax,by=m.vertexY[tb]-ay,bz=m.vertexZ[tb]-az,cx=m.vertexX[tc]-ax,cy=m.vertexY[tc]-ay,cz=m.vertexZ[tc]-az;
         double nx=by*cz-bz*cy,ny=bz*cx-bx*cz,nz=bx*cy-by*cx;
         double ux=cy*nz-cz*ny,uy=cz*nx-cx*nz,uz=cx*ny-cy*nx,ud=ux*bx+uy*by+uz*bz;

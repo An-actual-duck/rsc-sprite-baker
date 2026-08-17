@@ -20,6 +20,6 @@ public final class TextureDiagnostics530 {
         public final List<Integer> materialIds,supportedMaterialIds;public final List<String> errors;public final int texturedFaces,type0Mappings,advancedMappingFallbacks,faceLocalMappings;
         Report(List<Integer> ids,List<Integer> supported,List<String> errors,int faces,int type0,int advanced,int local){materialIds=List.copyOf(ids);supportedMaterialIds=List.copyOf(supported);this.errors=List.copyOf(errors);texturedFaces=faces;type0Mappings=type0;advancedMappingFallbacks=advanced;faceLocalMappings=local;}
         public boolean supported(){return errors.isEmpty();}
-        public String summary(){if(texturedFaces==0)return"Untextured model";return supported()?"Textured: "+texturedFaces+" faces, materials "+materialIds+", advanced face-local fallbacks "+advancedMappingFallbacks:"Unsupported material: "+String.join("; ",errors);}
+        public String summary(){if(texturedFaces==0)return"Untextured model";return supported()?"Textured: "+texturedFaces+" faces, materials "+materialIds+", advanced mappings "+advancedMappingFallbacks:"Unsupported material: "+String.join("; ",errors);}
     }
 }
