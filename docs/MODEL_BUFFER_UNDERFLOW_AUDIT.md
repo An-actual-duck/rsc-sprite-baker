@@ -112,6 +112,15 @@ The audit therefore rejects these alternative explanations:
 The root cause is a dependency-library limitation: its type-1 complex-texture
 layout is not the pinned revision-530 layout.
 
+Java 21 `mvn clean verify` passed all 189 tests. Two production compatibility
+censuses were byte-identical at SHA-256
+`dd70fc41f7dad7e9c7770c7d6b85acf0a996836fe8a34a4f0c74b0b6232c20fd`,
+the same hash as before this diagnostic batch. Categories remain 3,323 ready,
+674 missing automatic animations, 3,946 unsupported models, 612
+morph/internal definitions, and 35 other failures; the model clusters remain
+1,954 `BufferUnderflowException` and 1,992 invalid decoded offsets. This
+confirms the audit has no production-decoder or classification effect.
+
 ## Narrowest safe follow-up
 
 Implementation should proceed in this order:

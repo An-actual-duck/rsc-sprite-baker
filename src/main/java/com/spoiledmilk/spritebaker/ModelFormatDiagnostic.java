@@ -13,6 +13,7 @@ final class ModelFormatDiagnostic {
 
     private ModelFormatDiagnostic(){}
 
+    @SuppressWarnings("unchecked")
     static Map<String,Object> analyze(int modelId,byte[] data){
         Map<String,Object> out=ordered("modelId",modelId,"bytes",data.length,"sha256",sha256(data),
             "footerWindowHex",hex(data,Math.max(0,data.length-32),data.length));

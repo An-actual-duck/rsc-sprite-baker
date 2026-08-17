@@ -2013,7 +2013,9 @@ signatures. All share one dependency limitation: the type-1 decoder advances
 two excess bytes per complex texture face relative to the pinned revision-530
 layout. No production decoder changed. The full census remains the baseline
 3,323 ready, 674 missing automatic animations, 3,946 unsupported models, 612
-morph/internal definitions, and 35 other failures.
+morph/internal definitions, and 35 other failures. Two runs were byte-identical
+to the pre-batch report at SHA-256
+`dd70fc41f7dad7e9c7770c7d6b85acf0a996836fe8a34a4f0c74b0b6232c20fd`.
 
 The highest-yield signature has seven complex texture faces: 205 unique
 models referenced by 768 affected NPCs. The narrowest safe follow-up is a
