@@ -136,6 +136,16 @@ class TextureProvider530Test {
         assertTrue(provider.material(0)==material);
     }
 
+    @Test void decodesAndCachesOperation12WithoutExternalDependencies() throws Exception {
+        TextureProvider530 provider=provider(Map.of(0,ProceduralTexture530DecoderTest.waveform(1,2,255)));
+        TextureMaterial530 material=provider.material(0);
+        assertEquals(java.util.List.of(12),material.operationTypes);
+        assertEquals(64,material.size);
+        assertEquals(0x979797,material.pixels[0]);
+        assertEquals(1,provider.loaded().size());
+        assertTrue(provider.material(0)==material);
+    }
+
     @Test void decodesAndCachesColorCombineFunction6WithoutExternalDependencies() throws Exception {
         TextureProvider530 provider=provider(Map.of(0,ProceduralTexture530DecoderTest.colorCombine(6,0)));
         TextureMaterial530 material=provider.material(0);

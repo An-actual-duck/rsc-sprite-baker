@@ -86,6 +86,28 @@ Color mode preserves all child channels; monochrome mode samples the child
 first/monochrome channel and repeats it across RGB. Unexpected parameters fail
 closed. The primary trace is
 [`TextureOpFlip.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOpFlip.java).
+Operation 12 is the client's zero-child monochrome waveform generator. Code 0
+selects coordinates (default 0): zero uses the difference between the 12-bit X
+and Y fractions, while every nonzero value uses the centered half-scale radial
+distance and multiplies it by pi. Code 1 selects the waveform (default 0): zero
+indexes the client's 256-entry sine table, two produces a triangle, and every
+other value emits the phase ramp. Code 3 is an unsigned frequency byte
+(default 1). Codes 2, 4, 5, and 6 are serialized zero-byte fields in material
+275 and are ignored by the pinned decoder without consuming payload. Other
+unobserved codes remain fail-closed.
+
+Linear or radial phase is multiplied by frequency and wrapped with the pinned
+`phase -= phase & 0xFFFFF000`, producing 0..4095. Radial distance preserves the
+client's float division, `Math.sqrt`, double multiplication, and narrowing
+casts. Sine-table construction and all coordinate and waveform expressions
+retain Java signed `int` evaluation. Legal unsigned parameters and 64/128
+texture coordinates keep operation-local products within `int`; there is no
+implicit widening, child input, color mode, node-local clamp, or texture
+substitution. The primary traces are
+[`TextureOp12.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOp12.java),
+[`TextureOp.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOp.java),
+and
+[`Texture.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/Texture.java).
 Operation 13 is the client's zero-child monochrome hash-noise node and has no
 serialized parameters. For every texel, it hashes the 12-bit X/Y fractions
 with Java `int` overflow, masks the polynomial result to a non-negative integer,
@@ -243,6 +265,7 @@ reference-index SHA-256
 | Additive-combined recolored/retextured multipart | NPC 0 Hans; six component models; five recolors; materials 228/292/258/257/262/527/272/254 | Supported | Combine function 1 now decodes, including the high-volume texture 203 graph. Standing sequence 9870, walking sequence 9869, all 676 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `261ccf8a8a762adf5ba6b64dd6f2b3eee3cf6d3f82b137645f5604c4778d06c6`). |
 | Subtractive/screen-combined multipart | NPC 284 Doric; seven component models; graph paths include textures 132/229 | Supported | Combine functions 2 and 5 preserve pinned operand, fixed-point, overflow, and output-mode behavior. Standing sequence 101, walking sequence 98, all 458 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `9042a427ddaa86ba8049fdb7cf7bcf4e0106d8684f2e280f5d59318d2dc962ad`). |
 | Color-dodge animated | NPC 3747 Spinner; model 14549; materials 168/183 | Supported | Material 183 exercises combine function 7 with pinned operand, shift-overflow, division, exact-denominator guard, and output-mode behavior. Standing sequence 3906, walking sequence 3907, all 388 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `4798059951d426fa3f13882fdad74de5ecf895c21c0eeab3dbfba609a598c621`). |
+| Waveform animated | NPC 4521 Enchanted Broom; model 16738; materials 185/275/206 | Supported | Material 275 exercises operation 12's linear triangle path, frequency 4, and serialized zero-byte fields. Standing/walking sequence 4372, all 216 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `a9e7a37220fc40e0fe2552fc16bc1ae78a5285b31a521a9df5bb0493cf359325`). |
 | Inverted sprite-backed animated | NPC 146 Gull; model 26841; materials 364/471/57/439 | Supported | Operations 22 and 39 resolve the pinned invert and sprite-canvas path, including texture 366's external sprite dependency. Standing sequence 6771, walking sequence 6773, all 344 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `788ad30863f2b7d64217cfd9de81dff3734ea19300ac653a6bc80d84dedd7bd1`). |
 | Alpha/mapping stress | NPC 61 Spider; model 24613; material 111 | Supported | Operation 34 now decodes; models, material, standing sequence 6247, and walking sequence 6248 validate. Its 298 textured faces continue to use the documented advanced-mapping fallback. |
 | Hash-noise multipart | NPC 125 Ice warrior; seven component models; materials 249/291/303/302 | Supported | Operation 13 now decodes; standing sequence 842, walking sequence 841, and all 1,076 textured faces validate. |
@@ -283,8 +306,8 @@ replaceable and persists the choices normally.
 ## Remaining limitations
 
 - The procedural graph language is intentionally incomplete. Remaining
-  operation ID 12, combine functions 8 and 10, and curve interpolation modes
-  1 and 2 fail
+  combine functions 8 and 10, curve interpolation modes 1 and 2, and one
+  color-gradient sample-count variant fail
   closed. See `COMPATIBILITY_CENSUS.md` for exact current frequencies.
 - Advanced type 1/2/3 mapping parameters are not decoded by the RuneLite model
   dependency; only the traced revision-software face-local behavior is used.

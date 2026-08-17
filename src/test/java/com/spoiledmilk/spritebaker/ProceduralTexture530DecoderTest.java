@@ -70,6 +70,41 @@ class ProceduralTexture530DecoderTest {
         UnsupportedTextureFormatException e=assertThrows(UnsupportedTextureFormatException.class,()->new ProceduralTexture530Decoder().decode(901,fixture,4));
         assertTrue(e.getMessage().contains("operation 35"));
     }
+    @Test void operation12DefaultsToLinearSineMonochromeDeterministically(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        ProceduralTexture530Decoder.Decoded first=decoder.decode(1005,defaultWaveform(),4),second=decoder.decode(1005,defaultWaveform(),4);
+        assertArrayEquals(new int[]{0,0x7e7e7e,0xffffff,0x808080},java.util.Arrays.copyOfRange(first.pixels,0,4));
+        assertArrayEquals(first.pixels,second.pixels);assertEquals(java.util.List.of(12),first.operationTypes);
+    }
+    @Test void operation12ImplementsEveryWaveformSelectorBranch(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        assertArrayEquals(new int[]{0xc0c0c0,0x808080,0x404040,0},java.util.Arrays.copyOfRange(decoder.decode(1006,waveform(0,1,1),4).pixels,0,4));
+        assertArrayEquals(new int[]{0x808080,0xffffff,0x808080,0},java.util.Arrays.copyOfRange(decoder.decode(1007,waveform(0,2,1),4).pixels,0,4));
+        assertArrayEquals(decoder.decode(1006,waveform(0,1,1),4).pixels,decoder.decode(1008,waveform(0,255,1),4).pixels);
+    }
+    @Test void operation12UsesLinearZeroAndRadialNonzeroCoordinateModes(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        int[] radial=decoder.decode(1009,waveform(1,1,1),4).pixels;
+        assertArrayEquals(new int[]{0xe0e0e0,0xc9c9c9,0xe0e0e0,0x1c1c1c},java.util.Arrays.copyOfRange(radial,0,4));
+        assertArrayEquals(radial,decoder.decode(1010,waveform(255,1,1),4).pixels);
+        assertFalse(java.util.Arrays.equals(radial,decoder.decode(1011,waveform(0,1,1),4).pixels));
+    }
+    @Test void operation12PreservesUnsignedFrequencyBoundariesAndFixedPointWrapping(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        assertTrue(java.util.Arrays.stream(decoder.decode(1012,waveform(1,2,0),4).pixels).allMatch(pixel->pixel==0));
+        assertArrayEquals(new int[]{0x3e3e3e,0x6e6e6e,0x3e3e3e,0x383838},java.util.Arrays.copyOfRange(decoder.decode(1013,waveform(1,2,1),4).pixels,0,4));
+        assertArrayEquals(new int[]{0x818181,0x8d8d8d,0x818181,0x686868},java.util.Arrays.copyOfRange(decoder.decode(1014,waveform(1,2,255),4).pixels,0,4));
+    }
+    @Test void operation12PreservesAllZeroByteParameterFramingAndRejectsMalformedParameters(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        assertArrayEquals(decoder.decode(1015,defaultWaveform(),4).pixels,decoder.decode(1015,waveformNoOpParameters(),4).pixels);
+        for(int code:new int[]{0,1,3}){
+            UnsupportedTextureFormatException error=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(1015,new byte[]{1,0,12,1,1,(byte)code},4));
+            assertTrue(error.getMessage().contains("truncated operation 12 parameter "+code));
+        }
+        UnsupportedTextureFormatException unknown=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(1016,new byte[]{1,0,12,1,1,(byte)255,0,0,0},4));
+        assertTrue(unknown.getMessage().contains("operation parameter 255 for Waveform"));
+    }
     @Test void combineFunction6PreservesOperandOrderingColorAndMonochromeModes(){
         ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
         ProceduralTexture530Decoder.Decoded color=decoder.decode(928,colorCombine(6,0),4);
@@ -510,6 +545,9 @@ class ProceduralTexture530DecoderTest {
     static byte[] spriteThenMonochromeInvert(int id){return new byte[]{2,0,39,1,1,0,(byte)(id>>>8),(byte)id,0,22,1,1,0,1,0,1,0,0};}
     static byte[] overflowingAddition(){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,18,0,2,1,0);constantRange(out,65535,0);for(int node=2;node<18;node++)bytes(out,0,7,1,2,0,1,1,1,node-1,node-1);bytes(out,17,0,0);return out.toByteArray();}
     static byte[] combine7Overflow(){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,8,0,2,1,0);constantRange(out,0,0);constantRange(out,65535,0);for(int node=3;node<=6;node++)bytes(out,0,7,1,2,0,1,1,1,node-1,node-1);bytes(out,0,7,1,2,0,7,1,1,1,6,7,0,0);return out.toByteArray();}
+    static byte[] defaultWaveform(){return new byte[]{1,0,12,1,0,0,0,0};}
+    static byte[] waveformNoOpParameters(){return new byte[]{1,0,12,1,4,2,4,5,6,0,0,0};}
+    static byte[] waveform(int coordinateMode,int selector,int frequency){return new byte[]{1,0,12,1,3,0,(byte)coordinateMode,1,(byte)selector,3,(byte)frequency,0,0,0};}
     static byte[] monochromeFill(int value){return new byte[]{1,0,0,1,1,0,(byte)value,0,0,0};}
     static byte[] hslAdjust(int rgb){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,2);colorFillNode(out,rgb);bytes(out,0,17,1,0,0,1,0,0);return out.toByteArray();}
     static byte[] hslAdjust(int rgb,int hue,int saturation,int lightness){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,2);colorFillNode(out,rgb);bytes(out,0,17,1,3,0,hue>>>8,hue,1,saturation,2,lightness,0,1,0,0);return out.toByteArray();}

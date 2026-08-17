@@ -34,7 +34,7 @@ public final class ProceduralTexture530Decoder {
 
     private static Node create(int id,int type,DependencyResolver dependencies,SpriteResolver sprites){switch(type){
         case 0:return new Fill(true);case 1:return new Fill(false);case 2:return new Gradient(true);case 3:return new Gradient(false);case 4:return new BrickTiles();case 5:return new BoxBlur();case 6:return new Clamp();
-        case 7:return new Combine();case 8:return new Curve();case 9:return new Flip();case 10:return new ColorGradient();case 13:return new HashNoise();case 15:return new CellularNoise();case 17:return new HslAdjust();case 19:return new CoordinateDisplacement();case 20:return new Tile();case 21:return new Interpolate();case 22:return new Invert();case 27:return new Stripes();case 30:return new Range();case 32:return new BumpLighting();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();case 39:return new SpriteDependencyNode(sprites);
+        case 7:return new Combine();case 8:return new Curve();case 9:return new Flip();case 10:return new ColorGradient();case 12:return new Waveform();case 13:return new HashNoise();case 15:return new CellularNoise();case 17:return new HslAdjust();case 19:return new CoordinateDisplacement();case 20:return new Tile();case 21:return new Interpolate();case 22:return new Invert();case 27:return new Stripes();case 30:return new Range();case 32:return new BumpLighting();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();case 39:return new SpriteDependencyNode(sprites);
         default:throw new UnsupportedTextureFormatException(id,"procedural operation "+type);
     }}
     @FunctionalInterface public interface DependencyResolver{Dependency resolve(int textureId)throws IOException;}
@@ -149,6 +149,31 @@ public final class ProceduralTexture530Decoder {
             return children[0].rgb(sampleX,sampleY,size);
         }
         int mono(int x,int y,int size)throws IOException{return monochrome?children[0].mono(horizontal?size-1-x:x,vertical?size-1-y:y,size):super.mono(x,y,size);}
+    }
+    private static final class Waveform extends Node{
+        private static final int[] SINE=createSine();
+        int coordinateMode,waveform,frequency=1;
+        int childCount(){return 0;}
+        void decode(int id,int code,BinaryInput in){
+            if(code==0||code==1||code==3){if(in.remaining()<1)throw new UnsupportedTextureFormatException(id,"truncated operation 12 parameter "+code);int value=in.u8();if(code==0)coordinateMode=value;else if(code==1)waveform=value;else frequency=value;}
+            else if(code==2||code==4||code==5||code==6)return;
+            else super.decode(id,code,in);
+        }
+        int[] rgb(int x,int y,int size){
+            int xFraction=(x<<12)/size,yFraction=(y<<12)/size,phase;
+            if(coordinateMode==0)phase=(xFraction-yFraction)*frequency;
+            else{
+                int dx=xFraction-2048>>1,dy=yFraction-2048>>1;
+                int squared=dx*dx+dy*dy>>12;
+                int radius=(int)(Math.sqrt((float)squared/4096.0F)*4096.0D);
+                phase=(int)((double)(radius*frequency)*Math.PI);
+            }
+            phase-=phase&0xFFFFF000;
+            if(waveform==0)phase=SINE[phase>>4&0xFF]+4096>>1;
+            else if(waveform==2){phase-=2048;if(phase<0)phase=-phase;phase=2048-phase<<1;}
+            return new int[]{phase,phase,phase};
+        }
+        private static int[] createSine(){int[] values=new int[256];for(int i=0;i<values.length;i++)values[i]=(int)(Math.sin((double)i/255.0D*6.283185307179586D)*4096.0D);return values;}
     }
     private static final class Invert extends Node{
         boolean monochrome;
