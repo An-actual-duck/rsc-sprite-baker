@@ -284,6 +284,24 @@ class ProceduralTexture530DecoderTest {
             ()->decoder.decode(961,new byte[]{1,0,9,1,1,3,0,0,0,0},8));
         assertTrue(parameter.getMessage().contains("operation parameter 3 for Flip"));
     }
+    @Test void operation21InterpolatesOrderedColorAndMonochromeChildren(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        ProceduralTexture530Decoder.Decoded color=decoder.decode(962,interpolateColor(1024,0),4);
+        ProceduralTexture530Decoder.Decoded monochrome=decoder.decode(963,interpolateColor(1024,1),4);
+        assertTrue(java.util.Arrays.stream(color.pixels).allMatch(pixel->pixel==0x2898d8));
+        assertTrue(java.util.Arrays.stream(monochrome.pixels).allMatch(pixel->pixel==0x282828));
+        assertArrayEquals(color.pixels,decoder.decode(964,interpolateColor(1024,2),4).pixels);
+        assertEquals(java.util.List.of(1,1,0,21),color.operationTypes);
+    }
+    @Test void operation21PreservesExactEndpointsExtrapolationOverflowAndParameters(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        assertTrue(java.util.Arrays.stream(decoder.decode(965,interpolateColor(0,0),4).pixels).allMatch(pixel->pixel==0x20a0e0));
+        assertTrue(java.util.Arrays.stream(decoder.decode(966,interpolateColor(4096,0),4).pixels).allMatch(pixel->pixel==0x4080c0));
+        assertTrue(java.util.Arrays.stream(decoder.decode(967,interpolateMonochrome(65535,0),4).pixels).allMatch(pixel->pixel==0));
+        UnsupportedTextureFormatException parameter=assertThrows(UnsupportedTextureFormatException.class,
+            ()->decoder.decode(968,new byte[]{1,0,21,1,1,1,0,0,0,0},4));
+        assertTrue(parameter.getMessage().contains("operation parameter 1 for Interpolate"));
+    }
     static byte[] hashNoise(){return new byte[]{1,0,13,1,0,0,0,0};}
     static byte[] defaultNoise(){return new byte[]{1,0,34,1,0,0,0,0};}
     static byte[] textureDependency(int id){return new byte[]{1,0,36,1,1,0,(byte)(id>>>8),(byte)id,0,0,0};}
@@ -313,6 +331,12 @@ class ProceduralTexture530DecoderTest {
     }
     static byte[] monochromeFlip(int horizontal,int vertical,int outputMode){return new byte[]{2,0,3,1,0,0,9,1,3,0,(byte)horizontal,1,(byte)vertical,2,(byte)outputMode,0,1,0,0};}
     static byte[] defaultFlip(){return new byte[]{2,0,2,1,0,0,9,1,0,0,1,0,0};}
+    static byte[] interpolateColor(int control,int outputMode){return new byte[]{4,0,1,1,1,0,64,(byte)128,(byte)192,0,1,1,1,0,32,(byte)160,(byte)224,0,0,1,1,0,(byte)(control>>>8),(byte)control,0,21,1,1,0,(byte)outputMode,0,1,2,3,0,0};}
+    static byte[] interpolateMonochrome(int control,int outputMode){
+        ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,4);
+        bytes(out,0,0,1,1,0,255,255);bytes(out,0,0,1,1,0,0,0);bytes(out,0,0,1,1,0,control>>>8,control);
+        bytes(out,0,21,1,1,0,outputMode,0,1,2,3,0,0);return out.toByteArray();
+    }
     static byte[] colorCombine(int function,int outputMode){return new byte[]{3,0,1,1,1,0,64,(byte)128,(byte)192,0,1,1,1,0,32,(byte)160,(byte)224,0,7,1,2,0,(byte)function,1,(byte)outputMode,0,1,2,0,0};}
     static byte[] monochromeCombine(int function,int outputMode,int first,int second){return new byte[]{3,0,0,1,1,0,(byte)(first>>>8),(byte)first,0,0,1,1,0,(byte)(second>>>8),(byte)second,0,7,1,2,0,(byte)function,1,(byte)outputMode,0,1,2,0,0};}
     static byte[] overflowingAddition(){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,17,0,0,1,1,0,255,255);for(int node=1;node<17;node++)bytes(out,0,7,1,2,0,1,1,1,node-1,node-1);bytes(out,16,0,0);return out.toByteArray();}

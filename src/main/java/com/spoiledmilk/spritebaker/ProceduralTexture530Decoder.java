@@ -31,7 +31,7 @@ public final class ProceduralTexture530Decoder {
 
     private static Node create(int id,int type,DependencyResolver dependencies){switch(type){
         case 0:return new Fill(true);case 1:return new Fill(false);case 2:return new Gradient(true);case 3:return new Gradient(false);case 4:return new BrickTiles();case 5:return new BoxBlur();case 6:return new Clamp();
-        case 7:return new Combine();case 8:return new Curve();case 9:return new Flip();case 10:return new ColorGradient();case 13:return new HashNoise();case 15:return new CellularNoise();case 19:return new CoordinateDisplacement();case 27:return new Stripes();case 30:return new Range();case 32:return new BumpLighting();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();
+        case 7:return new Combine();case 8:return new Curve();case 9:return new Flip();case 10:return new ColorGradient();case 13:return new HashNoise();case 15:return new CellularNoise();case 19:return new CoordinateDisplacement();case 21:return new Interpolate();case 27:return new Stripes();case 30:return new Range();case 32:return new BumpLighting();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();
         default:throw new UnsupportedTextureFormatException(id,"procedural operation "+type);
     }}
     @FunctionalInterface public interface DependencyResolver{Dependency resolve(int textureId)throws IOException;}
@@ -212,6 +212,19 @@ public final class ProceduralTexture530Decoder {
             return children[0].mono(sampleX,sampleY,size);
         }
         private static int[] trigonometry(boolean sine){int[] table=new int[256];for(int i=0;i<256;i++){double radians=(double)i/255.0D*6.283185307179586D;table[i]=(int)((sine?Math.sin(radians):Math.cos(radians))*4096.0D);}return table;}
+    }
+    private static final class Interpolate extends Node{
+        boolean monochrome;
+        int childCount(){return 3;}
+        void decode(int id,int code,BinaryInput in){if(code==0)monochrome=in.u8()==1;else super.decode(id,code,in);}
+        int[] rgb(int x,int y,int size)throws IOException{
+            int control=children[2].mono(x,y,size);
+            if(monochrome){int value=blend(children[0].mono(x,y,size),children[1].mono(x,y,size),control);return new int[]{value,value,value};}
+            int[] first=children[0].rgb(x,y,size),second=children[1].rgb(x,y,size);
+            return new int[]{blend(first[0],second[0],control),blend(first[1],second[1],control),blend(first[2],second[2],control)};
+        }
+        int mono(int x,int y,int size)throws IOException{return monochrome?blend(children[0].mono(x,y,size),children[1].mono(x,y,size),children[2].mono(x,y,size)):super.mono(x,y,size);}
+        private int blend(int first,int second,int control){if(control==4096)return first;if(control==0)return second;return (4096-control)*second+control*first>>12;}
     }
     private static final class Stripes extends Node{
         int bands=10,dutyWidth=2048,mode;int[] starts,ends;
