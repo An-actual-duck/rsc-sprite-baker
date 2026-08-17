@@ -226,6 +226,16 @@ class TextureProvider530Test {
         assertTrue(provider.material(0)==material);
     }
 
+    @Test void decodesAndCachesCurveMode2WithoutExternalDependencies() throws Exception {
+        TextureProvider530 provider=provider(Map.of(0,ProceduralTexture530DecoderTest.curve(2,new int[][]{{0,0},{4096,4096}})));
+        TextureMaterial530 material=provider.material(0);
+        assertEquals(java.util.List.of(2,8),material.operationTypes);
+        assertEquals(64,material.size);
+        assertEquals(0xffffff,material.pixels[0]);
+        assertEquals(1,provider.loaded().size());
+        assertTrue(provider.material(0)==material);
+    }
+
     @Test void decodesAndCachesOperation22WithoutExternalDependencies() throws Exception {
         TextureProvider530 provider=provider(Map.of(0,ProceduralTexture530DecoderTest.invertColor(0)));
         TextureMaterial530 material=provider.material(0);

@@ -202,7 +202,7 @@ public final class ProceduralTexture530Decoder {
     private static final class Range extends Node{int min=1024,max=3072,range=2048;boolean monochrome;int childCount(){return 1;}void decode(int id,int code,BinaryInput in){if(code==0)min=in.u16();else if(code==1)max=in.u16();else if(code==2)monochrome=in.u8()==1;else super.decode(id,code,in);}void finish(int id){range=max-min;}int[] rgb(int x,int y,int size)throws IOException{int[] c=children[0].rgb(x,y,size);return new int[]{min+(range*c[0]>>12),min+(range*c[1]>>12),min+(range*c[2]>>12)};}}
     private static final class Curve extends Node{
         private static final int[] COSINE=createCosine();
-        int mode;int[][] markers;short[] cosineValues;
+        int mode;int[][] markers;int[] beforeMarker,afterMarker;short[] cosineValues,cubicValues;
         int childCount(){return 1;}
         void decode(int id,int code,BinaryInput in){
             if(code!=0)super.decode(id,code,in);
@@ -211,13 +211,15 @@ public final class ProceduralTexture530Decoder {
             markers=new int[n][2];for(int i=0;i<n;i++){markers[i][0]=in.u16();markers[i][1]=in.u16();}
         }
         void finish(int id){
-            if(mode!=0&&mode!=1)throw new UnsupportedTextureFormatException(id,"curve interpolation "+mode);
+            if(mode!=0&&mode!=1&&mode!=2)throw new UnsupportedTextureFormatException(id,"curve interpolation "+mode);
             if(markers==null||markers.length<2)throw new UnsupportedTextureFormatException(id,"curve marker count");
             if(mode==1)prepareCosine();
+            if(mode==2)prepareCubic();
         }
         int[] rgb(int x,int y,int size)throws IOException{
             int v=children[0].mono(x,y,size);
             if(mode==1){int index=v>>4;if(index<0)index=0;if(index>256)index=256;int result=cosineValues[index];return new int[]{result,result,result};}
+            if(mode==2){int index=v>>4;if(index<0)index=0;if(index>256)index=256;int result=cubicValues[index];return new int[]{result,result,result};}
             int i=1;while(i<markers.length&&v>=markers[i][0])i++;int result;if(i==markers.length)result=markers[i-1][1];else if(i==0)result=markers[0][1];else{int[] a=markers[i-1],b=markers[i];result=a[1]+(b[1]-a[1])*(v-a[0])/Math.max(1,b[0]-a[0]);}return new int[]{result,result,result};
         }
         private void prepareCosine(){
@@ -231,6 +233,24 @@ public final class ProceduralTexture530Decoder {
                 if(value<=-32768)value=-32767;if(value>=32768)value=32767;cosineValues[sample]=(short)value;
             }
         }
+        private void prepareCubic(){
+            int[] first=markers[0],second=markers[1],penultimate=markers[markers.length-2],last=markers[markers.length-1];
+            beforeMarker=new int[]{first[0]+first[0]-second[0],first[1]+first[1]-second[1]};
+            afterMarker=new int[]{penultimate[0]+penultimate[0]-last[0],penultimate[1]+penultimate[1]-last[1]};
+            cubicValues=new short[257];
+            for(int sample=0;sample<cubicValues.length;sample++){
+                int position=sample<<4,marker=1;while(marker<markers.length-1&&markers[marker][0]<=position)marker++;
+                int[] lower=markers[marker-1],upper=markers[marker];
+                int previous=getMarker(marker-2)[1],next=getMarker(marker+1)[1];
+                int upperValue=upper[1],lowerValue=lower[1],slope=upperValue-previous;
+                int fraction=(position-lower[0]<<12)/(upper[0]-lower[0]);
+                int cross=next+lowerValue-upperValue-previous,square=fraction*fraction>>12;
+                int curvature=previous-lowerValue-cross;
+                int value=lowerValue+(square*curvature>>12)+(square*(fraction*cross>>12)>>12)+(slope*fraction>>12);
+                if(value<=-32768)value=-32767;if(value>=32768)value=32767;cubicValues[sample]=(short)value;
+            }
+        }
+        private int[] getMarker(int index){if(index<0)return beforeMarker;if(index>=markers.length)return afterMarker;return markers[index];}
         private static int[] createCosine(){int[] values=new int[256];for(int i=0;i<values.length;i++)values[i]=(int)(Math.cos((double)i/255.0D*6.283185307179586D)*4096.0D);return values;}
     }
     private static final class ColorGradient extends Node{int[][] samples;int childCount(){return 1;}void decode(int id,int code,BinaryInput in){if(code!=0)super.decode(id,code,in);int preset=in.u8();if(preset!=0)throw new UnsupportedTextureFormatException(id,"color-gradient preset "+preset);int n=in.u8();samples=new int[n][4];for(int i=0;i<n;i++){samples[i][0]=in.u16();samples[i][1]=in.u8()<<4;samples[i][2]=in.u8()<<4;samples[i][3]=in.u8()<<4;}}void finish(int id){if(samples==null||samples.length<2)throw new UnsupportedTextureFormatException(id,"color-gradient sample count");}int[] rgb(int x,int y,int size)throws IOException{int v=children[0].mono(x,y,size),i=0;while(i<samples.length&&v>=samples[i][0])i++;if(i==0)return color(samples[0]);if(i==samples.length)return color(samples[i-1]);int[] a=samples[i-1],b=samples[i];int w=(v-a[0])*4096/Math.max(1,b[0]-a[0]);return new int[]{(a[1]*(4096-w)+b[1]*w)>>12,(a[2]*(4096-w)+b[2]*w)>>12,(a[3]*(4096-w)+b[3]*w)>>12};}private int[] color(int[] s){return new int[]{s[1],s[2],s[3]};}}
