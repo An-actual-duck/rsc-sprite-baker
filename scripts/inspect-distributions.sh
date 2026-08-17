@@ -51,6 +51,7 @@ for platform in linux windows; do
     com/spoiledmilk/spritebaker/SelectorMain.class \
     com/spoiledmilk/spritebaker/HeadlessMain.class \
     com/spoiledmilk/spritebaker/CompatibilityCensusMain.class \
+    com/spoiledmilk/spritebaker/MaterialOpcode255AuditMain.class \
     META-INF/THIRD_PARTY_NOTICES.md; do
     grep -Fxq "$required" "$work/$platform.jar.list" || { echo "$platform JAR is missing $required" >&2; exit 1; }
   done

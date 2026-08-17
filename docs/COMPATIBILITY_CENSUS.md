@@ -1068,3 +1068,124 @@ operation 17 and combine function 10 at 25 each, and combine function 8 at 16.
 Operation 255 is outside the pinned 0-through-39 factory and should first be
 traced as a serialization or cache-revision issue before adding a node. Keep
 the unchanged model-decoder clusters in their own focused batch.
+
+## 2026-08-16 apparent operation-255 investigation
+
+`MaterialOpcode255AuditMain` is a terminal-only forensic companion to the
+census. It records every affected definition and model/material route, raw
+graph hashes and byte windows, and parallel framing traces without changing
+the production decoder:
+
+```bash
+mvn clean package
+java -cp target/rsc-sprite-baker.jar \
+  com.spoiledmilk.spritebaker.MaterialOpcode255AuditMain \
+  --cache /path/to/user-supplied/cache \
+  --output /tmp/rsc-sprite-baker-op255-audit.json
+```
+
+The output path must remain outside the cache and repository. Two independent
+packaged-JAR runs on the pinned cache were byte-identical at SHA-256
+`816db2d8b273e70122169c00b5a36fd4db59010a16834e03ddcaff6d524b763f`.
+The dat2 and reference-index hashes remain the values recorded above.
+
+### Determination
+
+There is no operation 255 in this graph. Material/texture graph 168 is 186
+bytes at index 9/archive 168/file 0, with SHA-256
+`5bd02af05b2407b362e3ae40eec7218e0ef25b45f7d08b3b51e48db8f0a7e187`.
+Its 16-node graph is structurally complete and is followed by the exact nine
+bytes read by the pinned `GlTexture` material wrapper. This rules out
+truncation and corruption. All affected definitions share this single graph,
+which rules against a mixed-revision cluster.
+
+The pinned revision-530 `Texture` factory creates only operations 0 through
+39. Its `TextureOpMonochromeFill` reads parameter 0 with one unsigned-byte
+read and scales it as `(value << 12) / 255`. The baker currently reads that
+parameter as an unsigned 16-bit value. At graph offsets 72 through 80 this has
+a decisive framing consequence:
+
+| Offset | Pinned meaning | Current baker framing |
+| ---: | --- | --- |
+| 73 | operation 0 | operation 0 |
+| 76 | parameter code 0 | parameter code 0 |
+| 77 | one-byte fill value `cb` | first fill-value byte |
+| 78 | next node descriptor 6 | second fill-value byte |
+| 79 | next node operation 8 (curve) | next node descriptor 8 |
+| 80 | curve cache byte `ff` | apparent operation 255 |
+
+The exact 25-byte evidence window, offsets 68 through 92 inclusive, is
+`010003050500010100cb0608ff0100000300000b3b03120fff`. The complete raw graph
+also contains `ff` parameter/cache values at offsets 29, 30, 60, 92, 143, and
+155; none occupy a type field under pinned framing. With the one-byte fill
+width, all 16 descriptors and nodes align, roots 8 and 14 are read correctly,
+all 186 bytes are consumed, and the next genuine unsupported node is operation
+17 at type offset 111. Thus the classification is:
+
+- genuine material operation: no;
+- parser desynchronization: yes;
+- incorrect parameter length/signedness: length is wrong (two bytes instead
+  of one unsigned byte); signedness is not the cause;
+- mixed cache revisions: no evidence;
+- truncated or corrupt data: no;
+- sentinel or non-operation value: no—the byte is the curve node's ordinary
+  cache setting.
+
+The primary comparison is the pinned commit
+`a569f0af7754ada96ed7ac76d7582b2c7511b7a0`: `Texture.java` supplies graph
+framing and the 0-through-39 factory, `TextureOpMonochromeFill.java` supplies
+the one-byte fixed-point decode, `TextureOpCurve.java` establishes the valid
+255 cache byte, `TextureOp17.java` establishes the newly exposed real node,
+and `GlTexture.java` accounts for every trailing byte.
+
+### Exact affected scope
+
+The production census reports 70 repeated diagnostics across 62 definitions;
+the forensic inventory deduplicates them to one causal material/texture graph,
+168. Every affected NPC is listed here by display name and ID:
+
+- Sheep: 42, 1762, 1764, 3311, 5148–5155, 5165; Golden sheep: 5172.
+- Crawling Hand: 1648, 1649, 1654, 1655; Bloodworm: 2031; Large mosquito:
+  2493; Bullrush: 3336.
+- Big Snake: 3484; Swamp snake: 3599–3602; Dead swamp snake: 3603–3605;
+  Sea Snake Young: 3939; Sea Snake Hatchling: 3940; Giant Sea Snake: 3943.
+- Splatter: 3727–3731, 7595–7597; Spinner: 3747–3751, 7598.
+- Autumn Elemental: 5533–5538; Summer Elemental: 5547–5552.
+- War tortoise: 6815, 6816; Mutated bloodveld: 7642, 7643.
+
+Their complete component-model set is
+`1674, 6632, 8904, 13910, 13911, 14171, 14549, 14550, 15096, 20283,
+20284, 20285, 20288, 20289, 22264, 22265, 22269, 22270, 30460, 33713,
+33715, 33716, 33718, 33723, 33728`. The ten models with faces directly bound
+to 168 are `1674, 6632, 8904, 14549, 14550, 20288, 20289, 22265, 33713,
+33715`; the JSON report preserves all 39 NPC/model/source/resolved-material
+routes and face counts. The full model-referenced material context for these
+definitions is `59, 91, 111, 134, 157, 168, 179, 182, 183, 192, 283, 297,
+317, 318, 338, 345, 347, 379, 386, 394, 415, 432, 444`. Only graph 168 owns
+the framing defect; the other IDs explain indirect dependency and multipart
+scope and must not be described as opcode-255 graphs.
+
+Production remains deliberately unchanged and fail-closed at the apparent
+255. No operation, material, color, texture, or average-material substitute
+was added. The narrowest safe follow-up is a separately reviewed correction
+of operation-0 parameter 0 to the pinned one-byte scaling rule, together with
+migration of legacy neutral fixtures that encoded a two-byte fill. That change
+must continue to reject the then-exposed operation 17 explicitly until its own
+semantics are implemented and tested.
+
+Two independent packaged-JAR full censuses remain byte-identical at SHA-256
+`f3fb5c74d0142ba7a0af455f457ce7b55445985ba689bd16eb4a44ef8c01eacb`:
+3,136 ready, 646 missing automatic animations, 216 unsupported material,
+3,946 unsupported model, 612 morph/internal definitions, and 34 other
+failures. NPC 72 remains fully automatic and ready; NPC 40 remains
+model/material render-compatible and lacks only automatic standing metadata.
+
+The licensed-cache distribution build reran all 138 tests and its terminal
+archive inspection confirmed the audit entry point in both application JARs,
+the exact 31-file read-only cache payload, license/source records, empty
+adjacent exports directory, and safe archive paths. The external inspection
+artifacts were SHA-256
+`ba86aa1cb75101e4290d9494507bd8fd0bb596582986e99b3da792f32c168279`
+(Linux) and
+`b325f0ed0294616f1f3a72cef826c5786d58a94a2d5fc90a52ec577586f49285`
+(Windows); neither archive is committed.

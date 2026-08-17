@@ -44,8 +44,8 @@ fail-closed textured compatibility matrix and provenance,
 pipeline, and [`docs/ANIMATION_COMPATIBILITY.md`](docs/ANIMATION_COMPATIBILITY.md)
 for the client animation trace. The deterministic all-NPC terminal scanner,
 lazy browser compatibility status, and current 8,590-definition results are in
-[`docs/COMPATIBILITY_CENSUS.md`](docs/COMPATIBILITY_CENSUS.md). The Phase 1 CLI
-remains unchanged.
+[`docs/COMPATIBILITY_CENSUS.md`](docs/COMPATIBILITY_CENSUS.md), including the
+terminal-only opcode-255 forensic audit. The Phase 1 CLI remains unchanged.
 
 ## Compatibility-spike CLI
 
