@@ -78,8 +78,13 @@ it. Function 10 compares the two raw signed fixed-point operands and returns
 their maximum independently per color channel or for the monochrome first
 channel. It performs no arithmetic, division, zero handling, fixed-point
 rescaling, wrapping, or node-local clamp; upstream overflowed integers retain
-Java signed comparison. Every other function ID remains
-an explicit unsupported-material error. The primary trace is
+Java signed comparison. Function 11 returns the absolute difference between
+the two raw signed operands by branching on their signed comparison and then
+subtracting the smaller from the larger. It performs no fixed-point rescaling,
+wrapping, or node-local clamp; subtraction retains Java `int` overflow,
+including the negative result when the mathematical difference is not
+representable. Functions 0, 4, 9, 12, and every other unimplemented function
+ID remain explicit unsupported-material errors. The primary trace is
 [`TextureOpCombine.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOpCombine.java).
 Operation 9 is the client's one-child coordinate flip. Unsigned byte codes 0
 and 1 enable horizontal and vertical reversal only when equal to 1; both
@@ -271,6 +276,7 @@ reference-index SHA-256
 | Color-dodge animated | NPC 3747 Spinner; model 14549; materials 168/183 | Supported | Material 183 exercises combine function 7 with pinned operand, shift-overflow, division, exact-denominator guard, and output-mode behavior. Standing sequence 3906, walking sequence 3907, all 388 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `4798059951d426fa3f13882fdad74de5ecf895c21c0eeab3dbfba609a598c621`). |
 | Waveform animated | NPC 4521 Enchanted Broom; model 16738; materials 185/275/206 | Supported | Material 275 exercises operation 12's linear triangle path, frequency 4, and serialized zero-byte fields. Standing/walking sequence 4372, all 216 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `a9e7a37220fc40e0fe2552fc16bc1ae78a5285b31a521a9df5bb0493cf359325`). |
 | Maximum-combined animated | NPC 1734 Magic tree; model 21838; materials 196/110/34/8 | Supported | Material 196 exercises combine function 10's signed per-channel maximum. Shared standing/walking sequence 5750, all 805 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `e631467a1125c36c2b02407b7ac7b6cc220de29740b46ef6393ff081dc7da566`). |
+| Difference-combined animated | NPC 138 Terrorbird; model 26856; materials 216/297/143 | Supported | Material 216 exercises combine function 11's signed per-channel difference. Standing sequence 1008, walking sequence 1007, all 873 textured faces, and all 18 cells validate in a terminal-only packaged-JAR render (PNG SHA-256 `15c23685405cba2e5b221ffd75f4e0137202dec42eb630085d6561ea38fda0f7`). |
 | Cosine-curved animated | NPC 2535 Teak; model 21849; materials 134/196/110 | Supported | Material 134 exercises curve interpolation mode 1's pinned marker selection, cosine weighting, 257-entry signed-short table, and lookup clamping. Shared standing/walking sequence 5750, all 657 textured faces, and all 18 cells validate in a packaged-JAR render (PNG SHA-256 `e21f85b33922236e6e1f0cd3b4f69cb544e17793df1534a207a9772eac17ef2a`). |
 | Burn-combined multipart | NPC 956 Drunken Dwarf; models 2974/2986/2983/2979/2981/2985/2992; material 361 among 12 materials | Supported | Material 361 exercises combine function 8's child-0 zero guard/divisor, child-1 complemented numerator, wrapped fixed-point shift, and Java division. Standing sequence 900, walking sequence 104, all 460 textured faces, and all 18 cells validate in a packaged-JAR render (PNG SHA-256 `767ddb34ee0fb12fdfcb38b97844885a5c3054139cd783c667cc04d2daad5415`). |
 | Cubic-curved multipart | NPC 504 Undead one; models 21108/21064/21046/21093/21122/21078/21140; materials 393/293/577/186/392/59 | Supported | Material 186 exercises curve mode 2's pinned generated endpoint records, four-point fixed-point coefficients, signed-short table, and clamped lookup. Standing sequence 5565, walking sequence 5566, all 773 textured faces, and all 18 cells validate in a packaged-JAR render (PNG SHA-256 `b5b672577f29012b1bb0fe6561642bee72cff994b5aa527ceb11dbc0c8c26ace`). |
@@ -313,10 +319,11 @@ replaceable and persists the choices normally.
 
 ## Remaining limitations
 
-- The procedural graph language is intentionally incomplete. Remaining
-  combine function 8, curve interpolation modes 1 and 2, and one
-  color-gradient sample-count variant fail
-  closed. See `COMPATIBILITY_CENSUS.md` for exact current frequencies.
+- The procedural graph language remains intentionally bounded. Combine
+  function 9 in texture 330 is the only graph-language blocker observed in
+  the current census; unimplemented functions and operations still fail
+  closed. One unrelated texture-65535 reference also fails because no material
+  metadata exists. See `COMPATIBILITY_CENSUS.md` for exact current counts.
 - Advanced type 1/2/3 mapping parameters are not decoded by the RuneLite model
   dependency; only the traced revision-software face-local behavior is used.
 - The current rasterizer uses affine interpolation under the orthographic

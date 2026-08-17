@@ -320,6 +320,33 @@ class ProceduralTexture530DecoderTest {
             assertTrue(error.getMessage().contains("truncated operation 7 parameter "+code));
         }
     }
+    @Test void combineFunction11TakesPerChannelAbsoluteDifferenceInBothOutputModes(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        ProceduralTexture530Decoder.Decoded color=decoder.decode(1047,colorCombine(11,0),4),monochrome=decoder.decode(1048,colorCombine(11,1),4);
+        assertTrue(java.util.Arrays.stream(color.pixels).allMatch(pixel->pixel==0x202020));
+        assertTrue(java.util.Arrays.stream(monochrome.pixels).allMatch(pixel->pixel==0x202020));
+        assertArrayEquals(color.pixels,decoder.decode(1049,colorCombine(11,2),4).pixels);
+        assertArrayEquals(color.pixels,decoder.decode(1047,colorCombine(11,0),4).pixels);
+        assertEquals(java.util.List.of(1,1,7),color.operationTypes);
+    }
+    @Test void combineFunction11PreservesEqualityExtremesOperandSymmetryAndJavaOverflow(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        assertTrue(java.util.Arrays.stream(decoder.decode(1050,monochromeCombine(11,1,2048,2048),4).pixels).allMatch(pixel->pixel==0));
+        assertTrue(java.util.Arrays.stream(decoder.decode(1051,monochromeCombine(11,1,0,65535),4).pixels).allMatch(pixel->pixel==0xffffff));
+        assertArrayEquals(decoder.decode(1051,monochromeCombine(11,1,0,65535),4).pixels,decoder.decode(1052,monochromeCombine(11,1,65535,0),4).pixels);
+        assertTrue(java.util.Arrays.stream(decoder.decode(1053,combine11MinValueOverflow(),4).pixels).allMatch(pixel->pixel==0));
+    }
+    @Test void combineFunction11RejectsMalformedParametersAndLeavesOtherFunctionsFailClosed(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        for(int code:new int[]{0,1}){
+            UnsupportedTextureFormatException error=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(1054,new byte[]{1,0,7,1,1,(byte)code},4));
+            assertTrue(error.getMessage().contains("truncated operation 7 parameter "+code));
+        }
+        for(int function:new int[]{0,4,9,12,255}){
+            UnsupportedTextureFormatException error=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(1055,colorCombine(function,0),4));
+            assertTrue(error.getMessage().contains("combine function "+function));
+        }
+    }
     @Test void combineFunction8UsesPinnedOperandOrderArithmeticAndOutputModes(){
         ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
         ProceduralTexture530Decoder.Decoded color=decoder.decode(1035,colorCombine(8,0),4),monochrome=decoder.decode(1036,colorCombine(8,1),4);
@@ -346,7 +373,7 @@ class ProceduralTexture530DecoderTest {
             UnsupportedTextureFormatException error=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(1045,new byte[]{1,0,7,1,1,(byte)code},4));
             assertTrue(error.getMessage().contains("truncated operation 7 parameter "+code));
         }
-        for(int function:new int[]{0,4,9,11,12}){
+        for(int function:new int[]{0,4,9,12}){
             UnsupportedTextureFormatException error=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(1046,colorCombine(function,0),4));
             assertTrue(error.getMessage().contains("combine function "+function));
         }
@@ -357,7 +384,7 @@ class ProceduralTexture530DecoderTest {
         assertTrue(java.util.Arrays.stream(decoder.decode(935,colorCombine(3,1),4).pixels).allMatch(pixel->pixel==0x080808));
         assertTrue(java.util.Arrays.stream(decoder.decode(942,colorCombine(6,0),4).pixels).allMatch(pixel->pixel==0x10a0f0));
         assertTrue(java.util.Arrays.stream(decoder.decode(943,colorCombine(6,1),4).pixels).allMatch(pixel->pixel==0x101010));
-        for(int function=0;function<=12;function++)if(function!=1&&function!=2&&function!=3&&function!=5&&function!=6&&function!=7&&function!=8&&function!=10){
+        for(int function=0;function<=12;function++)if(function!=1&&function!=2&&function!=3&&function!=5&&function!=6&&function!=7&&function!=8&&function!=10&&function!=11){
             int unsupported=function;
             UnsupportedTextureFormatException error=assertThrows(UnsupportedTextureFormatException.class,
                 ()->decoder.decode(936,colorCombine(unsupported,0),4));
@@ -694,6 +721,11 @@ class ProceduralTexture530DecoderTest {
     static byte[] overflowingAddition(){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,18,0,2,1,0);constantRange(out,65535,0);for(int node=2;node<18;node++)bytes(out,0,7,1,2,0,1,1,1,node-1,node-1);bytes(out,17,0,0);return out.toByteArray();}
     static byte[] combine7Overflow(){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,8,0,2,1,0);constantRange(out,0,0);constantRange(out,65535,0);for(int node=3;node<=6;node++)bytes(out,0,7,1,2,0,1,1,1,node-1,node-1);bytes(out,0,7,1,2,0,7,1,1,1,6,7,0,0);return out.toByteArray();}
     static byte[] combine10Overflow(){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,20,0,2,1,0);constantRange(out,65535,0);constantRange(out,1024,0);bytes(out,0,7,1,2,0,1,1,1,1,1);for(int node=4;node<=18;node++)bytes(out,0,7,1,2,0,1,1,1,node-1,node-1);bytes(out,0,7,1,2,0,10,1,1,18,2,19,0,0);return out.toByteArray();}
+    static byte[] combine11MinValueOverflow(){
+        ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,20,0,2,1,0);constantRange(out,32768,0);
+        for(int node=2;node<=17;node++)bytes(out,0,7,1,2,0,1,1,1,node-1,node-1);
+        constantRange(out,0,0);bytes(out,0,7,1,2,0,11,1,1,17,18,19,0,0);return out.toByteArray();
+    }
     static byte[] combine8NegativeDivisor(){
         ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,7,0,2,1,0);constantRange(out,65535,0);constantRange(out,0,0);
         bytes(out,0,7,1,2,0,2,1,1,2,1,0,7,1,2,0,8,1,1,3,2);constantRange(out,4096,0);

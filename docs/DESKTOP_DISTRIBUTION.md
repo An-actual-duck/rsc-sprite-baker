@@ -272,3 +272,25 @@ Two full-cache censuses were byte-identical at the hash recorded in
 7/8/9/10/11-complex-face signatures and confirmed visible plus transparent
 pixels. Unsupported-model definitions reached zero. Cache identities remained
 unchanged, and no cache or rendered derivative entered the repository.
+
+## 2026-08-17 combine-function-11 inspection
+
+The licensed-cache build passed all 205 Java 21 tests and the terminal archive
+inspector for both platforms. Inspection reconfirmed 31 exact read-only cache
+files, source/license records, empty adjacent exports, platform launchers, safe
+paths, and desktop plus advanced entry points. No GUI was launched or
+automated.
+
+- shaded JAR SHA-256: `957bf8dab32b1b04ab66e015b7937b7a56e54f9289e2d428c522fc82e58e762d`
+  (6,347,719 bytes)
+- Linux archive SHA-256: `63289b1710852f0f23acd3faf028bf35dac1abe0a3fc745f2ff953db9e040c26`
+  (77,061,802 bytes)
+- Windows archive SHA-256: `239a01a44724663e7560a0a2d7037a26fdb3a80235bb8068f80dc24c6b2f477c`
+  (77,062,026 bytes)
+
+Two shaded-JAR full-cache censuses were byte-identical at the hash recorded in
+`COMPATIBILITY_CENSUS.md`. A validation-only terminal render of NPC 138
+exercised function-11 material 216 across all 18 cells and confirmed visible
+plus transparent pixels. All 49 function-11 definitions advanced, leaving
+four unrelated unsupported-material definitions. Cache identities remained
+unchanged, and no cache or rendered derivative entered the repository.

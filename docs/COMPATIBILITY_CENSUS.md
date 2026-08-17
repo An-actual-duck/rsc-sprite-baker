@@ -2090,3 +2090,91 @@ highest-yield newly exposed blocker is procedural combine function 11 (49
 definitions across textures 216, 653, and 672), followed by the newly reachable
 animation-decoder clusters. Keep the missing texture-65535 metadata case
 fail-closed unless its provenance can be established.
+
+## 2026-08-17 combine-function-11 result
+
+Combine function 11 is implemented from the exact pinned
+`a569f0af7754ada96ed7ac76d7582b2c7511b7a0` client
+`TextureOpCombine.java`. Operation 7 retains two children, default function 6,
+unsigned function parameter 0, and the serialized output-mode parameter 1,
+where only value 1 selects monochrome. Color mode applies the function
+independently to RGB; monochrome mode applies it to each child's monochrome
+value and repeats the result across RGB.
+
+For child 0 value `first` and child 1 value `second`, the pinned arithmetic is
+exactly `first > second ? first - second : second - first`. The comparison and
+subtractions use raw signed Java `int` values. There is no fixed-point shift,
+division, zero special case, wrapping, or node-local clamp. Consequently an
+unrepresentable mathematical difference retains Java two's-complement
+overflow; in particular, the difference between `Integer.MIN_VALUE` and zero
+remains negative. Only the existing final texture conversion shifts by four
+and clamps to 0..255. Focused decoder tests cover color and monochrome output,
+the non-1 color-mode values, operand symmetry, equality, unsigned fixture
+extremes, the `Integer.MIN_VALUE` overflow case, malformed parameters,
+determinism, and explicit rejection of functions 0, 4, 9, 12, and 255. Provider and
+static-renderer regressions exercise the same graph without external
+dependencies. No other combine function, operation, or validation rule
+changed.
+
+Two exhaustive shaded-JAR censuses were byte-identical at SHA-256
+`609e943300be48ec68f2e1a34f845b3342abc4eb5cda8dc1ceeb0fe8af861e15`.
+The pre-change type-1 decoder census was
+`743a4413ca89ea1f3b840a972563ccc37b41104e57bc06aa57ac2bca0b08e95d`;
+cache identity is unchanged.
+
+| Category | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Ready | 6,664 | 6,698 | +34 |
+| Missing automatic animations | 1,046 | 1,048 | +2 |
+| Unsupported material | 53 | 4 | -49 |
+| Unsupported model | 0 | 0 | 0 |
+| Morph/internal definition | 612 | 612 | 0 |
+| Other failure | 215 | 228 | +13 |
+
+All 49 function-11 definitions advance: texture 216 accounts for 45, texture
+653 for three, and texture 672 for one. The 34 definitions becoming ready are
+NPCs 138, 139, 1751, 3313, 3319, 3320, 6285-6295, 6313-6315, 6322-6332,
+6794, 6795, and 8228. NPC 487 advances to missing walking metadata and NPC
+8499 to missing standing and walking metadata. NPCs 6316-6317 advance to
+sequence-7103 trailing bytes; NPCs 8501-8511 expose their precise existing
+sequence decoder failures (unsupported opcodes 87, 72, or 70). Those 13 are
+category advances, not new production animation behavior; animation decoding
+was deliberately unchanged.
+
+The four remaining unsupported-material definitions are NPCs 4474, 7712,
+and 7891 on combine function 9 in texture 330, plus NPC 1412's texture-65535
+reference with missing material metadata. No unsupported procedural operation
+or model-decoder cluster remains. NPC 72 remains fully automatic and ready;
+NPC 40 remains render-compatible and lacks only automatic standing metadata.
+
+NPC 138 (Terrorbird) is the terminal packaged-render representative. Model
+26856, materials 216/297/143, standing sequence 1008, walking sequence 1007,
+873 textured faces, and all 18 cells validate with visible and transparent
+pixels under the RSC-restrained 128x128, 3x-supersampled settings. The external
+project SHA-256 is
+`1ea101fcadfa50c538f62266461d19a50c04abbdf39ce6ce4b00fba06297216b`,
+the validation report SHA-256 is
+`1897ea1548b32ab5dad3b4db29af0fa1aaf3a1d59f38ada8fc8300b9e32042fe`,
+the PNG SHA-256 is
+`15c23685405cba2e5b221ffd75f4e0137202dec42eb630085d6561ea38fda0f7`,
+and the provenance SHA-256 is
+`86044e38cbbe82673d2b3429d7a2e51391619fd1155a5f440bbd29b803c40897`.
+No cache input or rendered derivative is tracked.
+
+The licensed-cache distribution build reran all 205 Java 21 tests and passed
+terminal inspection for both platforms, including exact read-only cache
+contents, source/license records, empty adjacent exports, safe paths, launchers,
+and desktop plus advanced entry points. No GUI was launched or automated. The
+shaded JAR SHA-256 is
+`957bf8dab32b1b04ab66e015b7937b7a56e54f9289e2d428c522fc82e58e762d`.
+External archive hashes are
+`63289b1710852f0f23acd3faf028bf35dac1abe0a3fc745f2ff953db9e040c26`
+(Linux, 77,061,802 bytes) and
+`239a01a44724663e7560a0a2d7037a26fdb3a80235bb8068f80dc24c6b2f477c`
+(Windows, 77,062,026 bytes); neither archive is committed.
+
+## Recommended next batch
+
+Combine function 9 is the only remaining graph-language blocker and affects
+three definitions through texture 330. Keep texture 65535 fail-closed unless
+its absent material metadata can be established from licensed source evidence.
