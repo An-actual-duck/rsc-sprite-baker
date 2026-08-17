@@ -230,3 +230,24 @@ Two shaded-JAR full-cache censuses were byte-identical at the hash recorded in
 exercised material 186's curve mode 2 across all 18 cells and confirmed both
 visible and transparent pixels. Cache identities remained unchanged, and no
 cache or rendered derivative entered the repository.
+
+## 2026-08-17 color-gradient sample-count inspection
+
+The final-material licensed-cache build passed all 185 Java 21 tests and the
+terminal archive inspector for both platforms. Inspection reconfirmed the 31
+read-only cache files, exact cache checksums, source/license records, empty
+adjacent exports directory, platform launchers, safe paths, and desktop plus
+advanced entry points. No GUI was launched or automated.
+
+- shaded JAR SHA-256: `71ce930c2fd4241fc44b83e27fb8bd75d18fe1325aa72e394d73631dd4af9bb1`
+- Linux archive SHA-256: `4227f28ced96b8f01a26e44e6921abbeb41cb339a4ace537adbac22f32091d83`
+  (77,028,093 bytes)
+- Windows archive SHA-256: `4566a8f4b0bf54d33dfed4847a51a7430a76b375e5cb1772b14591a83991ab61`
+  (77,028,352 bytes)
+
+Two shaded-JAR full-cache censuses were byte-identical at the hash recorded in
+`COMPATIBILITY_CENSUS.md`. A packaged terminal render of NPC 3819 exercised
+926 textured faces across all 18 cells and confirmed visible and transparent
+pixels. Unsupported-material definitions reached zero. Cache identities
+remained unchanged, and no cache or rendered derivative entered the
+repository.

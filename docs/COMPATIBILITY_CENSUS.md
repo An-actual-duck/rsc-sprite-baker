@@ -1919,3 +1919,87 @@ The color-gradient sample-count case in texture 334 is the sole remaining
 material blocker. Investigate its pinned serialization and exact zero/one
 sample behavior next while keeping every unrelated unsupported case
 fail-closed.
+
+## 2026-08-17 color-gradient sample-count result
+
+The final material case is valid framing, not corruption or parser
+misalignment. Texture graph 334 is 209 bytes with SHA-256
+`76a61f91024183c367f5a98e360ca770c930493b7c4ceea1af75597fd668729c`.
+At graph offsets 62..74 its raw bytes are:
+
+```text
+04 0a 01 01 00 00 01 00 00 cd cf d4 05
+```
+
+They decode as descriptor 4, operation 10, cache flag 1, one parameter,
+parameter code 0, custom selector 0, explicit sample count 1, position 0,
+RGB bytes `cd cf d4`, followed immediately by descriptor 5. The following
+descriptor remains aligned, proving this is the serialized one-sample case
+affecting NPC 3819 rather than a zero-sample graph, implicit preset, truncated
+payload, or mixed revision.
+
+Pinned evidence is `TextureOpColorGradient.java` at 2009Scape client revision
+`a569f0af7754ada96ed7ac76d7582b2c7511b7a0`. Parameter 0 first reads an
+unsigned preset selector. Zero then reads an unsigned sample count and that
+many `(u16 position, u8 red, u8 green, u8 blue)` records, with each channel
+shifted left four. Nonzero selectors install exact hard-coded presets 1..6;
+other selectors throw. With no parameter, post-decode installs preset 1.
+
+The pinned renderer leaves its 257-entry color table Java-zeroed for zero
+samples, so the exact output is black. A single sample is selected below and
+above its marker, so it produces its serialized color for every child value.
+Preset tables use child values shifted right four and clamped to 0..256;
+interpolation uses signed Java integer arithmetic with
+`((position - lowerPosition) << 12) / (upperPosition - lowerPosition)`, then
+weighted 12-bit channels, byte clamping, and packed RGB. Production now
+implements those exact zero/one/default/preset cases. The existing explicit
+multi-sample path is unchanged, and invalid presets, parameters, and
+truncated records remain fail-closed.
+
+Two exhaustive shaded-JAR censuses were byte-identical at SHA-256
+`dd70fc41f7dad7e9c7770c7d6b85acf0a996836fe8a34a4f0c74b0b6232c20fd`.
+The cache identity remains unchanged.
+
+| Category | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Ready | 3,322 | 3,323 | +1 |
+| Missing automatic animations | 674 | 674 | 0 |
+| Unsupported material | 1 | 0 | -1 |
+| Unsupported model | 3,946 | 3,946 | 0 |
+| Morph/internal definition | 612 | 612 | 0 |
+| Other failure | 35 | 35 | 0 |
+
+NPC 3819 (Tortoise) becomes ready: models 14800/14802/14798, all seven
+resolved materials 532/172/322/346/440/468/358, standing sequence 3952, and
+walking sequence 3953 validate. Unsupported-material definitions and
+unsupported-operation blockers both reach zero. No new blocker or failure
+cluster is exposed. Unsupported models remain 1,954 `BufferUnderflowException`
+and 1,992 invalid decoded-offset (`newPosition > limit`) definitions. NPC 72
+remains fully automatic and ready; NPC 40 remains render-compatible and lacks
+only automatic standing metadata.
+
+The terminal-only packaged render used the RSC-restrained 768x384 sheet at
+128x128 cells and 3x supersampling. All 18 NPC-3819 cells passed with visible
+and transparent pixels across 926 textured faces. The external project
+SHA-256 is `047aff46bb82f78f66498b7ff2b58efc015a097e760ee3325868c9de2db977dc`,
+the PNG SHA-256 is
+`a593c076991191f85a6c5395fd580b1dc8a375d7fca5fd4242dc4b41a5333c66`,
+and the provenance SHA-256 is
+`6375328e65c42ecb04592681b95cee960b7f21667df113947cb4fa329737a378`.
+No cache input or rendered derivative is tracked.
+
+The licensed-cache distribution build reran all 185 Java 21 tests and passed
+terminal inspection for both platforms. The shaded JAR SHA-256 was
+`71ce930c2fd4241fc44b83e27fb8bd75d18fe1325aa72e394d73631dd4af9bb1`.
+External archive hashes were
+`4227f28ced96b8f01a26e44e6921abbeb41cb339a4ace537adbac22f32091d83`
+(Linux, 77,028,093 bytes) and
+`4566a8f4b0bf54d33dfed4847a51a7430a76b375e5cb1772b14591a83991ab61`
+(Windows, 77,028,352 bytes); neither archive is committed.
+
+## Recommended next batch
+
+Material compatibility is complete for this cache census. The next bounded
+compatibility work should investigate the two unchanged model-decoder failure
+clusters, beginning with deterministic raw-format clustering of the 1,954
+`BufferUnderflowException` definitions before changing production decoding.
