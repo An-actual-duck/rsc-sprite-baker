@@ -73,13 +73,22 @@ class ProceduralTexture530DecoderTest {
         assertEquals(17,decoded.operationTypes.size());
         assertEquals(16,decoded.operationTypes.stream().filter(type->type==7).count());
     }
+    @Test void combineFunction2SubtractsSecondFromFirstForColorAndMonochromeOutputs(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        ProceduralTexture530Decoder.Decoded color=decoder.decode(961,colorCombine(2,0),4);
+        ProceduralTexture530Decoder.Decoded monochrome=decoder.decode(962,colorCombine(2,1),4);
+        assertTrue(java.util.Arrays.stream(color.pixels).allMatch(pixel->pixel==0x200000));
+        assertTrue(java.util.Arrays.stream(monochrome.pixels).allMatch(pixel->pixel==0x202020));
+        assertArrayEquals(color.pixels,decoder.decode(963,colorCombine(2,2),4).pixels);
+        assertTrue(java.util.Arrays.stream(decoder.decode(964,monochromeCombine(2,1,0,65535),4).pixels).allMatch(pixel->pixel==0));
+    }
     @Test void combineFunctions3And6RemainExactAndOtherFunctionsFailClosed(){
         ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
         assertTrue(java.util.Arrays.stream(decoder.decode(934,colorCombine(3,0),4).pixels).allMatch(pixel->pixel==0x0850a8));
         assertTrue(java.util.Arrays.stream(decoder.decode(935,colorCombine(3,1),4).pixels).allMatch(pixel->pixel==0x080808));
         assertTrue(java.util.Arrays.stream(decoder.decode(942,colorCombine(6,0),4).pixels).allMatch(pixel->pixel==0x10a0f0));
         assertTrue(java.util.Arrays.stream(decoder.decode(943,colorCombine(6,1),4).pixels).allMatch(pixel->pixel==0x101010));
-        for(int function=0;function<=12;function++)if(function!=1&&function!=3&&function!=6){
+        for(int function=0;function<=12;function++)if(function!=1&&function!=2&&function!=3&&function!=6){
             int unsupported=function;
             UnsupportedTextureFormatException error=assertThrows(UnsupportedTextureFormatException.class,
                 ()->decoder.decode(936,colorCombine(unsupported,0),4));
