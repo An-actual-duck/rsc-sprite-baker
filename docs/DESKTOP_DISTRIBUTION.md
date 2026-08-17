@@ -150,3 +150,23 @@ safe archive paths, and all desktop/advanced entry points including
 The packaged census entry point then reproduced the byte-identical report hash
 recorded in `COMPATIBILITY_CENSUS.md`. Cache dat2 and idx255 hashes were
 unchanged after the audit.
+
+## 2026-08-16 combine-2/5 and operations-22/39 inspection
+
+The complete Java 21 build passed 136 tests. With
+`SOURCE_DATE_EPOCH=1786752589`, the licensed-cache distribution builder and
+terminal inspector again accepted both archives: launcher separation, empty
+exports directories, all 31 cache files and checksums, read-only Linux cache,
+licenses/provenance, safe paths, and desktop plus advanced entry points. No GUI
+was launched or automated.
+
+- shaded JAR SHA-256: `b1413400b8e8edcc1f27af573e88b21607f693bd55712c029302a96a263ac8b3`
+- Linux archive SHA-256: `d521cda916b553cbf8fcece8c0b7528ad3e87867d7932b17a5a3b444dd5c09c3`
+  (77,006,194 bytes)
+- Windows archive SHA-256: `d160cc093deea285798243ed8d7bc3cc137d18f61a31e77a54a63e6398bbde78`
+  (77,006,858 bytes)
+
+Two packaged-JAR full-cache censuses were byte-identical at the hash recorded
+in `COMPATIBILITY_CENSUS.md`. Two validation-only packaged renders each for
+NPC 284 and NPC 146 were also byte-identical. The cache dat2 and idx255 hashes
+remained unchanged, and no cache or rendered derivative entered the repository.

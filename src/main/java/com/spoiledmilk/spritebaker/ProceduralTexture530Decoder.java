@@ -15,9 +15,12 @@ public final class ProceduralTexture530Decoder {
         catch(IOException impossible){throw new IllegalStateException(impossible);}
     }
     public Decoded decode(int textureId,byte[] data,int size,DependencyResolver dependencies)throws IOException{
+        return decode(textureId,data,size,dependencies,id->{throw new UnsupportedTextureFormatException(textureId,"sprite dependency "+id+" requires a provider");});
+    }
+    public Decoded decode(int textureId,byte[] data,int size,DependencyResolver dependencies,SpriteResolver sprites)throws IOException{
         BinaryInput in=new BinaryInput(data);int count=in.u8();Node[] nodes=new Node[count];int[][] children=new int[count][];List<Integer> types=new ArrayList<>();
         for(int i=0;i<count;i++){
-            in.u8();int type=in.u8();types.add(type);Node node=create(textureId,type,dependencies);node.cache=in.u8();int codes=in.u8();
+            in.u8();int type=in.u8();types.add(type);Node node=create(textureId,type,dependencies,sprites);node.cache=in.u8();int codes=in.u8();
             for(int c=0;c<codes;c++)node.decode(textureId,in.u8(),in);
             node.finish(textureId);children[i]=new int[node.childCount()];for(int c=0;c<children[i].length;c++)children[i][c]=in.u8();nodes[i]=node;
         }
@@ -29,13 +32,15 @@ public final class ProceduralTexture530Decoder {
         return new Decoded(pixels,types);
     }
 
-    private static Node create(int id,int type,DependencyResolver dependencies){switch(type){
+    private static Node create(int id,int type,DependencyResolver dependencies,SpriteResolver sprites){switch(type){
         case 0:return new Fill(true);case 1:return new Fill(false);case 2:return new Gradient(true);case 3:return new Gradient(false);case 4:return new BrickTiles();case 5:return new BoxBlur();case 6:return new Clamp();
-        case 7:return new Combine();case 8:return new Curve();case 9:return new Flip();case 10:return new ColorGradient();case 13:return new HashNoise();case 15:return new CellularNoise();case 19:return new CoordinateDisplacement();case 20:return new Tile();case 21:return new Interpolate();case 27:return new Stripes();case 30:return new Range();case 32:return new BumpLighting();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();
+        case 7:return new Combine();case 8:return new Curve();case 9:return new Flip();case 10:return new ColorGradient();case 13:return new HashNoise();case 15:return new CellularNoise();case 19:return new CoordinateDisplacement();case 20:return new Tile();case 21:return new Interpolate();case 22:return new Invert();case 27:return new Stripes();case 30:return new Range();case 32:return new BumpLighting();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();case 39:return new SpriteDependencyNode(sprites);
         default:throw new UnsupportedTextureFormatException(id,"procedural operation "+type);
     }}
     @FunctionalInterface public interface DependencyResolver{Dependency resolve(int textureId)throws IOException;}
+    @FunctionalInterface public interface SpriteResolver{SpriteDependency resolve(int spriteId)throws IOException;}
     public static final class Dependency{public final int size;public final int[] pixels;public Dependency(int size,int[] pixels){this.size=size;this.pixels=pixels;}}
+    public static final class SpriteDependency{public final int width,height;public final int[] pixels;public SpriteDependency(int width,int height,int[] pixels){this.width=width;this.height=height;this.pixels=pixels;}}
     public static final class Decoded{public final int[] pixels;public final List<Integer> operationTypes;Decoded(int[] p,List<Integer> t){pixels=p;operationTypes=List.copyOf(t);}}
     private abstract static class Node{int cache;Node[] children;abstract int childCount();void decode(int id,int code,BinaryInput in){throw new UnsupportedTextureFormatException(id,"operation parameter "+code+" for "+getClass().getSimpleName());}void finish(int id){}abstract int[] rgb(int x,int y,int size)throws IOException;int mono(int x,int y,int size)throws IOException{return rgb(x,y,size)[0];}}
     private static final class Fill extends Node{final boolean mono;int value=4096,r,g,b;Fill(boolean mono){this.mono=mono;}int childCount(){return 0;}void decode(int id,int code,BinaryInput in){if(code!=0)super.decode(id,code,in);if(mono)value=in.u16();else{int color=in.u24();r=(color>>12)&4080;g=(color>>4)&4080;b=(color&255)<<4;}}int[] rgb(int x,int y,int size){return mono?new int[]{value,value,value}:new int[]{r,g,b};}}
@@ -116,7 +121,7 @@ public final class ProceduralTexture530Decoder {
         int function=6;boolean monochrome;
         int childCount(){return 2;}
         void decode(int id,int code,BinaryInput in){if(code==0)function=in.u8();else if(code==1)monochrome=in.u8()==1;else super.decode(id,code,in);}
-        void finish(int id){if(function!=1&&function!=3&&function!=6)throw new UnsupportedTextureFormatException(id,"combine function "+function);}
+        void finish(int id){if(function!=1&&function!=2&&function!=3&&function!=5&&function!=6)throw new UnsupportedTextureFormatException(id,"combine function "+function);}
         int[] rgb(int x,int y,int size)throws IOException{
             if(monochrome){int value=apply(children[0].mono(x,y,size),children[1].mono(x,y,size));return new int[]{value,value,value};}
             int[] first=children[0].rgb(x,y,size),second=children[1].rgb(x,y,size);
@@ -124,7 +129,9 @@ public final class ProceduralTexture530Decoder {
         }
         private int apply(int first,int second){
             if(function==1)return second+first;
+            if(function==2)return first-second;
             if(function==3)return second*first>>12;
+            if(function==5)return 4096-((4096-first)*(4096-second)>>12);
             return second>=2048?4096-((4096-first)*(4096-second)>>11):second*first>>11;
         }
     }
@@ -138,6 +145,28 @@ public final class ProceduralTexture530Decoder {
             return children[0].rgb(sampleX,sampleY,size);
         }
         int mono(int x,int y,int size)throws IOException{return monochrome?children[0].mono(horizontal?size-1-x:x,vertical?size-1-y:y,size):super.mono(x,y,size);}
+    }
+    private static final class Invert extends Node{
+        boolean monochrome;
+        int childCount(){return 1;}
+        void decode(int id,int code,BinaryInput in){if(code==0)monochrome=in.u8()==1;else super.decode(id,code,in);}
+        int[] rgb(int x,int y,int size)throws IOException{
+            if(monochrome){int value=4096-children[0].mono(x,y,size);return new int[]{value,value,value};}
+            int[] color=children[0].rgb(x,y,size);return new int[]{4096-color[0],4096-color[1],4096-color[2]};
+        }
+    }
+    private static final class SpriteDependencyNode extends Node{
+        final SpriteResolver resolver;int spriteId=-1;SpriteDependency sprite;
+        SpriteDependencyNode(SpriteResolver resolver){this.resolver=resolver;}
+        int childCount(){return 0;}
+        void decode(int id,int code,BinaryInput in){if(code==0)spriteId=in.u16();else super.decode(id,code,in);}
+        void finish(int id){if(spriteId<0)throw new UnsupportedTextureFormatException(id,"missing sprite dependency");}
+        int[] rgb(int x,int y,int size)throws IOException{
+            if(sprite==null){sprite=resolver.resolve(spriteId);if(sprite==null||sprite.width<=0||sprite.height<=0||sprite.pixels==null||sprite.pixels.length!=sprite.width*sprite.height)throw new UnsupportedTextureFormatException(spriteId,"invalid sprite dependency dimensions");}
+            int sampleX=sprite.width==size?x:sprite.width*x/size,sampleY=sprite.height==size?y:sprite.height*y/size;
+            int pixel=sprite.pixels[sampleY*sprite.width+sampleX];
+            return new int[]{pixel>>12&4080,pixel>>4&4080,(pixel&255)<<4};
+        }
     }
     private static final class Range extends Node{int min=1024,max=3072,range=2048;boolean monochrome;int childCount(){return 1;}void decode(int id,int code,BinaryInput in){if(code==0)min=in.u16();else if(code==1)max=in.u16();else if(code==2)monochrome=in.u8()==1;else super.decode(id,code,in);}void finish(int id){range=max-min;}int[] rgb(int x,int y,int size)throws IOException{int[] c=children[0].rgb(x,y,size);return new int[]{min+(range*c[0]>>12),min+(range*c[1]>>12),min+(range*c[2]>>12)};}}
     private static final class Curve extends Node{int mode;int[][] markers;int childCount(){return 1;}void decode(int id,int code,BinaryInput in){if(code!=0)super.decode(id,code,in);mode=in.u8();int n=in.u8();markers=new int[n][2];for(int i=0;i<n;i++){markers[i][0]=in.u16();markers[i][1]=in.u16();}}void finish(int id){if(mode!=0)throw new UnsupportedTextureFormatException(id,"curve interpolation "+mode);if(markers==null||markers.length<2)throw new UnsupportedTextureFormatException(id,"curve marker count");}int[] rgb(int x,int y,int size)throws IOException{int v=children[0].mono(x,y,size),i=1;while(i<markers.length&&v>=markers[i][0])i++;int result;if(i==markers.length)result=markers[i-1][1];else if(i==0)result=markers[0][1];else{int[] a=markers[i-1],b=markers[i];result=a[1]+(b[1]-a[1])*(v-a[0])/Math.max(1,b[0]-a[0]);}return new int[]{result,result,result};}}

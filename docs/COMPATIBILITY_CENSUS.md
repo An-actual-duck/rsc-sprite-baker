@@ -959,3 +959,112 @@ diagnostic occurrences, followed by combine function 5 at 221, operation 22
 at 153, operation 39 at 126, and operation 255 at 68. Preserve the sequential
 commit structure, deterministic census, explicit rejection, and exact fail-
 closed rendering policy; keep the unchanged model-decoder clusters separate.
+
+## 2026-08-16 combine-2/5 and operations-22/39 audit
+
+The fresh pre-change census reproduced the operations-19/9/21/20 result at
+SHA-256
+`45119bbbc8911d4fa07c28ee9e608d3f656f1bbf829618c3095162fa2f629e0a`.
+Each item was committed and audited sequentially. Intermediate report hashes
+are combine function 2
+`15d5daaf6c69a6623ec60009dacb8129a68896b297f9b141687cb769f274978d`,
+combine function 5
+`fb2c3395888130b7ac4f4369498d78fd731d970bec0235257f718073af951cc8`,
+and operation 22
+`66e43434479ca038c8b0095e0753e5b4f35700faa81de93e9cdbcc6d45081dab`.
+Two independent complete-batch packaged-JAR censuses were byte-identical at
+SHA-256
+`f3fb5c74d0142ba7a0af455f457ce7b55445985ba689bd16eb4a44ef8c01eacb`.
+The cache identity remained unchanged.
+
+| Stage | Ready | Missing automatic animations | Unsupported material | Other failure |
+| --- | ---: | ---: | ---: | ---: |
+| Before batch | 2,371 | 575 | 1,075 | 11 |
+| After combine function 2 | 2,844 | 616 | 544 | 28 |
+| After combine function 5 | 3,005 | 638 | 356 | 33 |
+| After operation 22 | 3,091 | 645 | 263 | 33 |
+| After operation 39 | 3,136 | 646 | 216 | 34 |
+| Combined change | +765 | +71 | -859 | +23 |
+
+Unsupported models remain 3,946 and morph/internal definitions remain 612 at
+every stage. Per-item attribution is:
+
+- Combine function 2 accounted for 681 diagnostic occurrences in 546 NPC
+  reasons. Both reach zero; 473 definitions become ready, 41 become missing-
+  automatic-animations, 17 expose precise automatic-sequence failures, and
+  15 retain another material blocker. The pinned node computes raw signed
+  `first - second` independently for monochrome and each color channel.
+- Combine function 5 accounted for 221 diagnostic occurrences in 215 NPC
+  reasons at its checkpoint. Both reach zero; 161 definitions become ready,
+  22 become missing-automatic-animations, five expose precise sequence
+  failures, and 27 retain another material blocker. The pinned screen formula
+  is `4096 - ((4096 - first) * (4096 - second) >> 12)` with Java integer
+  overflow and no node-local clamp.
+- Operation 22 accounted for 153 diagnostic occurrences in 150 NPC reasons at
+  its checkpoint. Both reach zero; 86 definitions become ready, seven become
+  missing-automatic-animations, and 57 retain another material blocker. It
+  preserves coordinates and computes `4096 - child` using either the child's
+  monochrome output or each color channel according to serialized code 0.
+- Operation 39 grew from 126 baseline occurrences to 165 in 76 NPC reasons as
+  operation 22 exposed more graphs. Both reach zero; 45 definitions become
+  ready, one becomes missing-automatic-animations, NPC 1553 exposes a precise
+  sequence-1474 trailing-byte failure, and 29 retain another material blocker.
+  Its serialized unsigned sprite ID resolves index 8/archive ID/file 0, selects
+  frame 0, expands the trimmed frame into its full canvas, and nearest-scales
+  RGB coordinates. The pinned software path ignores alpha and monochrome
+  consumers read its red channel.
+
+All fixed-point operations preserve Java overflow until the final texture-root
+clamp. Serialized output-mode values other than exactly `1` remain color, as in
+the pinned client. Functions 1, 3, and 6 and every previously supported
+operation remain covered. No material, texture, color, average-material,
+missing-sprite, or alpha fallback is introduced.
+
+Remaining diagnostic occurrences are:
+
+| Blocker | Before | After |
+| --- | ---: | ---: |
+| Combine function 2 | 681 | 0 |
+| Combine function 5 | 221 | 0 |
+| Combine function 7 | 37 | 53 |
+| Combine function 8 | 16 | 16 |
+| Combine function 10 | 25 | 25 |
+| Operation 12 | 30 | 30 |
+| Operation 17 | 25 | 25 |
+| Operation 22 | 153 | 0 |
+| Operation 39 | 126 | 0 |
+| Operation 255 | 68 | 70 |
+
+The increases in functions 7 and operation 255 are newly reachable blockers,
+not substitutions. Curve interpolation remains 18 occurrences for mode 1 and
+seven for mode 2; unexpected Fill parameter 18 remains three occurrences. The
+3,946 unsupported-model results remain split between
+`BufferUnderflowException` (1,954 definitions) and invalid decoded offsets
+(`newPosition > limit`, 1,992 definitions).
+
+NPC 284 (Doric) represents both combine functions through graph paths in
+textures 132 and 229, with seven component models, 15 model-referenced materials,
+458 textured faces, standing sequence 101, and walking sequence 98. NPC 146
+(Gull) represents operations 22 and 39 through the path that includes textures
+471 and 366, with model 26841, four materials, 344 textured faces, standing
+sequence 6771, and walking sequence 6773. For each NPC, two terminal-only
+validation renders from the shaded packaged JAR exercised all 18 cells,
+visible pixels, and transparency and were byte-identical. Doric's PNG SHA-256
+is `9042a427ddaa86ba8049fdb7cf7bcf4e0106d8684f2e280f5d59318d2dc962ad`
+and provenance SHA-256 is
+`07c7b4b195310ea6038c8db7571362f88cc8621832ce6ae28d9c80af9e209f7d`.
+Gull's PNG SHA-256 is
+`788ad30863f2b7d64217cfd9de81dff3734ea19300ac653a6bc80d84dedd7bd1`
+and provenance SHA-256 is
+`f30075c63a3d02b0dff151be681461df19719ec57b78fc7a1e7abdcb39b996af`.
+NPC 72 remains fully automatic and ready. NPC 40 remains model/material
+render-compatible and lacks only automatic standing metadata.
+
+## Recommended next batch
+
+Operation 255 is now the largest remaining opcode blocker at 70 diagnostic
+occurrences, followed by combine function 7 at 53, operation 12 at 30,
+operation 17 and combine function 10 at 25 each, and combine function 8 at 16.
+Operation 255 is outside the pinned 0-through-39 factory and should first be
+traced as a serialization or cache-revision issue before adding a node. Keep
+the unchanged model-decoder clusters in their own focused batch.

@@ -156,6 +156,49 @@ class TextureProvider530Test {
         assertTrue(provider.material(0)==material);
     }
 
+    @Test void decodesAndCachesColorCombineFunction2WithoutExternalDependencies() throws Exception {
+        TextureProvider530 provider=provider(Map.of(0,ProceduralTexture530DecoderTest.colorCombine(2,0)));
+        TextureMaterial530 material=provider.material(0);
+        assertEquals(java.util.List.of(1,1,7),material.operationTypes);
+        assertEquals(64,material.size);
+        assertEquals(0x200000,material.pixels[0]);
+        assertEquals(1,provider.loaded().size());
+        assertTrue(provider.material(0)==material);
+    }
+
+    @Test void decodesAndCachesColorCombineFunction5WithoutExternalDependencies() throws Exception {
+        TextureProvider530 provider=provider(Map.of(0,ProceduralTexture530DecoderTest.colorCombine(5,0)));
+        TextureMaterial530 material=provider.material(0);
+        assertEquals(java.util.List.of(1,1,7),material.operationTypes);
+        assertEquals(64,material.size);
+        assertEquals(0x58d0f8,material.pixels[0]);
+        assertEquals(1,provider.loaded().size());
+        assertTrue(provider.material(0)==material);
+    }
+
+    @Test void decodesAndCachesOperation22WithoutExternalDependencies() throws Exception {
+        TextureProvider530 provider=provider(Map.of(0,ProceduralTexture530DecoderTest.invertColor(0)));
+        TextureMaterial530 material=provider.material(0);
+        assertEquals(java.util.List.of(1,22),material.operationTypes);
+        assertEquals(64,material.size);
+        assertEquals(0xc08040,material.pixels[0]);
+        assertEquals(1,provider.loaded().size());
+        assertTrue(provider.material(0)==material);
+    }
+
+    @Test void resolvesAndCachesOperation39SpriteDependencies() throws Exception {
+        MaterialDefinition530[] definitions={new MaterialDefinition530(0,true,true,true,true,false,0,0,0,0,0)};
+        int[] calls={0};TextureProvider530 provider=new TextureProvider530(definitions,
+            id->ProceduralTexture530DecoderTest.spriteDependency(321),
+            id->{calls[0]++;assertEquals(321,id);return new ProceduralTexture530Decoder.SpriteDependency(2,2,new int[]{0xff0000,0x00ff00,0x0000ff,0xffffff});});
+        TextureMaterial530 material=provider.material(0);
+        assertEquals(java.util.List.of(39),material.operationTypes);
+        assertEquals(64,material.size);
+        assertEquals(0x00ff00,material.pixels[0]);
+        assertEquals(1,calls[0]);
+        assertTrue(provider.material(0)==material);
+    }
+
     private static TextureProvider530 provider(Map<Integer,byte[]> graphs) {
         MaterialDefinition530[] definitions = new MaterialDefinition530[graphs.size()];
         for (int id = 0; id < definitions.length; id++) definitions[id] = new MaterialDefinition530(id,true,true,true,true,false,0,0,0,0,0);
