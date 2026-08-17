@@ -59,15 +59,22 @@ Parameter code 0 is the unsigned function ID; code 1 selects monochrome output
 only when its unsigned byte equals 1. Function 1 adds child 1 to child 0 with
 plain Java signed `int` arithmetic and no fixed-point rescaling. Color mode
 adds the corresponding RGB channels; monochrome mode adds the first channel
-from each child and repeats the result across RGB. Function 6 treats child 1 as the overlay
+from each child and repeats the result across RGB. Function 2 subtracts child
+1 from child 0, function 3 multiplies the operands and shifts right 12, and
+function 5 computes screen as
+`4096 - ((4096 - child0) * (4096 - child1) >> 12)`. Function 6 treats child 1 as the overlay
 control: values below 2048 produce `child1 * child0 >> 11`; values at or above
 2048 produce `4096 - ((4096 - child0) * (4096 - child1) >> 11)`. Color mode
 applies that branch independently to RGB. Monochrome mode reads the first
-channel of each child and repeats the result across RGB. Function 3 retains its
-`child1 * child0 >> 12` multiply behavior in both output modes. Calculations use
+channel of each child and repeats the result across RGB. Function 7 is color
+dodge with child 0 as the denominator control:
+`(child1 << 12) / (4096 - child0)`. Exactly `child0 == 4096` returns 4096;
+other zero, negative, or out-of-range operands follow Java signed `int` shift
+overflow and division toward zero without another guard. Calculations use
 Java signed `int` overflow and have no node-level clamp; only the existing final
-texture conversion clamps channels to 0..255. Functions 1 and 3 are
-commutative, but the decoded child ordering is preserved exactly. Every other function ID remains
+texture conversion clamps channels to 0..255. Color mode applies each function
+independently to RGB, while monochrome mode reads the first channel and repeats
+it. Every other function ID remains
 an explicit unsupported-material error. The primary trace is
 [`TextureOpCombine.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOpCombine.java).
 Operation 9 is the client's one-child coordinate flip. Unsigned byte codes 0
@@ -235,6 +242,7 @@ reference-index SHA-256
 | Multipart | NPC 42 Sheep; models 20283/20289/20285 | Model assembly supported; materials unsupported | Three components combine with 430 textured faces. Operation 36 is resolved; remaining unsupported operations are reported and export stops. |
 | Additive-combined recolored/retextured multipart | NPC 0 Hans; six component models; five recolors; materials 228/292/258/257/262/527/272/254 | Supported | Combine function 1 now decodes, including the high-volume texture 203 graph. Standing sequence 9870, walking sequence 9869, all 676 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `261ccf8a8a762adf5ba6b64dd6f2b3eee3cf6d3f82b137645f5604c4778d06c6`). |
 | Subtractive/screen-combined multipart | NPC 284 Doric; seven component models; graph paths include textures 132/229 | Supported | Combine functions 2 and 5 preserve pinned operand, fixed-point, overflow, and output-mode behavior. Standing sequence 101, walking sequence 98, all 458 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `9042a427ddaa86ba8049fdb7cf7bcf4e0106d8684f2e280f5d59318d2dc962ad`). |
+| Color-dodge animated | NPC 3747 Spinner; model 14549; materials 168/183 | Supported | Material 183 exercises combine function 7 with pinned operand, shift-overflow, division, exact-denominator guard, and output-mode behavior. Standing sequence 3906, walking sequence 3907, all 388 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `4798059951d426fa3f13882fdad74de5ecf895c21c0eeab3dbfba609a598c621`). |
 | Inverted sprite-backed animated | NPC 146 Gull; model 26841; materials 364/471/57/439 | Supported | Operations 22 and 39 resolve the pinned invert and sprite-canvas path, including texture 366's external sprite dependency. Standing sequence 6771, walking sequence 6773, all 344 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `788ad30863f2b7d64217cfd9de81dff3734ea19300ac653a6bc80d84dedd7bd1`). |
 | Alpha/mapping stress | NPC 61 Spider; model 24613; material 111 | Supported | Operation 34 now decodes; models, material, standing sequence 6247, and walking sequence 6248 validate. Its 298 textured faces continue to use the documented advanced-mapping fallback. |
 | Hash-noise multipart | NPC 125 Ice warrior; seven component models; materials 249/291/303/302 | Supported | Operation 13 now decodes; standing sequence 842, walking sequence 841, and all 1,076 textured faces validate. |
@@ -275,7 +283,8 @@ replaceable and persists the choices normally.
 ## Remaining limitations
 
 - The procedural graph language is intentionally incomplete. Remaining
-  operation IDs 12, 17, and 255 and combine functions 7, 8, and 10 fail
+  operation ID 12, combine functions 8 and 10, and curve interpolation modes
+  1 and 2 fail
   closed. See `COMPATIBILITY_CENSUS.md` for exact current frequencies.
 - Advanced type 1/2/3 mapping parameters are not decoded by the RuneLite model
   dependency; only the traced revision-software face-local behavior is used.
