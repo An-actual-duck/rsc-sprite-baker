@@ -142,13 +142,39 @@ class ProceduralTexture530DecoderTest {
         assertArrayEquals(color.pixels,decoder.decode(967,colorCombine(5,2),4).pixels);
         assertTrue(java.util.Arrays.stream(decoder.decode(968,monochromeCombine(5,1,65535,65535),4).pixels).allMatch(pixel->pixel==0xffffff));
     }
-    @Test void combineFunctions3And6RemainExactAndOtherFunctionsFailClosed(){
+    @Test void combineFunction7UsesPinnedOperandOrderDivisionAndOutputModes(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        ProceduralTexture530Decoder.Decoded color=decoder.decode(996,colorCombine(7,0),4);
+        ProceduralTexture530Decoder.Decoded monochrome=decoder.decode(997,colorCombine(7,1),4);
+        assertTrue(java.util.Arrays.stream(color.pixels).allMatch(pixel->pixel==0x2affff));
+        assertTrue(java.util.Arrays.stream(monochrome.pixels).allMatch(pixel->pixel==0x2a2a2a));
+        assertArrayEquals(color.pixels,decoder.decode(998,colorCombine(7,2),4).pixels);
+        assertEquals(java.util.List.of(1,1,7),color.operationTypes);
+        assertTrue(java.util.Arrays.stream(decoder.decode(999,monochromeCombine(7,1,4096,0),4).pixels).allMatch(pixel->pixel==0xffffff));
+        assertTrue(java.util.Arrays.stream(decoder.decode(1000,monochromeCombine(7,1,0,0),4).pixels).allMatch(pixel->pixel==0));
+    }
+    @Test void combineFunction7PreservesJavaOverflowNegativeResultsAndFinalClamp(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        assertTrue(java.util.Arrays.stream(decoder.decode(1001,monochromeCombine(7,1,65535,4096),4).pixels).allMatch(pixel->pixel==0));
+        assertTrue(java.util.Arrays.stream(decoder.decode(1002,combine7Overflow(),4).pixels).allMatch(pixel->pixel==0));
+        assertArrayEquals(decoder.decode(1002,combine7Overflow(),4).pixels,decoder.decode(1002,combine7Overflow(),4).pixels);
+    }
+    @Test void combineFunction7RejectsMalformedParametersAndPreservesUnsupportedFunctions(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        UnsupportedTextureFormatException function=assertThrows(UnsupportedTextureFormatException.class,
+            ()->decoder.decode(1003,new byte[]{1,0,7,1,1,0},4));
+        assertTrue(function.getMessage().contains("truncated operation 7 parameter 0"));
+        UnsupportedTextureFormatException mode=assertThrows(UnsupportedTextureFormatException.class,
+            ()->decoder.decode(1004,new byte[]{1,0,7,1,1,1},4));
+        assertTrue(mode.getMessage().contains("truncated operation 7 parameter 1"));
+    }
+    @Test void previouslySupportedCombineFunctionsRemainExactAndOthersFailClosed(){
         ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
         assertTrue(java.util.Arrays.stream(decoder.decode(934,colorCombine(3,0),4).pixels).allMatch(pixel->pixel==0x0850a8));
         assertTrue(java.util.Arrays.stream(decoder.decode(935,colorCombine(3,1),4).pixels).allMatch(pixel->pixel==0x080808));
         assertTrue(java.util.Arrays.stream(decoder.decode(942,colorCombine(6,0),4).pixels).allMatch(pixel->pixel==0x10a0f0));
         assertTrue(java.util.Arrays.stream(decoder.decode(943,colorCombine(6,1),4).pixels).allMatch(pixel->pixel==0x101010));
-        for(int function=0;function<=12;function++)if(function!=1&&function!=2&&function!=3&&function!=5&&function!=6){
+        for(int function=0;function<=12;function++)if(function!=1&&function!=2&&function!=3&&function!=5&&function!=6&&function!=7){
             int unsupported=function;
             UnsupportedTextureFormatException error=assertThrows(UnsupportedTextureFormatException.class,
                 ()->decoder.decode(936,colorCombine(unsupported,0),4));
@@ -483,6 +509,7 @@ class ProceduralTexture530DecoderTest {
     static byte[] spriteDependency(int id){return new byte[]{1,0,39,1,1,0,(byte)(id>>>8),(byte)id,0,0,0};}
     static byte[] spriteThenMonochromeInvert(int id){return new byte[]{2,0,39,1,1,0,(byte)(id>>>8),(byte)id,0,22,1,1,0,1,0,1,0,0};}
     static byte[] overflowingAddition(){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,18,0,2,1,0);constantRange(out,65535,0);for(int node=2;node<18;node++)bytes(out,0,7,1,2,0,1,1,1,node-1,node-1);bytes(out,17,0,0);return out.toByteArray();}
+    static byte[] combine7Overflow(){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,8,0,2,1,0);constantRange(out,0,0);constantRange(out,65535,0);for(int node=3;node<=6;node++)bytes(out,0,7,1,2,0,1,1,1,node-1,node-1);bytes(out,0,7,1,2,0,7,1,1,1,6,7,0,0);return out.toByteArray();}
     static byte[] monochromeFill(int value){return new byte[]{1,0,0,1,1,0,(byte)value,0,0,0};}
     static byte[] hslAdjust(int rgb){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,2);colorFillNode(out,rgb);bytes(out,0,17,1,0,0,1,0,0);return out.toByteArray();}
     static byte[] hslAdjust(int rgb,int hue,int saturation,int lightness){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,2);colorFillNode(out,rgb);bytes(out,0,17,1,3,0,hue>>>8,hue,1,saturation,2,lightness,0,1,0,0);return out.toByteArray();}

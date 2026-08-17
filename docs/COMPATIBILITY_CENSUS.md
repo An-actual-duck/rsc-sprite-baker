@@ -1363,3 +1363,89 @@ diagnostic occurrences, followed by operation 12 at 30, combine function 10 at
 28, curve interpolation mode 1 at 18, combine function 8 at 16, and curve mode
 2 at seven. Each requires its own pinned-semantics work; retain explicit
 rejection and the no-substitution policy for all of them.
+
+## 2026-08-17 combine-function-7 audit
+
+Combine function 7 is implemented from the exact pinned
+`a569f0af7754ada96ed7ac76d7582b2c7511b7a0` client
+`TextureOpCombine.java`. The node remains operation 7 with two children,
+default function 6, unsigned-byte function parameter 0, and unsigned-byte
+monochrome flag parameter 1. In both color and monochrome paths function 7
+uses child 0 as the denominator control and child 1 as the numerator:
+`child0 == 4096 ? 4096 : (child1 << 12) / (4096 - child0)`. Color applies the
+expression independently to RGB; monochrome uses each child's first channel
+and repeats the result. There is no coordinate transform, wrapping, or
+node-local clamp.
+
+All intermediates remain Java signed `int`. The left shift therefore wraps
+before division, division truncates toward zero, and non-4096 denominator
+values—including negative values—are used as written. The only zero-divisor
+case is exactly child 0 equal to 4096 and it returns 4096. Final texture
+conversion alone shifts and clamps to 0..255. Codes 0/1 truncated at the end
+of a graph now produce precise unsupported-material diagnostics. Functions 1,
+2, 3, 5, and 6 are unchanged; every other function remains explicitly
+rejected.
+
+Two exhaustive shaded-JAR census runs were byte-identical at SHA-256
+`c148b1e05b7338a407e035219a9c2230459319eba70127a1cbc0ae4dfc3e38c3`.
+The pre-change operation-17 census was
+`84d9b72e6fd9d3c98655770a4343e5fac5e514e3bb962d6666d97942a1edae94`;
+the cache identity remains unchanged.
+
+| Category | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Ready | 3,194 | 3,241 | +47 |
+| Missing automatic animations | 653 | 657 | +4 |
+| Unsupported material | 150 | 99 | -51 |
+| Unsupported model | 3,946 | 3,946 | 0 |
+| Morph/internal definition | 612 | 612 | 0 |
+| Other failure | 35 | 35 | 0 |
+
+All 53 combine-function-7 diagnostics across 52 definitions reach zero.
+Forty-seven definitions become ready: NPCs 47, 1590–1592, 1754–1756, 2252,
+2682, 2981–2982, 3008–3018, 3307, 3590, 3707, 3747–3751, 3783, 4396, 4415,
+4570–4571, 5248, 5363, 5614, 6115–6116, 6802–6803, 6889–6890, 7417, 7598,
+and 8424. NPCs 2980 and 3007 (Rat) and 3321 (Gatekeeper) advance to missing
+standing/walking metadata; NPC 5615 (Puffin) advances to missing walking
+metadata. NPC 3819 (Tortoise), which carried two function-7 diagnostics,
+remains unsupported only because texture 334 newly exposes `color-gradient
+sample count`.
+
+Remaining material blockers are operation 12 at 30 diagnostics, combine
+function 10 at 28, curve interpolation mode 1 at 18, combine function 8 at 16,
+curve mode 2 at seven, and the one newly exposed color-gradient sample-count
+case. Unsupported-model clusters remain `BufferUnderflowException` for 1,954
+definitions and invalid decoded offsets (`newPosition > limit`) for 1,992.
+NPC 72 remains fully automatic and ready. NPC 40 remains model/material
+render-compatible and lacks only automatic standing metadata.
+
+NPC 3747 (Spinner) is the direct terminal-render representative. Its model
+14549, materials 168/183, 388 textured faces, standing sequence 3906, walking
+sequence 3907, and all 18 cells validate with visible and transparent pixels.
+The external project SHA-256 is
+`2601575c2f52e9a89ccc8bb83d1ebdf34d59ed11e65b9380aa1c0ee5b3cfa608`;
+two independent packaged-JAR validation-only renders were byte-identical at
+report SHA-256
+`bc1ad4047c4e0284eb1a8371bd17ad030cd024f15ea21148a5d0b360f35c269c`,
+PNG SHA-256
+`4798059951d426fa3f13882fdad74de5ecf895c21c0eeab3dbfba609a598c621`,
+and provenance SHA-256
+`e181076da357257dee368fdac6ebb6d3db45bc9a1fdde28477a4a82e0acc4c37`.
+
+The licensed-cache distribution build reran all 151 tests and passed terminal
+inspection for both archives, including exact read-only cache contents,
+license/source records, empty adjacent exports folder, safe archive paths, and
+diagnostic entry points. The external artifacts were SHA-256
+`9df57b8ec0740aa90611895cd846bf811b0a7c7ea8989275f3940081b5fe7bba`
+(Linux) and
+`9b826cda15f08341a18675cb35883e948f91f9be8dcfd1c9f39ded75d7cff265`
+(Windows); neither is committed.
+
+## Recommended next batch
+
+Operation 12 is now the largest remaining material blocker at 30 diagnostic
+occurrences, narrowly followed by combine function 10 at 28. Trace operation
+12 next as the highest-yield single batch. Preserve exact failure for combine
+functions 8/10, curve modes 1/2, the color-gradient sample-count variant, and
+all other unsupported cases until their pinned behavior is independently
+established.
