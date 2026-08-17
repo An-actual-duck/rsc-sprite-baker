@@ -131,6 +131,32 @@ class ProceduralTexture530DecoderTest {
             ()->new ProceduralTexture530Decoder().decode(973,new byte[]{1,0,22,1,1,1,0,0,0,0},4));
         assertTrue(error.getMessage().contains("operation parameter 1 for Invert"));
     }
+    @Test void operation39LoadsTrimsAndNearestScalesItsSerializedSpriteDependency()throws Exception{
+        int[] pixels={0xff0000,0x00ff00,0x0000ff,0xffffff};
+        ProceduralTexture530Decoder.Decoded decoded=new ProceduralTexture530Decoder().decode(974,spriteDependency(321),4,
+            id->{throw new AssertionError("operation 39 must not resolve texture "+id);},
+            id->{assertEquals(321,id);return new ProceduralTexture530Decoder.SpriteDependency(2,2,pixels);});
+        assertArrayEquals(new int[]{0x00ff00,0x00ff00,0xff0000,0xff0000,
+            0x00ff00,0x00ff00,0xff0000,0xff0000,
+            0xffffff,0xffffff,0x0000ff,0x0000ff},java.util.Arrays.copyOfRange(decoded.pixels,0,12));
+        assertEquals(java.util.List.of(39),decoded.operationTypes);
+    }
+    @Test void operation39FeedsItsRedChannelToMonochromeConsumersAndFailsClosed(){
+        int[] pixels={0xff0000,0x00ff00,0x0000ff,0xffffff};
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        ProceduralTexture530Decoder.Decoded mono=assertDoesNotThrow(()->decoder.decode(975,spriteThenMonochromeInvert(321),4,
+            id->{throw new AssertionError("operation 39 must not resolve texture "+id);},
+            id->new ProceduralTexture530Decoder.SpriteDependency(2,2,pixels)));
+        assertArrayEquals(new int[]{0xffffff,0xffffff,0x010101,0x010101},java.util.Arrays.copyOfRange(mono.pixels,0,4));
+        UnsupportedTextureFormatException missing=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(976,spriteDependency(321),4));
+        assertTrue(missing.getMessage().contains("sprite dependency 321 requires a provider"));
+        UnsupportedTextureFormatException dimensions=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(977,spriteDependency(321),4,
+            id->null,id->new ProceduralTexture530Decoder.SpriteDependency(2,2,new int[3])));
+        assertTrue(dimensions.getMessage().contains("invalid sprite dependency dimensions"));
+        UnsupportedTextureFormatException parameter=assertThrows(UnsupportedTextureFormatException.class,
+            ()->decoder.decode(978,new byte[]{1,0,39,1,1,1,0,0,0,0},4));
+        assertTrue(parameter.getMessage().contains("operation parameter 1 for SpriteDependencyNode"));
+    }
     @Test void operation34RendersDefaultSeededNoiseDeterministically(){
         byte[] fixture=defaultNoise();
         ProceduralTexture530Decoder.Decoded first=new ProceduralTexture530Decoder().decode(903,fixture,16);
@@ -403,6 +429,8 @@ class ProceduralTexture530DecoderTest {
     static byte[] monochromeCombine(int function,int outputMode,int first,int second){return new byte[]{3,0,0,1,1,0,(byte)(first>>>8),(byte)first,0,0,1,1,0,(byte)(second>>>8),(byte)second,0,7,1,2,0,(byte)function,1,(byte)outputMode,0,1,2,0,0};}
     static byte[] invertColor(int outputMode){return new byte[]{2,0,1,1,1,0,64,(byte)128,(byte)192,0,22,1,1,0,(byte)outputMode,0,1,0,0};}
     static byte[] invertMonochrome(int value){return new byte[]{2,0,0,1,1,0,(byte)(value>>>8),(byte)value,0,22,1,1,0,1,0,1,0,0};}
+    static byte[] spriteDependency(int id){return new byte[]{1,0,39,1,1,0,(byte)(id>>>8),(byte)id,0,0,0};}
+    static byte[] spriteThenMonochromeInvert(int id){return new byte[]{2,0,39,1,1,0,(byte)(id>>>8),(byte)id,0,22,1,1,0,1,0,1,0,0};}
     static byte[] overflowingAddition(){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,17,0,0,1,1,0,255,255);for(int node=1;node<17;node++)bytes(out,0,7,1,2,0,1,1,1,node-1,node-1);bytes(out,16,0,0);return out.toByteArray();}
     private static void bytes(ByteArrayOutputStream out,int... values){for(int value:values)out.write(value);}
 }
