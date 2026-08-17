@@ -1264,3 +1264,102 @@ traced independently from the pinned client; the operation-0 correction does
 not establish its parameters or rendering behavior. Combine function 7 follows
 at 53 occurrences, operation 12 at 30, combine function 10 at 28, and combine
 function 8 at 16. Preserve explicit rejection and the no-substitution policy.
+
+## 2026-08-17 operation-17 audit
+
+Operation 17 is implemented from the exact pinned
+`a569f0af7754ada96ed7ac76d7582b2c7511b7a0` client sources. `Texture.java`
+maps type 17 to `TextureOp17`; its constructor establishes one child and color
+output. `TextureOp17.java` supplies all RGB/HSL arithmetic and `TextureOp.java`
+establishes monochrome-child promotion. `Buffer.java` confirms parameter 0 is
+a signed big-endian short and parameters 1/2 are signed bytes.
+
+The serialized defaults are zero hue, saturation, and lightness adjustment.
+Code 0 stores its signed 16-bit hue offset directly. Codes 1 and 2 convert
+signed saturation/lightness percentages with `(value << 12) / 100`, using
+Java division toward zero. The node samples its single child at unchanged X/Y
+coordinates and always returns color; downstream monochrome consumers use the
+first channel through the normal graph contract.
+
+The implementation is a literal integer translation of the pinned two-stage
+conversion. RGB becomes hue/saturation/lightness from channel min/max and
+12-bit ratios. Lightness and saturation adjustments clamp independently to
+0..4096. Hue repeatedly adds/subtracts 4096 until it is nonnegative and no
+greater than 4096. The strict upper comparison is significant: exactly 4096
+produces sector 6, while the pinned conversion assigns only sectors 0 through
+5, so the node's previous RGB fields remain unchanged. HSL then returns RGB
+with the pinned six-sector ordering. Whole scanlines are generated on first
+request and cached, preserving the client node's state and request order at
+that boundary. Intermediate expressions intentionally
+remain Java `int`, including shift/multiplication overflow; no long widening,
+pre-clamp, floating-point conversion, texture replacement, or color fallback
+is used. Unexpected parameter codes and truncated payloads fail closed.
+
+Two exhaustive packaged-JAR census runs were byte-identical at SHA-256
+`84d9b72e6fd9d3c98655770a4343e5fac5e514e3bb962d6666d97942a1edae94`.
+The cache identity remains unchanged.
+
+| Category | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Ready | 3,136 | 3,194 | +58 |
+| Missing automatic animations | 646 | 653 | +7 |
+| Unsupported material | 216 | 150 | -66 |
+| Unsupported model | 3,946 | 3,946 | 0 |
+| Morph/internal definition | 612 | 612 | 0 |
+| Other failure | 34 | 35 | +1 |
+
+Operation 17 accounted for 95 repeated diagnostics across 85 definitions in
+textures 105 (4), 168 (70), and 233 (21). All 95 diagnostics reach zero. Of
+the 85 definitions, 58 become ready, seven become missing-automatic-
+animations, one exposes a precise automatic-sequence failure, and 19 retain
+another material blocker.
+
+All 62 definitions from the material-168/opcode-255 investigation progress:
+40 become ready, three Dead swamp snake definitions (3603–3605) now report
+missing walking metadata, and 19 remain unsupported only for blockers already
+visible beside material 168. Those are Bullrush 3336 on material 134/combine
+function 10, six Spinner definitions 3747–3751 and 7598 on material
+183/combine function 7, and the 12 seasonal Elementals 5533–5538 and
+5547–5552 on material 415/curve interpolation mode 1. Material 168 itself is
+now supported. The schema-3 historical opcode-255 audit preserves this exact
+62-definition scope after support lands; two reports were byte-identical at
+SHA-256
+`5063660366c63a18c4c1352a6bb9d72f40c8b588c2a684fb7456d8c8443f4ab6`.
+
+The newly exposed non-material failure is Co-ordinator NPC 3302, whose
+automatic sequence 112 raises `ArrayIndexOutOfBoundsException`. All remaining
+material diagnostics are unchanged: operation 12 at 30, combine function 7 at
+53, combine function 10 at 28, combine function 8 at 16, curve interpolation
+mode 1 at 18, and curve interpolation mode 2 at seven. Unsupported-model
+clusters remain `BufferUnderflowException` for 1,954 definitions and invalid
+decoded offsets (`newPosition > limit`) for 1,992.
+
+NPC 42 (Sheep) is the terminal packaged-render representative for material
+168. Models 20283/20289/20285, materials 283/347/182/168, 430 textured faces,
+standing sequence 5339, walking sequence 5340, all 18 cells, visible pixels,
+and transparency validate. Two independent validation-only renders were
+byte-identical: PNG SHA-256
+`7bb1af136d23df7a940a26b0e98c441294b69c0ff03009e89c33b38e5904e0c4`,
+provenance SHA-256
+`040da925d2f16fe9f72125faed4dfc2290967a916676b97db2ba6b96a907af5b`,
+and validation-report SHA-256
+`4f39cfcb0cb36644ab333be675bfb955ad9a65b5f25e9e34cbf20f5ff906adce`.
+NPC 72 remains fully automatic and ready. NPC 40 remains model/material
+render-compatible and lacks only automatic standing metadata.
+
+The licensed-cache distribution build reran all 146 tests and passed terminal
+inspection for both archives, including the exact read-only cache payload,
+license/source records, empty adjacent exports folder, safe archive paths, and
+diagnostic entry points. The external artifacts were SHA-256
+`0f9e497c1322a94b8f7352640b8e54d3c76c3b497ea6a8430b205bd9e21a4286`
+(Linux) and
+`957d3a7ecc38ad258a0f2c03d7e9f1ddf81c0c333ab4284e4cfd7bd847ac0d91`
+(Windows); neither is committed.
+
+## Recommended next batch
+
+Combine function 7 is now the largest remaining material blocker at 53
+diagnostic occurrences, followed by operation 12 at 30, combine function 10 at
+28, curve interpolation mode 1 at 18, combine function 8 at 16, and curve mode
+2 at seven. Each requires its own pinned-semantics work; retain explicit
+rejection and the no-substitution policy for all of them.

@@ -11,29 +11,25 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import net.runelite.cache.definitions.ModelDefinition;
 
 /** Deterministic forensic audit for the apparent opcode-255 material failure. */
 final class MaterialOpcode255Audit {
-    private static final Pattern FAILURE = Pattern.compile("texture (168) unsupported: procedural operation (?:255|17)");
+    private static final Set<Integer> PREVIOUSLY_AFFECTED_NPCS=Set.of(42,1648,1649,1654,1655,1762,1764,2031,2493,3311,3336,3484,3599,3600,3601,3602,3603,3604,3605,3727,3728,3729,3730,3731,3747,3748,3749,3750,3751,3939,3940,3943,5148,5149,5150,5151,5152,5153,5154,5155,5165,5172,5533,5534,5535,5536,5537,5538,5547,5548,5549,5550,5551,5552,6815,6816,7595,7596,7597,7598,7642,7643);
     private static final String PINNED_COMMIT = "a569f0af7754ada96ed7ac76d7582b2c7511b7a0";
 
     private MaterialOpcode255Audit(){}
 
     static Map<String,Object> collect(Path cacheDirectory,Progress progress)throws IOException {
         Path directory=cacheDirectory.toRealPath();Map<String,Object> report=new LinkedHashMap<>();
-        report.put("schemaVersion",2);report.put("audit","material-opcode-255");
+        report.put("schemaVersion",3);report.put("audit","material-opcode-255");
         report.put("cache",ordered("directory",directory.toString(),"dataSha256",Hashing.sha256(directory.resolve("main_file_cache.dat2")),"referenceIndexSha256",Hashing.sha256(directory.resolve("main_file_cache.idx255"))));
         report.put("pinnedClient",ordered("repository","https://github.com/conan513/2009scape-client","commit",PINNED_COMMIT,"factory","client/src/main/java/rt4/Texture.java","monochromeFill","client/src/main/java/rt4/TextureOpMonochromeFill.java","curve","client/src/main/java/rt4/TextureOpCurve.java","operation17","client/src/main/java/rt4/TextureOp17.java","materialMetadata","client/src/main/java/rt4/GlTexture.java"));
 
-        List<NpcCompatibility> affected=new ArrayList<>();Set<Integer> graphIds=new TreeSet<>();
+        List<NpcCompatibility> affected=new ArrayList<>();Set<Integer> graphIds=new TreeSet<>();graphIds.add(168);
         try(NpcCatalog catalog=new NpcCatalog(directory)){
             List<Integer> ids=catalog.ids(0,catalog.size());for(int i=0;i<ids.size();i++){
-                NpcCompatibility result=catalog.assess(ids.get(i));Matcher matcher=FAILURE.matcher(result.reason);boolean hit=false;
-                while(matcher.find()){graphIds.add(Integer.parseInt(matcher.group(1)));hit=true;}
-                if(hit)affected.add(result);if(progress!=null&&(i%512==0||i+1==ids.size()))progress.update(i+1,ids.size());
+                NpcCompatibility result=catalog.assess(ids.get(i));if(PREVIOUSLY_AFFECTED_NPCS.contains(result.npcId))affected.add(result);if(progress!=null&&(i%512==0||i+1==ids.size()))progress.update(i+1,ids.size());
             }
         }
 
@@ -53,7 +49,7 @@ final class MaterialOpcode255Audit {
             }
             report.put("affectedMaterialGraphIds",new ArrayList<>(graphIds));report.put("affectedTextureGraphs",graphs);report.put("affectedNpcCount",affected.size());report.put("affectedNpcs",affected);report.put("allComponentModelIds",new ArrayList<>(allModels));report.put("directlyAffectedModelIds",new ArrayList<>(directModels));report.put("materialIdsReferencedByAffectedNpcs",new ArrayList<>(allMaterials));report.put("directModelMaterialRoutes",routes);
         }
-        report.put("determination",ordered("genuineOperation",false,"historicalParserDesynchronization",true,"operation0CorrectionApplied",true,"productionRead","one unsigned byte scaled as (value << 12) / 255","falseOpcode255Present",false,"mixedCacheRevisions",false,"truncatedOrCorrupt",false,"sentinel",false,"otherNonOperationValue","curve operation cache setting","opcode255ProductionSupportRecommended",false,"firstGenuineUnsupportedOperation",17,"narrowestSafeFollowUp","retain explicit operation 17 rejection until its own pinned-semantics batch"));
+        report.put("determination",ordered("genuineOperation255",false,"historicalParserDesynchronization",true,"operation0CorrectionApplied",true,"productionOperation0Read","one unsigned byte scaled as (value << 12) / 255","operation17SupportApplied",true,"falseOpcode255Present",false,"mixedCacheRevisions",false,"truncatedOrCorrupt",false,"sentinel",false,"otherNonOperationValue","curve operation cache setting","opcode255ProductionSupportRecommended",false,"material168Operation17Supported",true,"narrowestSafeFollowUp","address remaining blockers independently: combine function 7, curve interpolation 1, and combine function 10"));
         return report;
     }
 

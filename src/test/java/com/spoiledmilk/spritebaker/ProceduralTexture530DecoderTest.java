@@ -12,14 +12,49 @@ class ProceduralTexture530DecoderTest {
             assertTrue(java.util.Arrays.stream(decoder.decode(899,monochromeFill(value),4).pixels).allMatch(actual->actual==pixel),"value "+value);
         }
     }
-    @Test void operation0TruncationUnknownParametersAndOperation17RemainFailClosed(){
+    @Test void operation0TruncationAndUnknownParametersRemainFailClosed(){
         ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
         UnsupportedTextureFormatException truncated=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(899,new byte[]{1,0,0,1,1,0},4));
         assertTrue(truncated.getMessage().contains("truncated operation 0 parameter 0"));
         UnsupportedTextureFormatException parameter=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(899,new byte[]{1,0,0,1,1,1,0,0,0},4));
         assertTrue(parameter.getMessage().contains("operation parameter 1 for Fill"));
-        UnsupportedTextureFormatException operation17=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(168,new byte[]{1,0,17,1,0},4));
-        assertTrue(operation17.getMessage().contains("procedural operation 17"));
+    }
+    @Test void operation17DefaultsPreserveCoordinatesAndConvertColorAndMonochromeChildren(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        ProceduralTexture530Decoder.Decoded color=decoder.decode(979,hslAdjust(0x4080c0),4),second=decoder.decode(979,hslAdjust(0x4080c0),4);
+        assertTrue(java.util.Arrays.stream(color.pixels).allMatch(pixel->pixel==0x4080c0));assertArrayEquals(color.pixels,second.pixels);assertEquals(java.util.List.of(1,17),color.operationTypes);
+        ProceduralTexture530Decoder.Decoded monochrome=decoder.decode(980,hslAdjustMonochrome(203),4);
+        assertTrue(java.util.Arrays.stream(monochrome.pixels).allMatch(pixel->pixel==0xcbcbcb));assertEquals(java.util.List.of(0,17),monochrome.operationTypes);
+        assertArrayEquals(new int[]{0xc0c0c0,0x808080,0x404040,0},java.util.Arrays.copyOfRange(decoder.decode(981,hslAdjustGradient(),4).pixels,0,4));
+    }
+    @Test void operation17DecodesEverySignedParameterAndClampsOrWrapsBoundaries(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        assertEquals(0xbf40c0,decoder.decode(982,hslAdjust(0x4080c0,1024,0,0),4).pixels[0]);
+        assertEquals(0x40c040,decoder.decode(983,hslAdjust(0x4080c0,-1024,0,0),4).pixels[0]);
+        assertEquals(0x0080ff,decoder.decode(984,hslAdjust(0x4080c0,0,50,0),4).pixels[0]);
+        assertEquals(0x808080,decoder.decode(985,hslAdjust(0x4080c0,0,-50,0),4).pixels[0]);
+        assertEquals(0xffffff,decoder.decode(986,hslAdjust(0x4080c0,0,0,50),4).pixels[0]);
+        assertEquals(0,decoder.decode(987,hslAdjust(0x4080c0,0,0,-50),4).pixels[0]);
+        assertEquals(0x1a7010,decoder.decode(988,hslAdjust(0x4080c0,3000,25,-25),4).pixels[0]);
+        assertEquals(0xffffff,decoder.decode(989,hslAdjust(0x4080c0,32767,127,127),4).pixels[0]);
+        assertEquals(0,decoder.decode(990,hslAdjust(0x4080c0,-32768,-128,-128),4).pixels[0]);
+        assertEquals(0,decoder.decode(990,hslAdjust(0x4080c0,1707,0,0),4).pixels[0]);
+        assertEquals(0xc04040,decoder.decode(990,hslAdjust(0x4080c0,-2389,0,0),4).pixels[0]);
+    }
+    @Test void operation17PreservesPinnedGraySaturationAndJavaOverflowBehavior(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        assertEquals(0xff0000,decoder.decode(991,hslAdjust(0x808080,0,127,0),4).pixels[0]);
+        ProceduralTexture530Decoder.Decoded overflow=decoder.decode(992,hslOverflow(),4),again=decoder.decode(992,hslOverflow(),4);
+        assertEquals(0xffffff,overflow.pixels[0]);assertArrayEquals(overflow.pixels,again.pixels);assertEquals(17,overflow.operationTypes.get(overflow.operationTypes.size()-1));
+    }
+    @Test void operation17RejectsEveryMalformedParameterAndInvalidChildren(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        byte[][] truncated={{1,0,17,1,1,0,0},{1,0,17,1,1,1},{1,0,17,1,1,2}};
+        for(int code=0;code<truncated.length;code++){int parameterCode=code;UnsupportedTextureFormatException error=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(993,truncated[parameterCode],4));assertTrue(error.getMessage().contains("truncated operation 17 parameter "+parameterCode));}
+        UnsupportedTextureFormatException parameter=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(994,new byte[]{1,0,17,1,1,3,0,0,0},4));
+        assertTrue(parameter.getMessage().contains("operation parameter 3 for HslAdjust"));
+        UnsupportedTextureFormatException child=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(995,new byte[]{1,0,17,1,0,1,0,0,0},4));
+        assertTrue(child.getMessage().contains("invalid child operation 1"));
     }
     @Test void rendersNeutralGradientRangeFixtureDeterministically(){
         ByteArrayOutputStream b=new ByteArrayOutputStream();bytes(b,2); // nodes
@@ -449,6 +484,12 @@ class ProceduralTexture530DecoderTest {
     static byte[] spriteThenMonochromeInvert(int id){return new byte[]{2,0,39,1,1,0,(byte)(id>>>8),(byte)id,0,22,1,1,0,1,0,1,0,0};}
     static byte[] overflowingAddition(){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,18,0,2,1,0);constantRange(out,65535,0);for(int node=2;node<18;node++)bytes(out,0,7,1,2,0,1,1,1,node-1,node-1);bytes(out,17,0,0);return out.toByteArray();}
     static byte[] monochromeFill(int value){return new byte[]{1,0,0,1,1,0,(byte)value,0,0,0};}
+    static byte[] hslAdjust(int rgb){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,2);colorFillNode(out,rgb);bytes(out,0,17,1,0,0,1,0,0);return out.toByteArray();}
+    static byte[] hslAdjust(int rgb,int hue,int saturation,int lightness){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,2);colorFillNode(out,rgb);bytes(out,0,17,1,3,0,hue>>>8,hue,1,saturation,2,lightness,0,1,0,0);return out.toByteArray();}
+    static byte[] hslAdjustMonochrome(int value){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,2,0,0,1,1,0,value,0,17,1,0,0,1,0,0);return out.toByteArray();}
+    static byte[] hslAdjustGradient(){return new byte[]{2,0,2,1,0,0,17,1,0,0,1,0,0};}
+    static byte[] hslOverflow(){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,22);colorFillNode(out,0xff0000);for(int node=1;node<=8;node++)bytes(out,0,7,1,2,0,1,1,0,node-1,node-1);colorFillNode(out,0x00ff00);for(int node=10;node<=17;node++)bytes(out,0,7,1,2,0,1,1,0,node-1,node-1);bytes(out,0,7,1,2,0,2,1,0,8,17);colorFillNode(out,0xffffff);bytes(out,0,7,1,2,0,1,1,0,18,19,0,17,1,0,20,21,0,0);return out.toByteArray();}
+    private static void colorFillNode(ByteArrayOutputStream out,int rgb){bytes(out,0,1,1,1,0,rgb>>>16,rgb>>>8,rgb);}
     private static void constantRange(ByteArrayOutputStream out,int value,int child){bytes(out,0,30,1,3,0,value>>>8,value,1,value>>>8,value,2,1,child);}
     private static void bytes(ByteArrayOutputStream out,int... values){for(int value:values)out.write(value);}
 }

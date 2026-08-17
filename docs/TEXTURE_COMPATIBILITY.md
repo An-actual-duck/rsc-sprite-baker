@@ -101,6 +101,23 @@ other selector bytes produce zero. The node has no child, texture, sprite, or
 color input and always emits monochrome, repeated across RGB channels.
 Unexpected parameter codes fail closed. The primary trace is
 [`TextureOp15.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOp15.java).
+Operation 17 is the client's one-child color HSL-adjustment node. It preserves
+the child's coordinates and promotes monochrome children to three identical
+channels. Code 0 is a signed 16-bit hue offset; codes 1 and 2 are signed-byte
+saturation and lightness percentages converted with `(value << 12) / 100`.
+All three default to zero and there is no output-mode flag. The implementation
+preserves the client's integer RGB/HSL conversions, division truncation,
+operand ordering, signed Java `int` overflow, 0..4096 saturation/lightness
+clamps, and repeated hue wrapping. The pinned strict `hue > 4096` comparison is
+also retained: hue exactly 4096 selects no sector beyond 0..5 and therefore
+leaves the node's prior RGB fields unchanged. Rows are generated and cached as
+whole scanlines so that this state follows the pinned request order. Gray input retains hue zero, so
+positive saturation follows the pinned red-sector behavior. Unexpected codes
+and truncated parameters fail closed. The primary traces are
+[`TextureOp17.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOp17.java),
+[`TextureOp.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOp.java),
+and the signed `g1b`/`g2b` reads in
+[`Buffer.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/Buffer.java).
 Operation 19 is the client's three-child coordinate-displacement node. Child
 0 is the sampled image, child 1 supplies angle, and child 2 supplies magnitude.
 Code 0 stores an unsigned 16-bit displacement scale shifted left four bits
@@ -185,10 +202,10 @@ recorded but never used as a hidden substitute.
 The apparent operation 255 formerly reported for material 168 was a parser
 desynchronization, not an operation. Operation-0 parameter 0 now consumes the
 pinned one unsigned byte and scales it as `(value << 12) / 255`, so the curve
-cache byte of 255 remains correctly framed. Material 168 now reaches genuine
-unsupported operation 17 and fails closed there. See the forensic and
-follow-up audits in `COMPATIBILITY_CENSUS.md`; no operation-255 decoder or
-visual substitution exists.
+cache byte of 255 remains correctly framed. Material 168 now decodes operation
+17 through the exact pinned HSL path. See the forensic and follow-up audits in
+`COMPATIBILITY_CENSUS.md`; no operation-255 decoder or visual substitution
+exists.
 
 Type-0 mapping triangles use the model's decoded texture-coordinate triangle.
 For revision-530 type 1/2/3 mapping records, RuneLite preserves the render type

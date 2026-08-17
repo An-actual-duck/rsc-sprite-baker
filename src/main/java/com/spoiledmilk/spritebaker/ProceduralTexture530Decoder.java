@@ -34,7 +34,7 @@ public final class ProceduralTexture530Decoder {
 
     private static Node create(int id,int type,DependencyResolver dependencies,SpriteResolver sprites){switch(type){
         case 0:return new Fill(true);case 1:return new Fill(false);case 2:return new Gradient(true);case 3:return new Gradient(false);case 4:return new BrickTiles();case 5:return new BoxBlur();case 6:return new Clamp();
-        case 7:return new Combine();case 8:return new Curve();case 9:return new Flip();case 10:return new ColorGradient();case 13:return new HashNoise();case 15:return new CellularNoise();case 19:return new CoordinateDisplacement();case 20:return new Tile();case 21:return new Interpolate();case 22:return new Invert();case 27:return new Stripes();case 30:return new Range();case 32:return new BumpLighting();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();case 39:return new SpriteDependencyNode(sprites);
+        case 7:return new Combine();case 8:return new Curve();case 9:return new Flip();case 10:return new ColorGradient();case 13:return new HashNoise();case 15:return new CellularNoise();case 17:return new HslAdjust();case 19:return new CoordinateDisplacement();case 20:return new Tile();case 21:return new Interpolate();case 22:return new Invert();case 27:return new Stripes();case 30:return new Range();case 32:return new BumpLighting();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();case 39:return new SpriteDependencyNode(sprites);
         default:throw new UnsupportedTextureFormatException(id,"procedural operation "+type);
     }}
     @FunctionalInterface public interface DependencyResolver{Dependency resolve(int textureId)throws IOException;}
@@ -178,6 +178,55 @@ public final class ProceduralTexture530Decoder {
             int coordinate=xFraction+yFraction*57,hash=coordinate^(coordinate<<1);
             int value=(4096-((hash*(hash*hash*15731+789221)+1376312589)&Integer.MAX_VALUE)/262144)%4096;
             return new int[]{value,value,value};
+        }
+    }
+    private static final class HslAdjust extends Node{
+        int hueOffset,saturationOffset,lightnessOffset,red,green,blue,hue,saturation,lightness,cachedSize=-1;int[][][] image;boolean[] generatedRows;
+        int childCount(){return 1;}
+        void decode(int id,int code,BinaryInput in){
+            if(code==0){if(in.remaining()<2)throw new UnsupportedTextureFormatException(id,"truncated operation 17 parameter 0");hueOffset=in.i16();}
+            else if(code==1){if(in.remaining()<1)throw new UnsupportedTextureFormatException(id,"truncated operation 17 parameter 1");saturationOffset=(in.i8()<<12)/100;}
+            else if(code==2){if(in.remaining()<1)throw new UnsupportedTextureFormatException(id,"truncated operation 17 parameter 2");lightnessOffset=(in.i8()<<12)/100;}
+            else super.decode(id,code,in);
+        }
+        int[] rgb(int x,int y,int size)throws IOException{
+            if(cachedSize!=size){cachedSize=size;image=new int[3][size][size];generatedRows=new boolean[size];red=green=blue=0;}
+            if(!generatedRows[y]){for(int pixel=0;pixel<size;pixel++){int[] color=children[0].rgb(pixel,y,size);adjust(color);image[0][y][pixel]=red;image[1][y][pixel]=green;image[2][y][pixel]=blue;}generatedRows[y]=true;}
+            return new int[]{image[0][y][x],image[1][y][x],image[2][y][x]};
+        }
+        private void adjust(int[] color){toHsl(color[0],color[1],color[2]);
+            lightness+=lightnessOffset;if(lightness<0)lightness=0;
+            saturation+=saturationOffset;if(lightness>4096)lightness=4096;
+            if(saturation<0)saturation=0;if(saturation>4096)saturation=4096;
+            for(hue+=hueOffset;hue<0;hue+=4096){}while(hue>4096)hue-=4096;
+            toRgb(lightness,saturation,hue);
+        }
+        private void toHsl(int red,int green,int blue){
+            int max=red>green?red:green;if(blue>max)max=blue;
+            int min=green>red?red:green;if(blue<min)min=blue;
+            int delta=max-min;
+            if(delta>0){
+                int fromGreen=(max-green<<12)/delta,fromRed=(max-red<<12)/delta,fromBlue=(max-blue<<12)/delta;
+                if(red==max)hue=min==green?fromBlue+20480:4096-fromGreen;
+                else if(max==green)hue=min==blue?fromRed+4096:12288-fromBlue;
+                else hue=min==red?fromGreen+12288:20480-fromRed;
+                hue/=6;
+            }else hue=0;
+            lightness=(min+max)/2;
+            if(lightness>0&&lightness<4096)saturation=(delta<<12)/(lightness>2048?8192-lightness*2:lightness*2);else saturation=0;
+        }
+        private void toRgb(int lightness,int saturation,int hue){
+            int high=lightness<=2048?lightness*(saturation+4096)>>12:lightness+saturation-(lightness*saturation>>12);
+            if(high<=0){red=green=blue=lightness;return;}
+            int hue6=hue*6,low=lightness+lightness-high,sector=hue6>>12;
+            int ratio=(high-low<<12)/high,remainder=hue6-(sector<<12),range=high*ratio>>12;
+            int rising=(range*remainder>>12)+low,falling=high-(range*remainder>>12);
+            if(sector==0){blue=low;red=high;green=rising;}
+            else if(sector==1){blue=low;green=high;red=falling;}
+            else if(sector==2){red=low;green=high;blue=rising;}
+            else if(sector==3){red=low;green=falling;blue=high;}
+            else if(sector==4){red=rising;green=low;blue=high;}
+            else if(sector==5){red=high;green=low;blue=falling;}
         }
     }
     private static final class CellularNoise extends Node{
