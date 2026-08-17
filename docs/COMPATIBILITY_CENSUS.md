@@ -1449,3 +1449,92 @@ occurrences, narrowly followed by combine function 10 at 28. Trace operation
 functions 8/10, curve modes 1/2, the color-gradient sample-count variant, and
 all other unsupported cases until their pinned behavior is independently
 established.
+
+## 2026-08-17 operation-12 audit
+
+Operation 12 is implemented from the exact pinned
+`a569f0af7754ada96ed7ac76d7582b2c7511b7a0` client sources:
+`Texture.java` maps type 12 to `TextureOp12`, `TextureOp12.java` establishes
+its arithmetic and serialized fields, and `TextureOp.java` supplies the sine
+table. The constructor has zero children and fixed monochrome output.
+
+Code 0 is an unsigned coordinate selector defaulting to zero. Zero computes
+`(xFraction - yFraction) * frequency`; every nonzero selector computes centered
+half-scale X/Y offsets, their 12-bit squared radius, the pinned float/double
+square-root conversion, and `(int) ((double) (radius * frequency) * pi)`. Code
+1 is the unsigned waveform selector defaulting to zero. Zero indexes the exact
+256-entry sine table and maps it to 0..4095, two produces the pinned triangle,
+and every other selector emits the wrapped phase ramp. Code 3 is the unsigned
+frequency, default 1.
+
+Material 275 proves the full serialized sequence: parameter codes 0 through 6
+occur in order; codes 0, 1, and 3 each consume one unsigned byte, while codes
+2, 4, 5, and 6 consume zero bytes and are ignored by the pinned decoder. The
+production decoder accepts those evidenced zero-byte fields and keeps other
+unobserved codes explicitly fail-closed. Every phase uses
+`phase -= phase & 0xFFFFF000`; no child sampling, coordinate wrapping beyond
+that phase mask, color output, node-local clamp, fallback, or substitution is
+present. All arithmetic retains Java signed `int`, float/double conversion,
+and narrowing behavior. With legal unsigned parameters at the cache's 64/128
+render sizes, operation-local products do not overflow; the implementation
+does not widen or otherwise alter them.
+
+Two exhaustive shaded-JAR censuses were byte-identical at SHA-256
+`b26e05cca56e2e75e799357bebc4c47236fa40d45a6de2c50c6c312bc2cbd154`.
+The pre-change combine-function-7 census was
+`c148b1e05b7338a407e035219a9c2230459319eba70127a1cbc0ae4dfc3e38c3`;
+the cache identity remains unchanged.
+
+| Category | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Ready | 3,241 | 3,265 | +24 |
+| Missing automatic animations | 657 | 663 | +6 |
+| Unsupported material | 99 | 69 | -30 |
+| Unsupported model | 3,946 | 3,946 | 0 |
+| Morph/internal definition | 612 | 612 | 0 |
+| Other failure | 35 | 35 | 0 |
+
+All 30 operation-12 diagnostics were the same material-275 graph and all reach
+zero. Twenty-four definitions become ready: NPCs 4521–4523, 4752, 4755,
+5608–5609, 5616–5620, 5625–5626, 6542, 7963, 7981–7984, 7986, 8114, 8135,
+and 8289. NPCs 7976–7980 (Spirit) and 8113 (Summer Bonde) advance cleanly to
+missing walking-sequence metadata. No definition exposes another material,
+model, or animation-decoder failure.
+
+Remaining material diagnostics are combine function 10 at 28, curve
+interpolation mode 1 at 18, combine function 8 at 16, curve mode 2 at seven,
+and one color-gradient sample-count case. There are no remaining unsupported
+operation IDs in this cache. Unsupported-model clusters remain
+`BufferUnderflowException` for 1,954 definitions and invalid decoded offsets
+(`newPosition > limit`) for 1,992. NPC 72 remains fully automatic and ready;
+NPC 40 remains model/material render-compatible and lacks only automatic
+standing metadata.
+
+NPC 4521 (Enchanted Broom) is the direct terminal-render representative. Its
+model 16738, materials 185/275/206, 216 textured faces, shared standing/walking
+sequence 4372, and all 18 cells validate with visible and transparent pixels.
+The external project SHA-256 is
+`775b9d606f2abceed43f812b9e8b6ea977192caa5b6ee3892d4ba7e10cc442e8`;
+two independent packaged-JAR validation-only renders were byte-identical at
+report SHA-256
+`8ef9c5749995ae509337c0656117dfe5c5cca85b8d4652cf393f8c992955ee58`,
+PNG SHA-256
+`a9e7a37220fc40e0fe2552fc16bc1ae78a5285b31a521a9df5bb0493cf359325`,
+and provenance SHA-256
+`b9b91192c8f73f51c2a1a4f90a67c563920e2a4cfa2dfbc3d64d9aa9e5c7554f`.
+
+The licensed-cache distribution build reran all 158 tests and passed terminal
+inspection for both archives, including exact read-only cache contents,
+license/source records, empty adjacent exports folder, safe archive paths, and
+diagnostic entry points. The external artifacts were SHA-256
+`cf4519d6b5cfde30dad1d03834fd20ab9b7913ee056d7246bc106f52937535b6`
+(Linux) and
+`30dce9c29b161e2ce5ac830bf96e7bb205ac520ff8018e98921d51b3e9c166bc`
+(Windows); neither is committed.
+
+## Recommended next batch
+
+Combine function 10 is now the largest remaining material blocker at 28
+diagnostic occurrences. It is the next highest-yield single semantics batch;
+keep combine function 8, curve modes 1/2, the color-gradient sample-count
+variant, and every other unsupported case explicitly fail-closed.
