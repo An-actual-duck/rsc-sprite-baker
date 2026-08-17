@@ -17,14 +17,14 @@ import net.runelite.cache.definitions.ModelDefinition;
 
 /** Deterministic forensic audit for the apparent opcode-255 material failure. */
 final class MaterialOpcode255Audit {
-    private static final Pattern FAILURE = Pattern.compile("texture (\\d+) unsupported: procedural operation 255");
+    private static final Pattern FAILURE = Pattern.compile("texture (168) unsupported: procedural operation (?:255|17)");
     private static final String PINNED_COMMIT = "a569f0af7754ada96ed7ac76d7582b2c7511b7a0";
 
     private MaterialOpcode255Audit(){}
 
     static Map<String,Object> collect(Path cacheDirectory,Progress progress)throws IOException {
         Path directory=cacheDirectory.toRealPath();Map<String,Object> report=new LinkedHashMap<>();
-        report.put("schemaVersion",1);report.put("audit","material-opcode-255");
+        report.put("schemaVersion",2);report.put("audit","material-opcode-255");
         report.put("cache",ordered("directory",directory.toString(),"dataSha256",Hashing.sha256(directory.resolve("main_file_cache.dat2")),"referenceIndexSha256",Hashing.sha256(directory.resolve("main_file_cache.idx255"))));
         report.put("pinnedClient",ordered("repository","https://github.com/conan513/2009scape-client","commit",PINNED_COMMIT,"factory","client/src/main/java/rt4/Texture.java","monochromeFill","client/src/main/java/rt4/TextureOpMonochromeFill.java","curve","client/src/main/java/rt4/TextureOpCurve.java","operation17","client/src/main/java/rt4/TextureOp17.java","materialMetadata","client/src/main/java/rt4/GlTexture.java"));
 
@@ -41,7 +41,7 @@ final class MaterialOpcode255Audit {
         try(CacheReader cache=new CacheReader(directory)){
             for(int graphId:graphIds){byte[] data=cache.loadFile(9,graphId,0);Trace legacy=trace(data,false),pinned=trace(data,true);List<Map<String,Object>> occurrences=new ArrayList<>();
                 for(Node node:legacy.nodes)if(node.type==255){int from=Math.max(0,node.typeOffset-12),to=Math.min(data.length,node.typeOffset+13);occurrences.add(ordered("offset",node.typeOffset,"rawByte","ff","windowStart",from,"windowEndExclusive",to,"windowHex",hex(data,from,to)));}
-                graphs.add(ordered("materialId",graphId,"textureGraphId",graphId,"index",9,"archive",graphId,"file",0,"bytes",data.length,"sha256",sha256(data),"rawFfOffsets",byteOffsets(data,255),"legacyBakerFraming",legacy.report(),"pinnedClientFraming",pinned.report(),"apparentOpcode255Occurrences",occurrences));
+                graphs.add(ordered("materialId",graphId,"textureGraphId",graphId,"index",9,"archive",graphId,"file",0,"bytes",data.length,"sha256",sha256(data),"rawFfOffsets",byteOffsets(data,255),"legacyTwoByteFraming",legacy.report(),"productionPinnedFraming",pinned.report(),"apparentOpcode255Occurrences",occurrences));
             }
 
             TreeSet<Integer> allModels=new TreeSet<>(),allMaterials=new TreeSet<>(),directModels=new TreeSet<>();List<Map<String,Object>> routes=new ArrayList<>();
@@ -53,7 +53,7 @@ final class MaterialOpcode255Audit {
             }
             report.put("affectedMaterialGraphIds",new ArrayList<>(graphIds));report.put("affectedTextureGraphs",graphs);report.put("affectedNpcCount",affected.size());report.put("affectedNpcs",affected);report.put("allComponentModelIds",new ArrayList<>(allModels));report.put("directlyAffectedModelIds",new ArrayList<>(directModels));report.put("materialIdsReferencedByAffectedNpcs",new ArrayList<>(allMaterials));report.put("directModelMaterialRoutes",routes);
         }
-        report.put("determination",ordered("genuineOperation",false,"parserDesynchronization",true,"incorrectRead","operation 0 parameter 0 is one unsigned byte in the pinned client; the baker currently consumes two","mixedCacheRevisions",false,"truncatedOrCorrupt",false,"sentinel",false,"otherNonOperationValue","curve operation cache setting","opcode255ProductionSupportRecommended",false,"narrowestSafeFollowUp","correct operation 0 parameter 0 to one unsigned byte scaled as (value << 12) / 255; retain explicit operation 17 rejection"));
+        report.put("determination",ordered("genuineOperation",false,"historicalParserDesynchronization",true,"operation0CorrectionApplied",true,"productionRead","one unsigned byte scaled as (value << 12) / 255","falseOpcode255Present",false,"mixedCacheRevisions",false,"truncatedOrCorrupt",false,"sentinel",false,"otherNonOperationValue","curve operation cache setting","opcode255ProductionSupportRecommended",false,"firstGenuineUnsupportedOperation",17,"narrowestSafeFollowUp","retain explicit operation 17 rejection until its own pinned-semantics batch"));
         return report;
     }
 

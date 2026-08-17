@@ -5,6 +5,22 @@ import java.io.ByteArrayOutputStream;
 import org.junit.jupiter.api.Test;
 
 class ProceduralTexture530DecoderTest {
+    @Test void operation0ReadsOneUnsignedByteAndUsesPinnedFixedPointScaling(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        for(int value:new int[]{0,1,127,128,203,254,255}){
+            int channel=Math.min(255,((value<<12)/255)>>4),pixel=(channel<<16)|(channel<<8)|channel;
+            assertTrue(java.util.Arrays.stream(decoder.decode(899,monochromeFill(value),4).pixels).allMatch(actual->actual==pixel),"value "+value);
+        }
+    }
+    @Test void operation0TruncationUnknownParametersAndOperation17RemainFailClosed(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        UnsupportedTextureFormatException truncated=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(899,new byte[]{1,0,0,1,1,0},4));
+        assertTrue(truncated.getMessage().contains("truncated operation 0 parameter 0"));
+        UnsupportedTextureFormatException parameter=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(899,new byte[]{1,0,0,1,1,1,0,0,0},4));
+        assertTrue(parameter.getMessage().contains("operation parameter 1 for Fill"));
+        UnsupportedTextureFormatException operation17=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(168,new byte[]{1,0,17,1,0},4));
+        assertTrue(operation17.getMessage().contains("procedural operation 17"));
+    }
     @Test void rendersNeutralGradientRangeFixtureDeterministically(){
         ByteArrayOutputStream b=new ByteArrayOutputStream();bytes(b,2); // nodes
         bytes(b,0,2,1,0); // horizontal gradient
@@ -70,7 +86,7 @@ class ProceduralTexture530DecoderTest {
     @Test void combineFunction1PreservesJavaOverflowWithoutNodeClamping(){
         ProceduralTexture530Decoder.Decoded decoded=new ProceduralTexture530Decoder().decode(941,overflowingAddition(),4);
         assertTrue(java.util.Arrays.stream(decoded.pixels).allMatch(pixel->pixel==0));
-        assertEquals(17,decoded.operationTypes.size());
+        assertEquals(18,decoded.operationTypes.size());
         assertEquals(16,decoded.operationTypes.stream().filter(type->type==7).count());
     }
     @Test void combineFunction2SubtractsSecondFromFirstForColorAndMonochromeOutputs(){
@@ -312,7 +328,7 @@ class ProceduralTexture530DecoderTest {
         assertArrayEquals(new int[]{0xb8b8b8,0xb8b8b8,0xb8b8b8,0xb8b8b8,0xb8b8b8,0xb8b8b8,0xb8b8b8,0xb8b8b8,
             0xd4d4d4,0xd4d4d4,0xd4d4d4,0xd4d4d4,0xd4d4d4,0xd4d4d4,0xd4d4d4,0xd4d4d4},java.util.Arrays.copyOfRange(monochrome.pixels,0,16));
         assertArrayEquals(color.pixels,decoder.decode(953,coordinateDisplacement(2,2048,4096,32767),8).pixels);
-        assertEquals(java.util.List.of(3,10,0,0,19),color.operationTypes);
+        assertEquals(java.util.List.of(3,10,30,30,19),color.operationTypes);
     }
     @Test void operation19PreservesDefaultScaleWrappedCoordinatesAndJavaOverflow(){
         ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
@@ -350,7 +366,7 @@ class ProceduralTexture530DecoderTest {
         assertTrue(java.util.Arrays.stream(color.pixels).allMatch(pixel->pixel==0x2898d8));
         assertTrue(java.util.Arrays.stream(monochrome.pixels).allMatch(pixel->pixel==0x282828));
         assertArrayEquals(color.pixels,decoder.decode(964,interpolateColor(1024,2),4).pixels);
-        assertEquals(java.util.List.of(1,1,0,21),color.operationTypes);
+        assertEquals(java.util.List.of(1,1,30,21),color.operationTypes);
     }
     @Test void operation21PreservesExactEndpointsExtrapolationOverflowAndParameters(){
         ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
@@ -396,11 +412,11 @@ class ProceduralTexture530DecoderTest {
     static byte[] cellular(int selector,int metric,int jitter){return new byte[]{1,0,15,1,7,0,4,1,7,2,(byte)(jitter>>>8),(byte)jitter,3,(byte)selector,4,(byte)metric,5,3,6,6,0,0,0};}
     static byte[] clampColor(int outputMode){return new byte[]{2,0,1,1,1,0,16,64,(byte)128,0,6,1,3,0,2,0,1,6,0,2,(byte)outputMode,0,1,0,0};}
     static byte[] clampGradient(int lower,int upper,int outputMode){return new byte[]{2,0,2,1,0,0,6,1,3,0,(byte)(lower>>>8),(byte)lower,1,(byte)(upper>>>8),(byte)upper,2,(byte)outputMode,0,1,0,0};}
-    static byte[] clampMonochromeFill(int value,int lower,int upper){return new byte[]{2,0,0,1,1,0,(byte)(value>>>8),(byte)value,0,6,1,3,0,(byte)(lower>>>8),(byte)lower,1,(byte)(upper>>>8),(byte)upper,2,1,0,1,0,0};}
+    static byte[] clampMonochromeFill(int value,int lower,int upper){return new byte[]{2,0,0,1,1,0,(byte)value,0,6,1,3,0,(byte)(lower>>>8),(byte)lower,1,(byte)(upper>>>8),(byte)upper,2,1,0,1,0,0};}
     static byte[] coordinateDisplacement(int outputMode,int angle,int magnitude,int serializedScale){
         ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,5,0,3,1,0);
         bytes(out,0,10,1,1,0,0,2,0,0,16,64,128,16,0,240,128,32,0);
-        bytes(out,0,0,1,1,0,angle>>>8,angle,0,0,1,1,0,magnitude>>>8,magnitude);
+        constantRange(out,angle,0);constantRange(out,magnitude,0);
         if(serializedScale<0)bytes(out,0,19,1,1,1,outputMode,1,2,3);
         else bytes(out,0,19,1,2,0,serializedScale>>>8,serializedScale,1,outputMode,1,2,3);
         bytes(out,4,0,0);return out.toByteArray();
@@ -412,11 +428,11 @@ class ProceduralTexture530DecoderTest {
     }
     static byte[] monochromeFlip(int horizontal,int vertical,int outputMode){return new byte[]{2,0,3,1,0,0,9,1,3,0,(byte)horizontal,1,(byte)vertical,2,(byte)outputMode,0,1,0,0};}
     static byte[] defaultFlip(){return new byte[]{2,0,2,1,0,0,9,1,0,0,1,0,0};}
-    static byte[] interpolateColor(int control,int outputMode){return new byte[]{4,0,1,1,1,0,64,(byte)128,(byte)192,0,1,1,1,0,32,(byte)160,(byte)224,0,0,1,1,0,(byte)(control>>>8),(byte)control,0,21,1,1,0,(byte)outputMode,0,1,2,3,0,0};}
+    static byte[] interpolateColor(int control,int outputMode){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,4,0,1,1,1,0,64,128,192,0,1,1,1,0,32,160,224);constantRange(out,control,0);bytes(out,0,21,1,1,0,outputMode,0,1,2,3,0,0);return out.toByteArray();}
     static byte[] interpolateMonochrome(int control,int outputMode){
-        ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,4);
-        bytes(out,0,0,1,1,0,255,255);bytes(out,0,0,1,1,0,0,0);bytes(out,0,0,1,1,0,control>>>8,control);
-        bytes(out,0,21,1,1,0,outputMode,0,1,2,3,0,0);return out.toByteArray();
+        ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,5,0,2,1,0);
+        constantRange(out,65535,0);constantRange(out,0,0);constantRange(out,control,0);
+        bytes(out,0,21,1,1,0,outputMode,1,2,3,4,0,0);return out.toByteArray();
     }
     static byte[] colorTile(int horizontalTiles,int verticalTiles){
         ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,3,0,2,1,0);
@@ -426,11 +442,13 @@ class ProceduralTexture530DecoderTest {
     static byte[] monochromeTile(int horizontalTiles,int verticalTiles){return new byte[]{2,0,3,1,0,0,20,1,2,0,(byte)horizontalTiles,1,(byte)verticalTiles,0,1,0,0};}
     static byte[] defaultTile(){return new byte[]{2,0,2,1,0,0,20,1,0,0,1,0,0};}
     static byte[] colorCombine(int function,int outputMode){return new byte[]{3,0,1,1,1,0,64,(byte)128,(byte)192,0,1,1,1,0,32,(byte)160,(byte)224,0,7,1,2,0,(byte)function,1,(byte)outputMode,0,1,2,0,0};}
-    static byte[] monochromeCombine(int function,int outputMode,int first,int second){return new byte[]{3,0,0,1,1,0,(byte)(first>>>8),(byte)first,0,0,1,1,0,(byte)(second>>>8),(byte)second,0,7,1,2,0,(byte)function,1,(byte)outputMode,0,1,2,0,0};}
+    static byte[] monochromeCombine(int function,int outputMode,int first,int second){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,4,0,2,1,0);constantRange(out,first,0);constantRange(out,second,0);bytes(out,0,7,1,2,0,function,1,outputMode,1,2,3,0,0);return out.toByteArray();}
     static byte[] invertColor(int outputMode){return new byte[]{2,0,1,1,1,0,64,(byte)128,(byte)192,0,22,1,1,0,(byte)outputMode,0,1,0,0};}
-    static byte[] invertMonochrome(int value){return new byte[]{2,0,0,1,1,0,(byte)(value>>>8),(byte)value,0,22,1,1,0,1,0,1,0,0};}
+    static byte[] invertMonochrome(int value){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,3,0,2,1,0);constantRange(out,value,0);bytes(out,0,22,1,1,0,1,1,2,0,0);return out.toByteArray();}
     static byte[] spriteDependency(int id){return new byte[]{1,0,39,1,1,0,(byte)(id>>>8),(byte)id,0,0,0};}
     static byte[] spriteThenMonochromeInvert(int id){return new byte[]{2,0,39,1,1,0,(byte)(id>>>8),(byte)id,0,22,1,1,0,1,0,1,0,0};}
-    static byte[] overflowingAddition(){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,17,0,0,1,1,0,255,255);for(int node=1;node<17;node++)bytes(out,0,7,1,2,0,1,1,1,node-1,node-1);bytes(out,16,0,0);return out.toByteArray();}
+    static byte[] overflowingAddition(){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,18,0,2,1,0);constantRange(out,65535,0);for(int node=2;node<18;node++)bytes(out,0,7,1,2,0,1,1,1,node-1,node-1);bytes(out,17,0,0);return out.toByteArray();}
+    static byte[] monochromeFill(int value){return new byte[]{1,0,0,1,1,0,(byte)value,0,0,0};}
+    private static void constantRange(ByteArrayOutputStream out,int value,int child){bytes(out,0,30,1,3,0,value>>>8,value,1,value>>>8,value,2,1,child);}
     private static void bytes(ByteArrayOutputStream out,int... values){for(int value:values)out.write(value);}
 }
