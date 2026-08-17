@@ -2178,3 +2178,91 @@ External archive hashes are
 Combine function 9 is the only remaining graph-language blocker and affects
 three definitions through texture 330. Keep texture 65535 fail-closed unless
 its absent material metadata can be established from licensed source evidence.
+
+## 2026-08-17 combine-function-9 result
+
+Combine function 9 is implemented from the exact pinned
+`a569f0af7754ada96ed7ac76d7582b2c7511b7a0` client
+`TextureOpCombine.java`. Operation 7 retains two children, default function 6,
+unsigned function parameter 0, and serialized output-mode parameter 1, where
+only value 1 selects monochrome. Color mode compares the corresponding RGB
+channels independently; monochrome mode compares each child's monochrome
+value and repeats the result across RGB.
+
+For child 0 value `first` and child 1 value `second`, the pinned arithmetic is
+exactly `first >= second ? second : first`. This is a raw Java signed `int`
+minimum. There is no fixed-point shift, arithmetic transformation, division,
+zero special case, wrapping, or node-local clamp. Equality returns the shared
+value and upstream negative or overflowed values participate in the signed
+comparison unchanged. Only the existing final texture conversion shifts by
+four and clamps to 0..255. Focused decoder tests cover color and monochrome
+output, the non-1 color-mode values, both operand orders, equality, unsigned
+fixture extremes, an upstream `Integer.MIN_VALUE`, malformed parameters,
+determinism, and explicit rejection of functions 0, 4, 12, and 255. Provider
+and static-renderer regressions exercise the same graph without external
+dependencies. No other combine function, operation, validation rule, or
+animation decoder changed.
+
+Two exhaustive shaded-JAR censuses were byte-identical at SHA-256
+`97e06eae6129d5a91bc5292a9aa5ce8ecbb324edcadfef40da0fed3e00072990`.
+The pre-change combine-function-11 census was
+`609e943300be48ec68f2e1a34f845b3342abc4eb5cda8dc1ceeb0fe8af861e15`;
+cache identity is unchanged.
+
+| Category | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Ready | 6,698 | 6,698 | 0 |
+| Missing automatic animations | 1,048 | 1,051 | +3 |
+| Unsupported material | 4 | 1 | -3 |
+| Unsupported model | 0 | 0 | 0 |
+| Morph/internal definition | 612 | 612 | 0 |
+| Other failure | 228 | 228 | 0 |
+
+All three texture-330 definitions advance. NPC 4474 (Magic dummy, model
+36512), NPC 7712 (unnamed internal definition, model 33416), and NPC 7891
+(Melee dummy, model 36514) now resolve their complete material paths and
+correctly classify as missing standing and walking metadata. They do not
+become ready because automatic animation metadata is absent; no animation
+failure was changed or bypassed.
+
+NPC 1412 (Garkor) is the only remaining unsupported-material definition.
+Its model path references texture ID 65535, but the cache has no corresponding
+material metadata, so production continues to reject it explicitly. Observed
+unsupported graph-language definitions, unsupported procedural-operation
+blockers, and unsupported-model clusters are all zero. NPC 72 remains fully
+automatic and ready; NPC 40 remains render-compatible and lacks only automatic
+standing metadata.
+
+NPC 4474 is the terminal packaged-render representative. Its model 36512,
+materials 275/481/101/102, texture-330 dependency, and all 202 textured faces
+resolve. Because the definition has no automatic sequences, the validation
+project explicitly uses compatibility sequence 808 for all 18 cells; this is
+render evidence, not an automatic-animation claim. All cells validate with
+visible and transparent pixels under the RSC-restrained 128x128,
+3x-supersampled settings. The external project SHA-256 is
+`67546e7d080804420cc995342c7bfedf5432196a3942f24b665608370f6522bb`,
+the validation report SHA-256 is
+`81f6f1cb69698cf938be7761e3e82a1c036ea3d7bf6190f19b204423d38add58`,
+the PNG SHA-256 is
+`8000953fcfd9e57d7c327a695d4a884d96c05e9e1577f8f085da23330598dc2a`,
+and the provenance SHA-256 is
+`a3010c1c8d9626afb35f08e7e744c2925f293c274b4e34f1b3e99c65784d418c`.
+No cache input or rendered derivative is tracked.
+
+The licensed-cache distribution build reran all 210 Java 21 tests and passed
+terminal inspection for both platforms, including exact read-only cache
+contents, source/license records, empty adjacent exports, safe paths, launchers,
+and desktop plus advanced entry points. No GUI was launched or automated. The
+shaded JAR SHA-256 is
+`0835e7524dfeecf99fa0b3046b5931d6cd1d03ee1a06d56a86417335092b9fc3`.
+External archive hashes are
+`8a87c6b54b23825721a18212134e3d48bc596a221d7d445659ca06d62fc4edf2`
+(Linux, 77,061,824 bytes) and
+`801f425528ce814c57ae364b5d55a591c525c080d14b978e76a815ee42b0025b`
+(Windows, 77,062,053 bytes); neither archive is committed.
+
+## Recommended next batch
+
+No graph-language blocker remains in the pinned cache census. Keep texture ID
+65535 fail-closed unless its absent metadata and provenance can be established;
+do not treat the value as an average material or substitute texture.
