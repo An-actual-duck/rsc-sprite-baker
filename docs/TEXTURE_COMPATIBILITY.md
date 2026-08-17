@@ -209,6 +209,8 @@ reference-index SHA-256
 | Textured animated | NPC 40 Shark; model 2848; sequence 10; materials 157/171 | Supported | 70 textured faces, 31 type-0 mappings, 39 documented face-local fallbacks. Two complete 18-cell exports were byte-identical: PNG SHA-256 `4568d2194f59c6d0d3118dd594531a517c83052c40fcec28896d5b348182ab44`; manifest SHA-256 `c49d42c26770f3524cfce9f9c6b572567ab3db71252aede3e92bf7e442f36a5d`. |
 | Multipart | NPC 42 Sheep; models 20283/20289/20285 | Model assembly supported; materials unsupported | Three components combine with 430 textured faces. Operation 36 is resolved; remaining unsupported operations are reported and export stops. |
 | Additive-combined recolored/retextured multipart | NPC 0 Hans; six component models; five recolors; materials 228/292/258/257/262/527/272/254 | Supported | Combine function 1 now decodes, including the high-volume texture 203 graph. Standing sequence 9870, walking sequence 9869, all 676 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `261ccf8a8a762adf5ba6b64dd6f2b3eee3cf6d3f82b137645f5604c4778d06c6`). |
+| Subtractive/screen-combined multipart | NPC 284 Doric; seven component models; graph paths include textures 132/229 | Supported | Combine functions 2 and 5 preserve pinned operand, fixed-point, overflow, and output-mode behavior. Standing sequence 101, walking sequence 98, all 458 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `9042a427ddaa86ba8049fdb7cf7bcf4e0106d8684f2e280f5d59318d2dc962ad`). |
+| Inverted sprite-backed animated | NPC 146 Gull; model 26841; materials 364/471/57/439 | Supported | Operations 22 and 39 resolve the pinned invert and sprite-canvas path, including texture 366's external sprite dependency. Standing sequence 6771, walking sequence 6773, all 344 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `788ad30863f2b7d64217cfd9de81dff3734ea19300ac653a6bc80d84dedd7bd1`). |
 | Alpha/mapping stress | NPC 61 Spider; model 24613; material 111 | Supported | Operation 34 now decodes; models, material, standing sequence 6247, and walking sequence 6248 validate. Its 298 textured faces continue to use the documented advanced-mapping fallback. |
 | Hash-noise multipart | NPC 125 Ice warrior; seven component models; materials 249/291/303/302 | Supported | Operation 13 now decodes; standing sequence 842, walking sequence 841, and all 1,076 textured faces validate. |
 | Line-noise animated | NPC 131 Penguin; model 21547; materials 182/347/171 | Supported | Operation 38 now decodes; standing sequence 5668, walking sequence 5666, and all 391 textured faces validate in a packaged 18-cell render. |
@@ -247,9 +249,9 @@ replaceable and persists the choices normally.
 
 ## Remaining limitations
 
-- The procedural graph language is intentionally incomplete. Sprite-backed,
-  emboss, and other unverified operations remain
-  unsupported. See `COMPATIBILITY_CENSUS.md` for exact current frequencies.
+- The procedural graph language is intentionally incomplete. Remaining
+  operation IDs 12, 17, and 255 and combine functions 7, 8, and 10 fail
+  closed. See `COMPATIBILITY_CENSUS.md` for exact current frequencies.
 - Advanced type 1/2/3 mapping parameters are not decoded by the RuneLite model
   dependency; only the traced revision-software face-local behavior is used.
 - The current rasterizer uses affine interpolation under the orthographic
