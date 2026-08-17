@@ -203,13 +203,36 @@ class ProceduralTexture530DecoderTest {
             ()->decoder.decode(1004,new byte[]{1,0,7,1,1,1},4));
         assertTrue(mode.getMessage().contains("truncated operation 7 parameter 1"));
     }
+    @Test void combineFunction10TakesPerChannelSignedMaximumInBothOutputModes(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        ProceduralTexture530Decoder.Decoded color=decoder.decode(1017,colorCombine(10,0),4),monochrome=decoder.decode(1018,colorCombine(10,1),4);
+        assertTrue(java.util.Arrays.stream(color.pixels).allMatch(pixel->pixel==0x40a0e0));
+        assertTrue(java.util.Arrays.stream(monochrome.pixels).allMatch(pixel->pixel==0x404040));
+        assertArrayEquals(color.pixels,decoder.decode(1019,colorCombine(10,2),4).pixels);
+        assertArrayEquals(color.pixels,decoder.decode(1017,colorCombine(10,0),4).pixels);
+        assertEquals(java.util.List.of(1,1,7),color.operationTypes);
+    }
+    @Test void combineFunction10PreservesZerosExtremesAndSignedOverflowIntermediates(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        assertTrue(java.util.Arrays.stream(decoder.decode(1020,monochromeCombine(10,1,0,0),4).pixels).allMatch(pixel->pixel==0));
+        assertTrue(java.util.Arrays.stream(decoder.decode(1021,monochromeCombine(10,1,0,65535),4).pixels).allMatch(pixel->pixel==0xffffff));
+        assertTrue(java.util.Arrays.stream(decoder.decode(1022,monochromeCombine(10,1,65535,0),4).pixels).allMatch(pixel->pixel==0xffffff));
+        assertTrue(java.util.Arrays.stream(decoder.decode(1023,combine10Overflow(),4).pixels).allMatch(pixel->pixel==0x404040));
+    }
+    @Test void combineFunction10RejectsMalformedParameters(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        for(int code:new int[]{0,1}){
+            UnsupportedTextureFormatException error=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(1024,new byte[]{1,0,7,1,1,(byte)code},4));
+            assertTrue(error.getMessage().contains("truncated operation 7 parameter "+code));
+        }
+    }
     @Test void previouslySupportedCombineFunctionsRemainExactAndOthersFailClosed(){
         ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
         assertTrue(java.util.Arrays.stream(decoder.decode(934,colorCombine(3,0),4).pixels).allMatch(pixel->pixel==0x0850a8));
         assertTrue(java.util.Arrays.stream(decoder.decode(935,colorCombine(3,1),4).pixels).allMatch(pixel->pixel==0x080808));
         assertTrue(java.util.Arrays.stream(decoder.decode(942,colorCombine(6,0),4).pixels).allMatch(pixel->pixel==0x10a0f0));
         assertTrue(java.util.Arrays.stream(decoder.decode(943,colorCombine(6,1),4).pixels).allMatch(pixel->pixel==0x101010));
-        for(int function=0;function<=12;function++)if(function!=1&&function!=2&&function!=3&&function!=5&&function!=6&&function!=7){
+        for(int function=0;function<=12;function++)if(function!=1&&function!=2&&function!=3&&function!=5&&function!=6&&function!=7&&function!=10){
             int unsupported=function;
             UnsupportedTextureFormatException error=assertThrows(UnsupportedTextureFormatException.class,
                 ()->decoder.decode(936,colorCombine(unsupported,0),4));
@@ -545,6 +568,7 @@ class ProceduralTexture530DecoderTest {
     static byte[] spriteThenMonochromeInvert(int id){return new byte[]{2,0,39,1,1,0,(byte)(id>>>8),(byte)id,0,22,1,1,0,1,0,1,0,0};}
     static byte[] overflowingAddition(){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,18,0,2,1,0);constantRange(out,65535,0);for(int node=2;node<18;node++)bytes(out,0,7,1,2,0,1,1,1,node-1,node-1);bytes(out,17,0,0);return out.toByteArray();}
     static byte[] combine7Overflow(){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,8,0,2,1,0);constantRange(out,0,0);constantRange(out,65535,0);for(int node=3;node<=6;node++)bytes(out,0,7,1,2,0,1,1,1,node-1,node-1);bytes(out,0,7,1,2,0,7,1,1,1,6,7,0,0);return out.toByteArray();}
+    static byte[] combine10Overflow(){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,20,0,2,1,0);constantRange(out,65535,0);constantRange(out,1024,0);bytes(out,0,7,1,2,0,1,1,1,1,1);for(int node=4;node<=18;node++)bytes(out,0,7,1,2,0,1,1,1,node-1,node-1);bytes(out,0,7,1,2,0,10,1,1,18,2,19,0,0);return out.toByteArray();}
     static byte[] defaultWaveform(){return new byte[]{1,0,12,1,0,0,0,0};}
     static byte[] waveformNoOpParameters(){return new byte[]{1,0,12,1,4,2,4,5,6,0,0,0};}
     static byte[] waveform(int coordinateMode,int selector,int frequency){return new byte[]{1,0,12,1,3,0,(byte)coordinateMode,1,(byte)selector,3,(byte)frequency,0,0,0};}

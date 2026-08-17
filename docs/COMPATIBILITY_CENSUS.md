@@ -1538,3 +1538,81 @@ Combine function 10 is now the largest remaining material blocker at 28
 diagnostic occurrences. It is the next highest-yield single semantics batch;
 keep combine function 8, curve modes 1/2, the color-gradient sample-count
 variant, and every other unsupported case explicitly fail-closed.
+
+## 2026-08-17 combine-function-10 audit
+
+Combine function 10 is implemented from the exact pinned
+`a569f0af7754ada96ed7ac76d7582b2c7511b7a0` client
+`TextureOpCombine.java`. Operation 7 still has two children, defaults to
+function 6, reads function parameter 0 and monochrome flag parameter 1 as
+unsigned bytes, and preserves its existing output-mode contract.
+
+Function 10 is a raw signed maximum. The monochrome path reads child 0 and
+child 1 first channels and returns `child0 > child1 ? child0 : child1`. The
+color path performs the equivalent comparison independently for red, green,
+and blue. Equal operands select child 1 in the literal branch but have the same
+numeric result. There is no multiplication, division, zero special case,
+fixed-point shift, wrap, or node-local clamp. Values produced by overflowing
+upstream nodes are compared as Java signed `int`; only final texture conversion
+shifts and clamps to 0..255. Functions 1, 2, 3, 5, 6, and 7 are unchanged.
+Function 8 and every other unsupported function remain explicitly rejected.
+
+Two exhaustive shaded-JAR censuses were byte-identical at SHA-256
+`b3f7f24af2c605074fb92b4d096493b170cdfe759ff605fe2260fe65989db7f9`.
+The pre-change operation-12 census was
+`b26e05cca56e2e75e799357bebc4c47236fa40d45a6de2c50c6c312bc2cbd154`;
+the cache identity remains unchanged.
+
+| Category | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Ready | 3,265 | 3,286 | +21 |
+| Missing automatic animations | 663 | 666 | +3 |
+| Unsupported material | 69 | 45 | -24 |
+| Unsupported model | 3,946 | 3,946 | 0 |
+| Morph/internal definition | 612 | 612 | 0 |
+| Other failure | 35 | 35 | 0 |
+
+All 28 function-10 diagnostics across 27 definitions reach zero. Twenty-one
+definitions become ready: NPCs 433, 1734–1736, 1739, 1747–1749, 1791–1792,
+2534, 5185, 5188, 5461, 5896, 7515, 7517–7518, 7568, 7583, and 8279. NPCs
+1226, 5207, and 5208 (Tree/Undead tree) advance to missing standing and walking
+metadata. NPCs 151 (Fly trap), 2535 (Teak), and 3336 (Bullrush) clear function
+10 but remain unsupported on material 134's already-known curve interpolation
+mode 1. No new blocker type appears.
+
+Remaining material diagnostics are curve interpolation mode 1 at 21, combine
+function 8 at 16, curve mode 2 at seven, and one color-gradient sample-count
+case. Unsupported-model clusters remain `BufferUnderflowException` for 1,954
+definitions and invalid decoded offsets (`newPosition > limit`) for 1,992.
+NPC 72 remains fully automatic and ready; NPC 40 remains model/material
+render-compatible and lacks only automatic standing metadata.
+
+NPC 1734 (Magic tree) is the direct terminal-render representative. Its model
+21838, materials 196/110/34/8, 805 textured faces, shared standing/walking
+sequence 5750, and all 18 cells validate with visible and transparent pixels.
+The external project SHA-256 is
+`11e330d5f0d68fa5f55f2d06f92ee77e22bcc1a2859ecc3655f8ee5bf839c86b`;
+two independent packaged-JAR validation-only renders were byte-identical at
+report SHA-256
+`6fd8fcb13cb4c335ca0dfda979fc66a7c4f6b2705d106cd5a61ac6264ac0f388`,
+PNG SHA-256
+`e631467a1125c36c2b02407b7ac7b6cc220de29740b46ef6393ff081dc7da566`,
+and provenance SHA-256
+`f25e02fa6689fe8a2197afbd9dcdc2e1ddb4571dbc3a4c0376d7a706ea2d0519`.
+
+The licensed-cache distribution build reran all 163 tests and passed terminal
+inspection for both archives, including exact read-only cache contents,
+license/source records, empty adjacent exports folder, safe archive paths, and
+diagnostic entry points. The external artifacts were SHA-256
+`26e6665b9e6dc87abf9ab728defce3e85a4819f814fd6fd43b5d00379154cdfe`
+(Linux) and
+`6a1a5e791e1ff7b3a29d9f26ab02954fc0538caf20d114b2f11c1ac290366aa3`
+(Windows); neither is committed.
+
+## Recommended next batch
+
+Curve interpolation mode 1 is now the largest remaining material blocker at
+21 diagnostics, followed by combine function 8 at 16. Trace curve mode 1 next
+as the highest-yield single batch. Keep combine function 8, curve mode 2, the
+color-gradient sample-count variant, and all other unsupported behavior
+explicitly fail-closed.
