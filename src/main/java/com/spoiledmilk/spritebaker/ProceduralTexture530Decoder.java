@@ -31,7 +31,7 @@ public final class ProceduralTexture530Decoder {
 
     private static Node create(int id,int type,DependencyResolver dependencies){switch(type){
         case 0:return new Fill(true);case 1:return new Fill(false);case 2:return new Gradient(true);case 3:return new Gradient(false);case 4:return new BrickTiles();case 5:return new BoxBlur();case 6:return new Clamp();
-        case 7:return new Combine();case 8:return new Curve();case 9:return new Flip();case 10:return new ColorGradient();case 13:return new HashNoise();case 15:return new CellularNoise();case 19:return new CoordinateDisplacement();case 21:return new Interpolate();case 27:return new Stripes();case 30:return new Range();case 32:return new BumpLighting();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();
+        case 7:return new Combine();case 8:return new Curve();case 9:return new Flip();case 10:return new ColorGradient();case 13:return new HashNoise();case 15:return new CellularNoise();case 19:return new CoordinateDisplacement();case 20:return new Tile();case 21:return new Interpolate();case 27:return new Stripes();case 30:return new Range();case 32:return new BumpLighting();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();
         default:throw new UnsupportedTextureFormatException(id,"procedural operation "+type);
     }}
     @FunctionalInterface public interface DependencyResolver{Dependency resolve(int textureId)throws IOException;}
@@ -212,6 +212,17 @@ public final class ProceduralTexture530Decoder {
             return children[0].mono(sampleX,sampleY,size);
         }
         private static int[] trigonometry(boolean sine){int[] table=new int[256];for(int i=0;i<256;i++){double radians=(double)i/255.0D*6.283185307179586D;table[i]=(int)((sine?Math.sin(radians):Math.cos(radians))*4096.0D);}return table;}
+    }
+    private static final class Tile extends Node{
+        int horizontalTiles=4,verticalTiles=4;
+        int childCount(){return 1;}
+        void decode(int id,int code,BinaryInput in){if(code==0)horizontalTiles=in.u8();else if(code==1)verticalTiles=in.u8();else super.decode(id,code,in);}
+        void finish(int id){if(horizontalTiles==0||verticalTiles==0)throw new UnsupportedTextureFormatException(id,"tile grid "+horizontalTiles+"x"+verticalTiles);}
+        int[] rgb(int x,int y,int size)throws IOException{
+            int tileWidth=size/horizontalTiles,tileHeight=size/verticalTiles;
+            int sampleX=tileWidth<=0?0:size*(x%tileWidth)/tileWidth,sampleY=tileHeight<=0?0:size*(y%tileHeight)/tileHeight;
+            return children[0].rgb(sampleX,sampleY,size);
+        }
     }
     private static final class Interpolate extends Node{
         boolean monochrome;

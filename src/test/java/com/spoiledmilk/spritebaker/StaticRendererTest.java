@@ -177,6 +177,16 @@ class StaticRendererTest {
         int[] firstPixels=first.getRGB(0,0,40,40,null,0,40);assertArrayEquals(firstPixels,second.getRGB(0,0,40,40,null,0,40));assertTrue(java.util.Arrays.stream(firstPixels).anyMatch(pixel->(pixel>>>24)==255));
     }
 
+    @Test void rendersOperation20MaterialThroughCacheProviderDeterministically() throws Exception {
+        ModelDefinition fixture=neutralModel();fixture.faceTextures=new short[]{0};fixture.textureCoords=new byte[]{-1};
+        MaterialDefinition530 definition=new MaterialDefinition530(0,true,true,true,true,false,0,0,0,0,0);
+        TextureProvider530 provider=new TextureProvider530(new MaterialDefinition530[]{definition},id->ProceduralTexture530DecoderTest.colorTile(2,1));
+        TextureMaterial530 material=provider.material(0);assertEquals(List.of(2,10,20),material.operationTypes);
+        NpcDefinition530 npc=new NpcDefinition530(17);VisualSettings settings=new VisualSettings();settings.cellWidth=40;settings.cellHeight=40;settings.supersample=1;settings.padding=4;settings.palette=PaletteReducer.UNMODIFIED;
+        StaticRenderer renderer=new StaticRenderer();BufferedImage first=renderer.renderStyled(List.of(fixture),npc,0,null,settings,provider),second=renderer.renderStyled(List.of(fixture),npc,0,null,settings,provider);
+        int[] firstPixels=first.getRGB(0,0,40,40,null,0,40);assertArrayEquals(firstPixels,second.getRGB(0,0,40,40,null,0,40));assertTrue(java.util.Arrays.stream(firstPixels).anyMatch(pixel->(pixel>>>24)==255));
+    }
+
     @Test void rendersOperation15MaterialThroughCacheProviderDeterministically() throws Exception {
         ModelDefinition fixture=neutralModel();fixture.faceTextures=new short[]{0};fixture.textureCoords=new byte[]{-1};
         MaterialDefinition530 definition=new MaterialDefinition530(0,true,true,true,true,false,0,0,0,0,0);

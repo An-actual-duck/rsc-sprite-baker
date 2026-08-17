@@ -302,6 +302,28 @@ class ProceduralTexture530DecoderTest {
             ()->decoder.decode(968,new byte[]{1,0,21,1,1,1,0,0,0,0},4));
         assertTrue(parameter.getMessage().contains("operation parameter 1 for Interpolate"));
     }
+    @Test void operation20TilesColorCoordinatesWithPinnedIntegerRescaling(){
+        ProceduralTexture530Decoder.Decoded decoded=new ProceduralTexture530Decoder().decode(969,colorTile(2,1),8);
+        assertArrayEquals(new int[]{0xb87038,0x806050,0x485068,0x104080,0xb87038,0x806050,0x485068,0x104080},java.util.Arrays.copyOfRange(decoded.pixels,0,8));
+        assertEquals(java.util.List.of(2,10,20),decoded.operationTypes);
+    }
+    @Test void operation20TilesMonochromeRowsAndPreservesCollapsedAxesAndDefaults(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        int[] vertical=decoder.decode(970,monochromeTile(1,2),8).pixels;
+        assertArrayEquals(new int[]{0,0,0,0,0,0,0,0,0x404040,0x404040,0x404040,0x404040,0x404040,0x404040,0x404040,0x404040},java.util.Arrays.copyOfRange(vertical,0,16));
+        assertTrue(java.util.Arrays.stream(decoder.decode(971,colorTile(255,255),8).pixels).allMatch(pixel->pixel==0x104080));
+        assertArrayEquals(new int[]{0x808080,0,0x808080,0,0x808080,0,0x808080,0},
+            java.util.Arrays.copyOfRange(decoder.decode(972,defaultTile(),8).pixels,0,8));
+    }
+    @Test void operation20RejectsUnknownParametersAndZeroTileCounts(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        UnsupportedTextureFormatException parameter=assertThrows(UnsupportedTextureFormatException.class,
+            ()->decoder.decode(973,new byte[]{1,0,20,1,1,2,0,0,0,0},8));
+        assertTrue(parameter.getMessage().contains("operation parameter 2 for Tile"));
+        UnsupportedTextureFormatException grid=assertThrows(UnsupportedTextureFormatException.class,
+            ()->decoder.decode(974,colorTile(0,4),8));
+        assertTrue(grid.getMessage().contains("tile grid 0x4"));
+    }
     static byte[] hashNoise(){return new byte[]{1,0,13,1,0,0,0,0};}
     static byte[] defaultNoise(){return new byte[]{1,0,34,1,0,0,0,0};}
     static byte[] textureDependency(int id){return new byte[]{1,0,36,1,1,0,(byte)(id>>>8),(byte)id,0,0,0};}
@@ -337,6 +359,13 @@ class ProceduralTexture530DecoderTest {
         bytes(out,0,0,1,1,0,255,255);bytes(out,0,0,1,1,0,0,0);bytes(out,0,0,1,1,0,control>>>8,control);
         bytes(out,0,21,1,1,0,outputMode,0,1,2,3,0,0);return out.toByteArray();
     }
+    static byte[] colorTile(int horizontalTiles,int verticalTiles){
+        ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,3,0,2,1,0);
+        bytes(out,0,10,1,1,0,0,2,0,0,16,64,128,16,0,240,128,32,0);
+        bytes(out,0,20,1,2,0,horizontalTiles,1,verticalTiles,1,2,0,0);return out.toByteArray();
+    }
+    static byte[] monochromeTile(int horizontalTiles,int verticalTiles){return new byte[]{2,0,3,1,0,0,20,1,2,0,(byte)horizontalTiles,1,(byte)verticalTiles,0,1,0,0};}
+    static byte[] defaultTile(){return new byte[]{2,0,2,1,0,0,20,1,0,0,1,0,0};}
     static byte[] colorCombine(int function,int outputMode){return new byte[]{3,0,1,1,1,0,64,(byte)128,(byte)192,0,1,1,1,0,32,(byte)160,(byte)224,0,7,1,2,0,(byte)function,1,(byte)outputMode,0,1,2,0,0};}
     static byte[] monochromeCombine(int function,int outputMode,int first,int second){return new byte[]{3,0,0,1,1,0,(byte)(first>>>8),(byte)first,0,0,1,1,0,(byte)(second>>>8),(byte)second,0,7,1,2,0,(byte)function,1,(byte)outputMode,0,1,2,0,0};}
     static byte[] overflowingAddition(){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,17,0,0,1,1,0,255,255);for(int node=1;node<17;node++)bytes(out,0,7,1,2,0,1,1,1,node-1,node-1);bytes(out,16,0,0);return out.toByteArray();}
