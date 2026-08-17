@@ -170,3 +170,23 @@ Two packaged-JAR full-cache censuses were byte-identical at the hash recorded
 in `COMPATIBILITY_CENSUS.md`. Two validation-only packaged renders each for
 NPC 284 and NPC 146 were also byte-identical. The cache dat2 and idx255 hashes
 remained unchanged, and no cache or rendered derivative entered the repository.
+
+## 2026-08-17 curve-mode-1 inspection
+
+The curve-mode-1 licensed-cache build passed all 169 Java 21 tests and the
+terminal archive inspector for both platforms. Inspection reconfirmed the 31
+read-only cache files, exact cache checksums, source/license records, empty
+adjacent exports directory, platform-specific launchers, safe paths, and all
+desktop plus advanced entry points. No GUI was launched or automated.
+
+- shaded JAR SHA-256: `22914ec760cbde3841b936c3bf124844475e01a29e13f0e05ab9102ad1e95b0c`
+- Linux archive SHA-256: `d1b0b21fa4b1e952a2610febbecc0bd37d7705c5e05cf31faacbbcfd279afafb`
+  (77,025,511 bytes)
+- Windows archive SHA-256: `d6841575c40c4d5cf8a731d77fa5d2ac3ea7a2dcd30ba1d21aabce41fdddda9e`
+  (77,026,217 bytes)
+
+Two shaded-JAR full-cache censuses were byte-identical at the hash recorded in
+`COMPATIBILITY_CENSUS.md`. A validation-only packaged render of NPC 2535
+exercised material 134's curve mode 1 across all 18 cells and confirmed both
+visible and transparent pixels. Cache identities remained unchanged, and no
+cache or rendered derivative entered the repository.

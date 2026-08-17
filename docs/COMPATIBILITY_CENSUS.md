@@ -1616,3 +1616,104 @@ Curve interpolation mode 1 is now the largest remaining material blocker at
 as the highest-yield single batch. Keep combine function 8, curve mode 2, the
 color-gradient sample-count variant, and all other unsupported behavior
 explicitly fail-closed.
+
+## 2026-08-17 curve-interpolation-mode-1 audit
+
+Curve interpolation mode 1 is implemented from the exact pinned
+`a569f0af7754ada96ed7ac76d7582b2c7511b7a0` client sources.
+`Texture.java` maps operation 8 to `TextureOpCurve`; `TextureOpCurve.java`
+establishes its one monochrome child, serialization, table preparation, and
+sampling; and `TextureOp.java#createTrigonometryTables` establishes the cosine
+table. Parameter 0 reads the unsigned interpolation selector, unsigned marker
+count, then that many unsigned 16-bit position/value pairs. The node defaults
+to mode 0, and the pinned client supplies `{0,0}` and `{4096,4096}` only when
+the entire marker parameter is absent. Selecting mode 1 necessarily serializes
+that parameter and its marker list.
+
+Mode 1 prepares 257 signed-short samples at positions `sample << 4`. For each
+sample, selection starts at marker 1 and advances while the current marker is
+not last and its position is less than or equal to the sample. With lower and
+upper selected in serialized order, the fraction is
+`((position - lowerPosition) << 12) / (upperPosition - lowerPosition)` using
+Java signed `int` arithmetic and division toward zero. The upper weight is
+`(4096 - COSINE[(fraction >> 5) & 255]) >> 1`; the lower weight is its
+12-bit complement; and the result is
+`(upperWeight * upperValue + lowerWeight * lowerValue) >> 12`. Values at or
+below -32768 become -32767, values at or above 32768 become 32767, and the
+result narrows to `short`. Rendering shifts the child output by four, clamps
+the lookup index to 0..256, and returns the signed table entry as monochrome.
+The cosine weights and unsigned marker values keep legal mode-1 products
+within Java `int`; the implementation nevertheless retains the literal
+32-bit operators rather than widening them.
+
+Markers are neither sorted nor deduplicated. Unsorted inputs therefore use
+their raw serialized segment order. A duplicate that the selection loop skips
+is harmless, while a selected zero-width segment reaches Java integer division
+by zero exactly as in the pinned client. Two markers are sufficient; fewer
+than two fail closed. Samples outside the marker positions extrapolate through
+the selected end segment before the signed-short clamp, and child values below
+zero or above 4096 select prepared entries 0 or 256. Existing mode 0 remains
+unchanged. Mode 2, combine function 8, the color-gradient sample-count variant,
+and every unrelated unsupported case remain explicitly rejected without a
+texture or color substitute.
+
+Two exhaustive shaded-JAR censuses were byte-identical at SHA-256
+`8f085af31b45640cc85d3f015064b8f99b3860284ba7a5487c58d088b85015a5`.
+The pre-change combine-function-10 census was
+`b3f7f24af2c605074fb92b4d096493b170cdfe759ff605fe2260fe65989db7f9`;
+the cache identity remains unchanged.
+
+| Category | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Ready | 3,286 | 3,305 | +19 |
+| Missing automatic animations | 666 | 668 | +2 |
+| Unsupported material | 45 | 24 | -21 |
+| Unsupported model | 3,946 | 3,946 | 0 |
+| Morph/internal definition | 612 | 612 | 0 |
+| Other failure | 35 | 35 | 0 |
+
+All 21 diagnostics reach zero. NPC 2535 (Teak) and NPCs 5533-5538,
+5547-5552, and 5553-5558 (Autumn, Summer, and Winter Elementals) become ready.
+NPC 151 (Fly trap) and NPC 3336 (Bullrush) advance to missing standing and
+walking metadata. No definition exposes a new material, model, or decoder
+failure.
+
+The remaining 24 material diagnostics are combine function 8 in texture 361
+for 16 definitions, curve mode 2 in textures 186/266 for seven, and the
+color-gradient sample-count case in texture 334 for one. There are no
+unsupported operation IDs. Unsupported-model clusters remain
+`BufferUnderflowException` for 1,954 definitions and invalid decoded offsets
+(`newPosition > limit`) for 1,992. NPC 72 remains fully automatic and ready;
+NPC 40 remains model/material render-compatible and lacks only automatic
+standing metadata.
+
+NPC 2535 (Teak) is the terminal packaged-render representative. Its model
+21849, materials 134/196/110, 657 textured faces, shared standing/walking
+sequence 5750, and all 18 cells validate with visible and transparent pixels.
+The external project SHA-256 is
+`e552a5a8efc0014df769c7885c03c6172795f56f885c92e20bddf6275c088d11`;
+the validation report SHA-256 is
+`a047e5503b0fac6850cdff756c33da3ef22d764cd6c9669c8fd48e45c7bdce82`,
+the PNG SHA-256 is
+`e21f85b33922236e6e1f0cd3b4f69cb544e17793df1534a207a9772eac17ef2a`,
+and the provenance SHA-256 is
+`cc057ceedac5e1b2e391b56bb06ef15b6b3add34e3191afdd7b2d8685fd4898f`.
+No cache input or rendered derivative is tracked.
+
+The licensed-cache distribution build reran all 169 tests and passed terminal
+inspection for both archives, including exact read-only cache contents,
+license/source records, empty adjacent exports folder, safe archive paths, and
+diagnostic entry points. The shaded JAR SHA-256 was
+`22914ec760cbde3841b936c3bf124844475e01a29e13f0e05ab9102ad1e95b0c`.
+External archive hashes were
+`d1b0b21fa4b1e952a2610febbecc0bd37d7705c5e05cf31faacbbcfd279afafb`
+(Linux) and
+`d6841575c40c4d5cf8a731d77fa5d2ac3ea7a2dcd30ba1d21aabce41fdddda9e`
+(Windows); neither archive is committed.
+
+## Recommended next batch
+
+Combine function 8 is now the largest remaining material blocker at 16
+diagnostic occurrences. Trace it next as the highest-yield single batch while
+keeping curve mode 2, the color-gradient sample-count variant, and every other
+unsupported case fail-closed.
