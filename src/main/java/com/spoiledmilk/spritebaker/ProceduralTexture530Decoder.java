@@ -30,7 +30,7 @@ public final class ProceduralTexture530Decoder {
     }
 
     private static Node create(int id,int type,DependencyResolver dependencies){switch(type){
-        case 0:return new Fill(true);case 1:return new Fill(false);case 2:return new Gradient(true);case 3:return new Gradient(false);case 4:return new BrickTiles();case 5:return new BoxBlur();
+        case 0:return new Fill(true);case 1:return new Fill(false);case 2:return new Gradient(true);case 3:return new Gradient(false);case 4:return new BrickTiles();case 5:return new BoxBlur();case 6:return new Clamp();
         case 7:return new Combine();case 8:return new Curve();case 10:return new ColorGradient();case 13:return new HashNoise();case 15:return new CellularNoise();case 27:return new Stripes();case 30:return new Range();case 32:return new BumpLighting();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();
         default:throw new UnsupportedTextureFormatException(id,"procedural operation "+type);
     }}
@@ -101,6 +101,16 @@ public final class ProceduralTexture530Decoder {
                 }
             }
         }
+    }
+    private static final class Clamp extends Node{
+        int lower,upper=4096;boolean monochrome;
+        int childCount(){return 1;}
+        void decode(int id,int code,BinaryInput in){if(code==0)lower=in.u16();else if(code==1)upper=in.u16();else if(code==2)monochrome=in.u8()==1;else super.decode(id,code,in);}
+        int[] rgb(int x,int y,int size)throws IOException{
+            if(monochrome){int value=clamp(children[0].mono(x,y,size));return new int[]{value,value,value};}
+            int[] color=children[0].rgb(x,y,size);return new int[]{clamp(color[0]),clamp(color[1]),clamp(color[2])};
+        }
+        private int clamp(int value){return lower>value?lower:upper>=value?value:upper;}
     }
     private static final class Combine extends Node{
         int function=6;boolean monochrome;

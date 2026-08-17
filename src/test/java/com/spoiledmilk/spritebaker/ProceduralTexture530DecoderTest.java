@@ -28,6 +28,29 @@ class ProceduralTexture530DecoderTest {
         assertArrayEquals(color.pixels,decoder.decode(930,colorCombine(6,2),4).pixels);
         assertEquals(java.util.List.of(1,1,7),color.operationTypes);
     }
+    @Test void operation6ClampsColorChannelsAtInclusiveUnsignedBounds(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        ProceduralTexture530Decoder.Decoded color=decoder.decode(944,clampColor(0),4);
+        ProceduralTexture530Decoder.Decoded monochrome=decoder.decode(950,clampColor(1),4);
+        assertTrue(java.util.Arrays.stream(color.pixels).allMatch(pixel->pixel==0x204060));
+        assertTrue(java.util.Arrays.stream(monochrome.pixels).allMatch(pixel->pixel==0x202020));
+        assertArrayEquals(color.pixels,decoder.decode(945,clampColor(2),4).pixels);
+        assertEquals(java.util.List.of(1,6),color.operationTypes);
+    }
+    @Test void operation6PreservesCoordinatesAndClampsMonochromeFirstChannel(){
+        ProceduralTexture530Decoder.Decoded decoded=new ProceduralTexture530Decoder().decode(946,clampGradient(1024,3072,1),4);
+        assertArrayEquals(new int[]{0xc0c0c0,0x808080,0x404040,0x404040},java.util.Arrays.copyOfRange(decoded.pixels,0,4));
+        assertEquals(java.util.List.of(2,6),decoded.operationTypes);
+    }
+    @Test void operation6PreservesReversedBoundsUnsignedValuesAndFailClosedParameters(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        ProceduralTexture530Decoder.Decoded reversed=decoder.decode(947,clampGradient(3072,1024,1),4);
+        assertArrayEquals(new int[]{0x404040,0xc0c0c0,0xc0c0c0,0xc0c0c0},java.util.Arrays.copyOfRange(reversed.pixels,0,4));
+        assertTrue(java.util.Arrays.stream(decoder.decode(948,clampMonochromeFill(0,65535,65535),4).pixels).allMatch(pixel->pixel==0xffffff));
+        UnsupportedTextureFormatException parameter=assertThrows(UnsupportedTextureFormatException.class,
+            ()->decoder.decode(949,new byte[]{1,0,6,1,1,3,0,0,0,0},4));
+        assertTrue(parameter.getMessage().contains("operation parameter 3 for Clamp"));
+    }
     @Test void combineFunction6UsesJavaOverflowThenFinalTextureClamp(){
         ProceduralTexture530Decoder.Decoded high=new ProceduralTexture530Decoder().decode(931,monochromeCombine(6,1,65535,65535),4);
         assertTrue(java.util.Arrays.stream(high.pixels).allMatch(pixel->pixel==0xffffff));
@@ -232,6 +255,9 @@ class ProceduralTexture530DecoderTest {
     static byte[] brickTiles(){return new byte[]{1,0,4,1,8,0,3,1,5,2,2,0,3,1,0,4,4,0,5,1,44,6,0,(byte)128,7,3,32,0,0,0};}
     static byte[] stripes(int mode){return new byte[]{1,0,27,1,3,0,3,1,6,0,2,(byte)mode,0,0,0};}
     static byte[] cellular(int selector,int metric,int jitter){return new byte[]{1,0,15,1,7,0,4,1,7,2,(byte)(jitter>>>8),(byte)jitter,3,(byte)selector,4,(byte)metric,5,3,6,6,0,0,0};}
+    static byte[] clampColor(int outputMode){return new byte[]{2,0,1,1,1,0,16,64,(byte)128,0,6,1,3,0,2,0,1,6,0,2,(byte)outputMode,0,1,0,0};}
+    static byte[] clampGradient(int lower,int upper,int outputMode){return new byte[]{2,0,2,1,0,0,6,1,3,0,(byte)(lower>>>8),(byte)lower,1,(byte)(upper>>>8),(byte)upper,2,(byte)outputMode,0,1,0,0};}
+    static byte[] clampMonochromeFill(int value,int lower,int upper){return new byte[]{2,0,0,1,1,0,(byte)(value>>>8),(byte)value,0,6,1,3,0,(byte)(lower>>>8),(byte)lower,1,(byte)(upper>>>8),(byte)upper,2,1,0,1,0,0};}
     static byte[] colorCombine(int function,int outputMode){return new byte[]{3,0,1,1,1,0,64,(byte)128,(byte)192,0,1,1,1,0,32,(byte)160,(byte)224,0,7,1,2,0,(byte)function,1,(byte)outputMode,0,1,2,0,0};}
     static byte[] monochromeCombine(int function,int outputMode,int first,int second){return new byte[]{3,0,0,1,1,0,(byte)(first>>>8),(byte)first,0,0,1,1,0,(byte)(second>>>8),(byte)second,0,7,1,2,0,(byte)function,1,(byte)outputMode,0,1,2,0,0};}
     static byte[] overflowingAddition(){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,17,0,0,1,1,0,255,255);for(int node=1;node<17;node++)bytes(out,0,7,1,2,0,1,1,1,node-1,node-1);bytes(out,16,0,0);return out.toByteArray();}
