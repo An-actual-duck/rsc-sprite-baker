@@ -31,7 +31,7 @@ public final class ProceduralTexture530Decoder {
 
     private static Node create(int id,int type,DependencyResolver dependencies){switch(type){
         case 0:return new Fill(true);case 1:return new Fill(false);case 2:return new Gradient(true);case 3:return new Gradient(false);case 4:return new BrickTiles();case 5:return new BoxBlur();case 6:return new Clamp();
-        case 7:return new Combine();case 8:return new Curve();case 10:return new ColorGradient();case 13:return new HashNoise();case 15:return new CellularNoise();case 19:return new CoordinateDisplacement();case 27:return new Stripes();case 30:return new Range();case 32:return new BumpLighting();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();
+        case 7:return new Combine();case 8:return new Curve();case 9:return new Flip();case 10:return new ColorGradient();case 13:return new HashNoise();case 15:return new CellularNoise();case 19:return new CoordinateDisplacement();case 27:return new Stripes();case 30:return new Range();case 32:return new BumpLighting();case 34:return new PerlinNoise();case 36:return new TextureDependency(dependencies);case 38:return new LineNoise();
         default:throw new UnsupportedTextureFormatException(id,"procedural operation "+type);
     }}
     @FunctionalInterface public interface DependencyResolver{Dependency resolve(int textureId)throws IOException;}
@@ -127,6 +127,17 @@ public final class ProceduralTexture530Decoder {
             if(function==3)return second*first>>12;
             return second>=2048?4096-((4096-first)*(4096-second)>>11):second*first>>11;
         }
+    }
+    private static final class Flip extends Node{
+        boolean horizontal=true,vertical=true,monochrome;
+        int childCount(){return 1;}
+        void decode(int id,int code,BinaryInput in){if(code==0)horizontal=in.u8()==1;else if(code==1)vertical=in.u8()==1;else if(code==2)monochrome=in.u8()==1;else super.decode(id,code,in);}
+        int[] rgb(int x,int y,int size)throws IOException{
+            int sampleX=horizontal?size-1-x:x,sampleY=vertical?size-1-y:y;
+            if(monochrome){int value=children[0].mono(sampleX,sampleY,size);return new int[]{value,value,value};}
+            return children[0].rgb(sampleX,sampleY,size);
+        }
+        int mono(int x,int y,int size)throws IOException{return monochrome?children[0].mono(horizontal?size-1-x:x,vertical?size-1-y:y,size):super.mono(x,y,size);}
     }
     private static final class Range extends Node{int min=1024,max=3072,range=2048;boolean monochrome;int childCount(){return 1;}void decode(int id,int code,BinaryInput in){if(code==0)min=in.u16();else if(code==1)max=in.u16();else if(code==2)monochrome=in.u8()==1;else super.decode(id,code,in);}void finish(int id){range=max-min;}int[] rgb(int x,int y,int size)throws IOException{int[] c=children[0].rgb(x,y,size);return new int[]{min+(range*c[0]>>12),min+(range*c[1]>>12),min+(range*c[2]>>12)};}}
     private static final class Curve extends Node{int mode;int[][] markers;int childCount(){return 1;}void decode(int id,int code,BinaryInput in){if(code!=0)super.decode(id,code,in);mode=in.u8();int n=in.u8();markers=new int[n][2];for(int i=0;i<n;i++){markers[i][0]=in.u16();markers[i][1]=in.u16();}}void finish(int id){if(mode!=0)throw new UnsupportedTextureFormatException(id,"curve interpolation "+mode);if(markers==null||markers.length<2)throw new UnsupportedTextureFormatException(id,"curve marker count");}int[] rgb(int x,int y,int size)throws IOException{int v=children[0].mono(x,y,size),i=1;while(i<markers.length&&v>=markers[i][0])i++;int result;if(i==markers.length)result=markers[i-1][1];else if(i==0)result=markers[0][1];else{int[] a=markers[i-1],b=markers[i];result=a[1]+(b[1]-a[1])*(v-a[0])/Math.max(1,b[0]-a[0]);}return new int[]{result,result,result};}}
