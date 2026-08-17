@@ -82,13 +82,22 @@ class ProceduralTexture530DecoderTest {
         assertArrayEquals(color.pixels,decoder.decode(963,colorCombine(2,2),4).pixels);
         assertTrue(java.util.Arrays.stream(decoder.decode(964,monochromeCombine(2,1,0,65535),4).pixels).allMatch(pixel->pixel==0));
     }
+    @Test void combineFunction5ScreensColorAndMonochromeWithFixedPointOverflow(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        ProceduralTexture530Decoder.Decoded color=decoder.decode(965,colorCombine(5,0),4);
+        ProceduralTexture530Decoder.Decoded monochrome=decoder.decode(966,colorCombine(5,1),4);
+        assertTrue(java.util.Arrays.stream(color.pixels).allMatch(pixel->pixel==0x58d0f8));
+        assertTrue(java.util.Arrays.stream(monochrome.pixels).allMatch(pixel->pixel==0x585858));
+        assertArrayEquals(color.pixels,decoder.decode(967,colorCombine(5,2),4).pixels);
+        assertTrue(java.util.Arrays.stream(decoder.decode(968,monochromeCombine(5,1,65535,65535),4).pixels).allMatch(pixel->pixel==0xffffff));
+    }
     @Test void combineFunctions3And6RemainExactAndOtherFunctionsFailClosed(){
         ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
         assertTrue(java.util.Arrays.stream(decoder.decode(934,colorCombine(3,0),4).pixels).allMatch(pixel->pixel==0x0850a8));
         assertTrue(java.util.Arrays.stream(decoder.decode(935,colorCombine(3,1),4).pixels).allMatch(pixel->pixel==0x080808));
         assertTrue(java.util.Arrays.stream(decoder.decode(942,colorCombine(6,0),4).pixels).allMatch(pixel->pixel==0x10a0f0));
         assertTrue(java.util.Arrays.stream(decoder.decode(943,colorCombine(6,1),4).pixels).allMatch(pixel->pixel==0x101010));
-        for(int function=0;function<=12;function++)if(function!=1&&function!=2&&function!=3&&function!=6){
+        for(int function=0;function<=12;function++)if(function!=1&&function!=2&&function!=3&&function!=5&&function!=6){
             int unsupported=function;
             UnsupportedTextureFormatException error=assertThrows(UnsupportedTextureFormatException.class,
                 ()->decoder.decode(936,colorCombine(unsupported,0),4));
