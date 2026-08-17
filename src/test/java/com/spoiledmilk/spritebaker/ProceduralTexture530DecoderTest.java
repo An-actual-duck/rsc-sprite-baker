@@ -19,6 +19,43 @@ class ProceduralTexture530DecoderTest {
         UnsupportedTextureFormatException parameter=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(899,new byte[]{1,0,0,1,1,1,0,0,0},4));
         assertTrue(parameter.getMessage().contains("operation parameter 1 for Fill"));
     }
+    @Test void colorGradientAcceptsTexture334sExplicitOneSampleFramingDeterministically(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();byte[] graph=colorGradient(new int[][]{{0,32,160,224}});
+        ProceduralTexture530Decoder.Decoded first=decoder.decode(334,graph,4),second=decoder.decode(334,graph,4);
+        assertTrue(java.util.Arrays.stream(first.pixels).allMatch(pixel->pixel==0x20a0e0));
+        assertArrayEquals(first.pixels,second.pixels);assertEquals(java.util.List.of(2,10),first.operationTypes);
+    }
+    @Test void colorGradientPreservesPinnedZeroOneAndMultipleSampleBehavior(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        assertTrue(java.util.Arrays.stream(decoder.decode(1055,colorGradient(new int[0][4]),4).pixels).allMatch(pixel->pixel==0));
+        assertTrue(java.util.Arrays.stream(decoder.decode(1056,colorGradient(new int[][]{{65535,255,0,128}}),4).pixels).allMatch(pixel->pixel==0xff0080));
+        assertArrayEquals(new int[]{0x0000ff,0x00ff00,0xff0000,0xff0000},java.util.Arrays.copyOfRange(
+            decoder.decode(1057,colorGradient(new int[][]{{1024,255,0,0},{2048,0,255,0},{3072,0,0,255}}),4).pixels,0,4));
+    }
+    @Test void colorGradientImplementsPinnedDefaultAndAllSerializedPresets(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        assertArrayEquals(new int[]{0xc0c0c0,0x808080,0x404040,0},java.util.Arrays.copyOfRange(decoder.decode(1058,defaultColorGradient(),4).pixels,0,4));
+        int[] firstPixels={0xc0c0c0,0xa36c58,0xff0081,0x0e79ea,0xebe6c6,0xffff00};
+        for(int preset=1;preset<=6;preset++){
+            ProceduralTexture530Decoder.Decoded first=decoder.decode(1059,colorGradientPreset(preset),4),second=decoder.decode(1059,colorGradientPreset(preset),4);
+            assertEquals(firstPixels[preset-1],first.pixels[0],"preset "+preset);assertArrayEquals(first.pixels,second.pixels);assertEquals(java.util.List.of(2,10),first.operationTypes);
+        }
+    }
+    @Test void colorGradientRejectsInvalidPresetsUnknownParametersAndTruncatedPayloads(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        for(byte[] graph:new byte[][]{
+            {2,0,2,1,0,0,10,1,1,0},
+            {2,0,2,1,0,0,10,1,1,0,0},
+            {2,0,2,1,0,0,10,1,1,0,0,1,0,0,0},
+        }){
+            UnsupportedTextureFormatException error=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(1060,graph,4));
+            assertTrue(error.getMessage().contains("truncated operation 10 parameter 0"));
+        }
+        UnsupportedTextureFormatException preset=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(1061,colorGradientPreset(7),4));
+        assertTrue(preset.getMessage().contains("color-gradient preset 7"));
+        UnsupportedTextureFormatException parameter=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(1062,new byte[]{1,0,10,1,1,1,0,0,0},4));
+        assertTrue(parameter.getMessage().contains("operation parameter 1 for ColorGradient"));
+    }
     @Test void curveMode1UsesPinnedCosineTableAndDeterministicFixedPointInterpolation(){
         ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();byte[] graph=curve(1,new int[][]{{0,0},{4096,4096}});
         ProceduralTexture530Decoder.Decoded first=decoder.decode(1025,graph,4),second=decoder.decode(1025,graph,4);
@@ -677,6 +714,13 @@ class ProceduralTexture530DecoderTest {
         for(int[] marker:markers)bytes(out,marker[0]>>>8,marker[0],marker[1]>>>8,marker[1]);
         bytes(out,0,1,0,0);return out.toByteArray();
     }
+    static byte[] colorGradient(int[][] samples){
+        ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,2,0,2,1,0,0,10,1,1,0,0,samples.length);
+        for(int[] sample:samples)bytes(out,sample[0]>>>8,sample[0],sample[1],sample[2],sample[3]);
+        bytes(out,0,1,0,0);return out.toByteArray();
+    }
+    static byte[] colorGradientPreset(int preset){return new byte[]{2,0,2,1,0,0,10,1,1,0,(byte)preset,0,1,0,0};}
+    static byte[] defaultColorGradient(){return new byte[]{2,0,2,1,0,0,10,1,0,0,1,0,0};}
     static byte[] curveOverConstant(int value,int[][] markers){
         return curveOverConstant(1,value,markers);
     }

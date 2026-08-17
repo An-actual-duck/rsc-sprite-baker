@@ -253,7 +253,53 @@ public final class ProceduralTexture530Decoder {
         private int[] getMarker(int index){if(index<0)return beforeMarker;if(index>=markers.length)return afterMarker;return markers[index];}
         private static int[] createCosine(){int[] values=new int[256];for(int i=0;i<values.length;i++)values[i]=(int)(Math.cos((double)i/255.0D*6.283185307179586D)*4096.0D);return values;}
     }
-    private static final class ColorGradient extends Node{int[][] samples;int childCount(){return 1;}void decode(int id,int code,BinaryInput in){if(code!=0)super.decode(id,code,in);int preset=in.u8();if(preset!=0)throw new UnsupportedTextureFormatException(id,"color-gradient preset "+preset);int n=in.u8();samples=new int[n][4];for(int i=0;i<n;i++){samples[i][0]=in.u16();samples[i][1]=in.u8()<<4;samples[i][2]=in.u8()<<4;samples[i][3]=in.u8()<<4;}}void finish(int id){if(samples==null||samples.length<2)throw new UnsupportedTextureFormatException(id,"color-gradient sample count");}int[] rgb(int x,int y,int size)throws IOException{int v=children[0].mono(x,y,size),i=0;while(i<samples.length&&v>=samples[i][0])i++;if(i==0)return color(samples[0]);if(i==samples.length)return color(samples[i-1]);int[] a=samples[i-1],b=samples[i];int w=(v-a[0])*4096/Math.max(1,b[0]-a[0]);return new int[]{(a[1]*(4096-w)+b[1]*w)>>12,(a[2]*(4096-w)+b[2]*w)>>12,(a[3]*(4096-w)+b[3]*w)>>12};}private int[] color(int[] s){return new int[]{s[1],s[2],s[3]};}}
+    private static final class ColorGradient extends Node{
+        int[][] samples;boolean pinnedLookup;int[] colors;
+        int childCount(){return 1;}
+        void decode(int id,int code,BinaryInput in){
+            if(code!=0)super.decode(id,code,in);
+            if(in.remaining()<1)throw new UnsupportedTextureFormatException(id,"truncated operation 10 parameter 0");
+            int preset=in.u8();
+            if(preset!=0){setPreset(id,preset);pinnedLookup=true;return;}
+            if(in.remaining()<1)throw new UnsupportedTextureFormatException(id,"truncated operation 10 parameter 0");
+            int n=in.u8();if(in.remaining()<n*5)throw new UnsupportedTextureFormatException(id,"truncated operation 10 parameter 0");
+            samples=new int[n][4];pinnedLookup=false;
+            for(int i=0;i<n;i++){samples[i][0]=in.u16();samples[i][1]=in.u8()<<4;samples[i][2]=in.u8()<<4;samples[i][3]=in.u8()<<4;}
+        }
+        void finish(int id){if(samples==null){setPreset(id,1);pinnedLookup=true;}if(pinnedLookup)prepareColors();}
+        int[] rgb(int x,int y,int size)throws IOException{
+            int v=children[0].mono(x,y,size);
+            if(colors!=null){int index=v>>4;if(index<0)index=0;if(index>256)index=256;int packed=colors[index];return new int[]{packed>>12&0xff0,packed>>4&0xff0,(packed&0xff)<<4};}
+            if(samples.length==0)return new int[]{0,0,0};
+            if(samples.length==1)return color(samples[0]);
+            int i=0;while(i<samples.length&&v>=samples[i][0])i++;if(i==0)return color(samples[0]);if(i==samples.length)return color(samples[i-1]);int[] a=samples[i-1],b=samples[i];int w=(v-a[0])*4096/Math.max(1,b[0]-a[0]);return new int[]{(a[1]*(4096-w)+b[1]*w)>>12,(a[2]*(4096-w)+b[2]*w)>>12,(a[3]*(4096-w)+b[3]*w)>>12};
+        }
+        private void prepareColors(){
+            colors=new int[257];
+            for(int index=0;index<colors.length;index++){
+                int position=index<<4,marker=0;while(marker<samples.length&&position>=samples[marker][0])marker++;
+                int red,green,blue;
+                if(marker==0){red=samples[0][1];green=samples[0][2];blue=samples[0][3];}
+                else if(marker==samples.length){int[] sample=samples[marker-1];red=sample[1];green=sample[2];blue=sample[3];}
+                else{int[] lower=samples[marker-1],upper=samples[marker];int upperWeight=(position-lower[0]<<12)/(upper[0]-lower[0]),lowerWeight=4096-upperWeight;red=lower[1]*lowerWeight+upper[1]*upperWeight>>12;green=lower[2]*lowerWeight+upper[2]*upperWeight>>12;blue=lower[3]*lowerWeight+upper[3]*upperWeight>>12;}
+                red=clampByte(red>>4);green=clampByte(green>>4);blue=clampByte(blue>>4);colors[index]=red<<16|green<<8|blue;
+            }
+        }
+        private void setPreset(int id,int preset){
+            switch(preset){
+                case 1:samples=table(new int[]{0,4096},new int[]{0,4096},new int[]{0,4096},new int[]{0,4096});break;
+                case 2:samples=table(new int[]{0,2867,3072,3276,3481,3686,3891,4096},new int[]{2650,2313,2618,2296,2072,2730,2232,1686},new int[]{2602,1799,1734,1220,963,2152,1060,1413},new int[]{2361,1558,1413,947,722,1766,915,1140});break;
+                case 3:samples=table(new int[]{0,663,1363,2048,2727,3411,4096},new int[]{0,0,0,4096,4096,4096,0},new int[]{0,4096,4096,4096,0,0,0},new int[]{4096,4096,0,0,0,4096,4096});break;
+                case 4:samples=table(new int[]{0,1843,2457,2781,3481,4096},new int[]{0,0,0,0,546,4096},new int[]{0,0,0,1124,3084,4096},new int[]{0,1493,2939,3565,4031,4096});break;
+                case 5:samples=table(new int[]{0,155,389,671,897,1175,1368,1507,1736,2088,2355,2691,3031,3522,3727,4096},new int[]{80,321,578,947,1285,1525,1734,1413,1108,1766,2409,3116,3806,3437,3116,2377},new int[]{192,449,690,995,1397,1429,1461,1525,1590,2056,2586,3148,3710,3421,3148,2505},new int[]{321,562,803,1140,1509,1413,1333,1702,2056,2666,3276,3228,3196,3019,3228,2746});break;
+                case 6:samples=table(new int[]{2048,2867,3276,4096},new int[]{0,4096,4096,4096},new int[]{4096,4096,4096,0},new int[]{0,0,0,0});break;
+                default:throw new UnsupportedTextureFormatException(id,"color-gradient preset "+preset);
+            }
+        }
+        private int[][] table(int[] positions,int[] red,int[] green,int[] blue){int[][] result=new int[positions.length][4];for(int i=0;i<positions.length;i++)result[i]=new int[]{positions[i],red[i],green[i],blue[i]};return result;}
+        private int clampByte(int value){if(value<0)return 0;if(value>255)return 255;return value;}
+        private int[] color(int[] s){return new int[]{s[1],s[2],s[3]};}
+    }
     private static final class HashNoise extends Node{
         int childCount(){return 0;}
         int[] rgb(int x,int y,int size){

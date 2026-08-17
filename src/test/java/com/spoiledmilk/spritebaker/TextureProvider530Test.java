@@ -256,6 +256,16 @@ class TextureProvider530Test {
         assertTrue(provider.material(0)==material);
     }
 
+    @Test void decodesAndCachesTexture334StyleOneSampleColorGradient() throws Exception {
+        TextureProvider530 provider=provider(Map.of(0,ProceduralTexture530DecoderTest.colorGradient(new int[][]{{0,32,160,224}})));
+        TextureMaterial530 material=provider.material(0);
+        assertEquals(java.util.List.of(2,10),material.operationTypes);
+        assertEquals(64,material.size);
+        assertTrue(java.util.Arrays.stream(material.pixels).allMatch(pixel->pixel==0x20a0e0));
+        assertEquals(1,provider.loaded().size());
+        assertTrue(provider.material(0)==material);
+    }
+
     @Test void resolvesAndCachesOperation39SpriteDependencies() throws Exception {
         MaterialDefinition530[] definitions={new MaterialDefinition530(0,true,true,true,true,false,0,0,0,0,0)};
         int[] calls={0};TextureProvider530 provider=new TextureProvider530(definitions,
