@@ -244,6 +244,27 @@ class ProceduralTexture530DecoderTest {
             ()->decoder.decode(927,new byte[]{1,0,15,1,1,7,0,0,0},8));
         assertTrue(parameter.getMessage().contains("operation parameter 7 for CellularNoise"));
     }
+    @Test void operation19UsesDistinctPinnedColorAndMonochromeAngleQuantization(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        ProceduralTexture530Decoder.Decoded color=decoder.decode(951,coordinateDisplacement(0,2048,4096,32767),8);
+        ProceduralTexture530Decoder.Decoded monochrome=decoder.decode(952,coordinateDisplacement(1,2048,4096,32767),8);
+        assertArrayEquals(new int[]{0x2c4874,0x2c4874,0x2c4874,0x2c4874,0x2c4874,0x2c4874,0x2c4874,0x2c4874,
+            0x485068,0x485068,0x485068,0x485068,0x485068,0x485068,0x485068,0x485068},java.util.Arrays.copyOfRange(color.pixels,0,16));
+        assertArrayEquals(new int[]{0xb8b8b8,0xb8b8b8,0xb8b8b8,0xb8b8b8,0xb8b8b8,0xb8b8b8,0xb8b8b8,0xb8b8b8,
+            0xd4d4d4,0xd4d4d4,0xd4d4d4,0xd4d4d4,0xd4d4d4,0xd4d4d4,0xd4d4d4,0xd4d4d4},java.util.Arrays.copyOfRange(monochrome.pixels,0,16));
+        assertArrayEquals(color.pixels,decoder.decode(953,coordinateDisplacement(2,2048,4096,32767),8).pixels);
+        assertEquals(java.util.List.of(3,10,0,0,19),color.operationTypes);
+    }
+    @Test void operation19PreservesDefaultScaleWrappedCoordinatesAndJavaOverflow(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        int[] defaults=decoder.decode(954,coordinateDisplacement(0,1024,4096,-1),8).pixels;
+        assertArrayEquals(new int[]{0xd4782c,0xd4782c,0xd4782c,0xd4782c,0xd4782c,0xd4782c,0xd4782c,0xd4782c},java.util.Arrays.copyOfRange(defaults,0,8));
+        int[] overflow=decoder.decode(955,coordinateDisplacement(0,2048,65535,65535),8).pixels;
+        assertArrayEquals(new int[]{0xd4782c,0xd4782c,0xd4782c,0xd4782c,0xd4782c,0xd4782c,0xd4782c,0xd4782c},java.util.Arrays.copyOfRange(overflow,0,8));
+        UnsupportedTextureFormatException parameter=assertThrows(UnsupportedTextureFormatException.class,
+            ()->decoder.decode(956,new byte[]{1,0,19,1,1,2,0,0,0,0},8));
+        assertTrue(parameter.getMessage().contains("operation parameter 2 for CoordinateDisplacement"));
+    }
     static byte[] hashNoise(){return new byte[]{1,0,13,1,0,0,0,0};}
     static byte[] defaultNoise(){return new byte[]{1,0,34,1,0,0,0,0};}
     static byte[] textureDependency(int id){return new byte[]{1,0,36,1,1,0,(byte)(id>>>8),(byte)id,0,0,0};}
@@ -258,6 +279,14 @@ class ProceduralTexture530DecoderTest {
     static byte[] clampColor(int outputMode){return new byte[]{2,0,1,1,1,0,16,64,(byte)128,0,6,1,3,0,2,0,1,6,0,2,(byte)outputMode,0,1,0,0};}
     static byte[] clampGradient(int lower,int upper,int outputMode){return new byte[]{2,0,2,1,0,0,6,1,3,0,(byte)(lower>>>8),(byte)lower,1,(byte)(upper>>>8),(byte)upper,2,(byte)outputMode,0,1,0,0};}
     static byte[] clampMonochromeFill(int value,int lower,int upper){return new byte[]{2,0,0,1,1,0,(byte)(value>>>8),(byte)value,0,6,1,3,0,(byte)(lower>>>8),(byte)lower,1,(byte)(upper>>>8),(byte)upper,2,1,0,1,0,0};}
+    static byte[] coordinateDisplacement(int outputMode,int angle,int magnitude,int serializedScale){
+        ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,5,0,3,1,0);
+        bytes(out,0,10,1,1,0,0,2,0,0,16,64,128,16,0,240,128,32,0);
+        bytes(out,0,0,1,1,0,angle>>>8,angle,0,0,1,1,0,magnitude>>>8,magnitude);
+        if(serializedScale<0)bytes(out,0,19,1,1,1,outputMode,1,2,3);
+        else bytes(out,0,19,1,2,0,serializedScale>>>8,serializedScale,1,outputMode,1,2,3);
+        bytes(out,4,0,0);return out.toByteArray();
+    }
     static byte[] colorCombine(int function,int outputMode){return new byte[]{3,0,1,1,1,0,64,(byte)128,(byte)192,0,1,1,1,0,32,(byte)160,(byte)224,0,7,1,2,0,(byte)function,1,(byte)outputMode,0,1,2,0,0};}
     static byte[] monochromeCombine(int function,int outputMode,int first,int second){return new byte[]{3,0,0,1,1,0,(byte)(first>>>8),(byte)first,0,0,1,1,0,(byte)(second>>>8),(byte)second,0,7,1,2,0,(byte)function,1,(byte)outputMode,0,1,2,0,0};}
     static byte[] overflowingAddition(){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,17,0,0,1,1,0,255,255);for(int node=1;node<17;node++)bytes(out,0,7,1,2,0,1,1,1,node-1,node-1);bytes(out,16,0,0);return out.toByteArray();}
