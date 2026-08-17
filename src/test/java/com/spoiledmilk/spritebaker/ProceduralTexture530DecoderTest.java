@@ -19,6 +19,41 @@ class ProceduralTexture530DecoderTest {
         UnsupportedTextureFormatException parameter=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(899,new byte[]{1,0,0,1,1,1,0,0,0},4));
         assertTrue(parameter.getMessage().contains("operation parameter 1 for Fill"));
     }
+    @Test void curveMode1UsesPinnedCosineTableAndDeterministicFixedPointInterpolation(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();byte[] graph=curve(1,new int[][]{{0,0},{4096,4096}});
+        ProceduralTexture530Decoder.Decoded first=decoder.decode(1025,graph,4),second=decoder.decode(1025,graph,4);
+        assertArrayEquals(new int[]{0xdbdbdb,0x808080,0x252525,0},java.util.Arrays.copyOfRange(first.pixels,0,4));
+        assertArrayEquals(first.pixels,second.pixels);assertEquals(java.util.List.of(2,8),first.operationTypes);
+    }
+    @Test void curveMode1SelectsRawMarkerSegmentsAtBoundariesAndClampsSignedShortTable(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        assertArrayEquals(new int[]{0x808080,0,0x7f7f7f,0xffffff},java.util.Arrays.copyOfRange(
+            decoder.decode(1026,curve(1,new int[][]{{0,4096},{2048,0},{4096,4096}}),4).pixels,0,4));
+        assertTrue(java.util.Arrays.stream(decoder.decode(1027,curveOverConstant(65535,new int[][]{{0,0},{4096,2048}}),4).pixels).allMatch(pixel->pixel==0x7f7f7f));
+        assertTrue(java.util.Arrays.stream(decoder.decode(1027,curve(1,new int[][]{{0,65535},{4096,65535}}),4).pixels).allMatch(pixel->pixel==0xffffff));
+    }
+    @Test void curveMode1PreservesMinimalUnsortedAndDuplicateMarkerBehavior(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        assertArrayEquals(new int[]{0xa1a1a1,0x404040,0x9f9f9f,0xffffff},java.util.Arrays.copyOfRange(
+            decoder.decode(1028,curve(1,new int[][]{{4096,0},{0,4096},{2048,1024}}),4).pixels,0,4));
+        assertArrayEquals(decoder.decode(1029,curve(1,new int[][]{{0,0},{0,2048},{4096,4096}}),4).pixels,
+            decoder.decode(1029,curve(1,new int[][]{{0,2048},{4096,4096}}),4).pixels);
+        assertThrows(ArithmeticException.class,()->decoder.decode(1030,curve(1,new int[][]{{0,0},{0,4096}}),4));
+    }
+    @Test void curveMode1RejectsMalformedPayloadsAndLeavesOtherModesFailClosed(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        for(byte[] truncated:new byte[][]{{1,0,8,1,1,0},{1,0,8,1,1,0,1,2,0,0,0}}){
+            UnsupportedTextureFormatException error=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(1031,truncated,4));
+            assertTrue(error.getMessage().contains("truncated operation 8 parameter 0"));
+        }
+        UnsupportedTextureFormatException count=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(1032,curve(1,new int[][]{{0,0}}),4));
+        assertTrue(count.getMessage().contains("curve marker count"));
+        UnsupportedTextureFormatException mode=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(1033,curve(2,new int[][]{{0,0},{4096,4096}}),4));
+        assertTrue(mode.getMessage().contains("curve interpolation 2"));
+        assertArrayEquals(new int[]{0xc0c0c0,0x808080,0x404040,0},java.util.Arrays.copyOfRange(decoder.decode(1033,curve(0,new int[][]{{0,0},{4096,4096}}),4).pixels,0,4));
+        UnsupportedTextureFormatException parameter=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(1034,new byte[]{1,0,8,1,1,1,0,0,0},4));
+        assertTrue(parameter.getMessage().contains("operation parameter 1 for Curve"));
+    }
     @Test void operation17DefaultsPreserveCoordinatesAndConvertColorAndMonochromeChildren(){
         ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
         ProceduralTexture530Decoder.Decoded color=decoder.decode(979,hslAdjust(0x4080c0),4),second=decoder.decode(979,hslAdjust(0x4080c0),4);
@@ -573,6 +608,16 @@ class ProceduralTexture530DecoderTest {
     static byte[] waveformNoOpParameters(){return new byte[]{1,0,12,1,4,2,4,5,6,0,0,0};}
     static byte[] waveform(int coordinateMode,int selector,int frequency){return new byte[]{1,0,12,1,3,0,(byte)coordinateMode,1,(byte)selector,3,(byte)frequency,0,0,0};}
     static byte[] monochromeFill(int value){return new byte[]{1,0,0,1,1,0,(byte)value,0,0,0};}
+    static byte[] curve(int mode,int[][] markers){
+        ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,2,0,2,1,0,0,8,1,1,0,mode,markers.length);
+        for(int[] marker:markers)bytes(out,marker[0]>>>8,marker[0],marker[1]>>>8,marker[1]);
+        bytes(out,0,1,0,0);return out.toByteArray();
+    }
+    static byte[] curveOverConstant(int value,int[][] markers){
+        ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,3,0,2,1,0);constantRange(out,value,0);bytes(out,0,8,1,1,0,1,markers.length);
+        for(int[] marker:markers)bytes(out,marker[0]>>>8,marker[0],marker[1]>>>8,marker[1]);
+        bytes(out,1,2,0,0);return out.toByteArray();
+    }
     static byte[] hslAdjust(int rgb){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,2);colorFillNode(out,rgb);bytes(out,0,17,1,0,0,1,0,0);return out.toByteArray();}
     static byte[] hslAdjust(int rgb,int hue,int saturation,int lightness){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,2);colorFillNode(out,rgb);bytes(out,0,17,1,3,0,hue>>>8,hue,1,saturation,2,lightness,0,1,0,0);return out.toByteArray();}
     static byte[] hslAdjustMonochrome(int value){ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,2,0,0,1,1,0,value,0,17,1,0,0,1,0,0);return out.toByteArray();}
