@@ -53,6 +53,11 @@ final class Revision530Type1ModelFixture {
         return out.toByteArray();
     }
 
+    static byte[] smartBoundaries(){
+        ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,1,1,1,1,64,65,65,0x12,0x34,0x80,0,0xff,0xff,127);
+        shorts(out,3,1);bytes(out,0,0,0,0,0,0,0);shorts(out,5,0,0,3,0);bytes(out,0xff,0xff);return out.toByteArray();
+    }
+
     static int footer(byte[] data){return data.length-23;}
     static void putU16(byte[] data,int offset,int value){data[offset]=(byte)(value>>>8);data[offset+1]=(byte)value;}
     private static void shorts(ByteArrayOutputStream out,int... values){for(int value:values)bytes(out,value>>>8,value);}

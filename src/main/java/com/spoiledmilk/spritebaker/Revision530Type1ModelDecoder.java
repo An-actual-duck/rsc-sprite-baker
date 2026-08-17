@@ -265,6 +265,18 @@ final class Revision530Type1ModelDecoder {
             throw new AssertionError(name);
         }
 
+        List<String> sectionNames() {
+            List<String> names=new ArrayList<>(sections.size());
+            for(Section section:sections)names.add(section.name);
+            return names;
+        }
+
+        boolean boundariesAreContiguous() {
+            int expected=textures;
+            for(Section section:sections){if(section.start!=expected||section.end<section.start||section.end>footer)return false;expected=section.end;}
+            return expected==footer;
+        }
+
         private static long add(List<Section> sections, String name, long start, long length, int footer) {
             long end = start + length;
             if (start < 0 || length < 0 || end < start || end > footer) {

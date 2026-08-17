@@ -27,6 +27,19 @@ class Revision530Type1ModelDecoderTest {
         }
     }
 
+    @Test void calculatesEveryStreamBoundaryForEveryOptionalFlagCombination(){
+        List<String> expected=List.of("vertex-flags","triangle-info","face-index-types","face-priorities","face-bones","vertex-bones","face-alpha","face-indices","face-textures","texture-coordinates","face-colors","vertex-x","vertex-y","vertex-z","simple-texture-pmn","complex-texture-pmn","complex-texture-scale","complex-texture-rotation","complex-texture-direction","complex-texture-auxiliary");
+        for(int options=0;options<64;options++){
+            Revision530Type1ModelDecoder.Layout layout=Revision530Type1ModelDecoder.Layout.parse(Revision530Type1ModelFixture.oneFace(0,options));
+            assertTrue(layout.matches);assertTrue(layout.boundariesAreContiguous());assertEquals(expected,layout.sectionNames());
+        }
+    }
+
+    @Test void preservesOneAndTwoByteSignedSmartBoundaryValues(){
+        ModelDefinition model=decoder.decode(99,Revision530Type1ModelFixture.smartBoundaries());
+        assertArrayEquals(new int[]{-16384,-1,62},model.vertexX);
+    }
+
     @Test void decodesTextureRenderTypesZeroThroughThreeAndEveryComplexField(){
         ModelDefinition530 simple=(ModelDefinition530)decoder.decode(1,Revision530Type1ModelFixture.oneFace(0,63));
         assertArrayEquals(new byte[]{0},simple.textureRenderTypes);assertArrayEquals(new short[]{0},simple.texIndices1);assertArrayEquals(new short[]{1},simple.texIndices2);assertArrayEquals(new short[]{2},simple.texIndices3);
