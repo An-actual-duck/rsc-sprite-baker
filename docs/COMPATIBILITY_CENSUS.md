@@ -1808,3 +1808,114 @@ Curve interpolation mode 2 is now the largest remaining material blocker at
 seven diagnostic occurrences. Trace it next as the highest-yield semantics
 batch while keeping the color-gradient sample-count variant and all unrelated
 unsupported behavior fail-closed.
+
+## 2026-08-17 curve-interpolation-mode-2 audit
+
+Curve interpolation mode 2 is implemented from the exact pinned
+`a569f0af7754ada96ed7ac76d7582b2c7511b7a0` client
+`TextureOpCurve.java`. Operation 8 remains a one-child monochrome node.
+Parameter 0 reads an unsigned mode, unsigned marker count, and unsigned 16-bit
+position/value pairs. Mode 2 first generates two marker records. The marker
+before the serialized list is `2 * marker[0] - marker[1]`; notably, the marker
+after the list is the pinned client's
+`2 * marker[length - 2] - marker[length - 1]`, not the conventional reflection
+from the last marker. Both position and value fields use these literal Java
+`int` expressions. With the minimum two markers, the two generated records are
+therefore identical.
+
+Mode 2 prepares 257 signed-short samples at `position = sample << 4`. Segment
+selection starts at marker 1 and advances while it is not the final marker and
+its position is less than or equal to the sample. For the selected four values
+`p0` (previous), `p1` (lower), `p2` (upper), and `p3` (next), it computes:
+
+```text
+t = ((position - lowerPosition) << 12) / (upperPosition - lowerPosition)
+c = p3 + p1 - p2 - p0
+t2 = (t * t) >> 12
+b = p0 - p1 - c
+value = p1
+      + ((t2 * b) >> 12)
+      + ((t2 * ((t * c) >> 12)) >> 12)
+      + (((p2 - p0) * t) >> 12)
+```
+
+Every subtraction, addition, multiplication, shift, and division remains Java
+signed 32-bit arithmetic; division truncates toward zero. Values at or below
+-32768 become -32767, values at or above 32768 become 32767, and the result
+then narrows to `short`. Rendering shifts the child value by four, clamps the
+lookup index to 0..256, and sign-extends the table entry as monochrome. A
+focused overflow fixture produces black with the pinned operators but would
+produce white if intermediates were widened.
+
+Markers are not sorted or deduplicated. Unsorted sets retain serialized order.
+Duplicates passed by the `<=` segment loop remain available as neighboring
+cubic control values; a duplicate selected as the lower/upper segment creates
+a zero denominator and reaches Java integer division by zero. Two markers are
+sufficient, while fewer than two remain a precise fail-closed marker-count
+error. Boundary, high-value signed-short saturation, malformed/truncated
+payload, and deterministic lookup behavior are covered with neutral generated
+fixtures. Curve modes 0 and 1 are unchanged. The color-gradient sample-count
+case and unrelated unsupported behavior remain fail-closed without visual
+substitution.
+
+Two exhaustive shaded-JAR censuses were byte-identical at SHA-256
+`35dd9c0312e7269cbad8a63189cac3a1c0caf43cc8049db23b3302f8ec4656d8`.
+The pre-change combine-function-8 census was
+`824a34350ee152fc625e903399ac0adf880b4677b4af18389793e86ecf4935b7`;
+the cache identity remains unchanged.
+
+| Category | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Ready | 3,320 | 3,322 | +2 |
+| Missing automatic animations | 669 | 674 | +5 |
+| Unsupported material | 8 | 1 | -7 |
+| Unsupported model | 3,946 | 3,946 | 0 |
+| Morph/internal definition | 612 | 612 | 0 |
+| Other failure | 35 | 35 | 0 |
+
+All seven mode-2 diagnostics reach zero. NPC 504 (Undead one) and NPC 3817
+(Lieutenant Schepbur) become ready. NPCs 6583, 6586, 6589, 6592, and 6595
+(the Saradomin, Zamorak, Guthix, Bandos, and Armadyl symbols) advance to
+missing standing and walking metadata. No definition exposes a new material,
+model, animation-decoder, or failure type.
+
+The only remaining unsupported-material definition is NPC 3819 (Tortoise):
+texture 334 still fails precisely on the intentionally unsupported
+color-gradient sample-count case. There are no unsupported operation IDs.
+Unsupported-model clusters remain `BufferUnderflowException` for 1,954
+definitions and invalid decoded offsets (`newPosition > limit`) for 1,992.
+NPC 72 remains fully automatic and ready; NPC 40 remains model/material
+render-compatible and lacks only automatic standing metadata.
+
+NPC 504 (Undead one) is the terminal packaged-render representative. Its seven
+component models 21108/21064/21046/21093/21122/21078/21140, materials
+393/293/577/186/392/59, 773 textured faces, standing sequence 5565, walking
+sequence 5566, and all 18 cells validate with visible and transparent pixels
+under the recorded RSC-restrained 128x128, 3x supersampled settings. The
+external project SHA-256 is
+`75829a83f2c59028f5c7f2655cb84b06347ce16e9e1eb0fc0c6537273998851b`;
+the validation report SHA-256 is
+`43ef134e4154bedd0f8ad8363fd9f9ca5b1da4298836f47084459473a376b368`,
+the PNG SHA-256 is
+`b5b672577f29012b1bb0fe6561642bee72cff994b5aa527ceb11dbc0c8c26ace`,
+and the provenance SHA-256 is
+`afa9a6aaf359e757476277ea4996c45657e6b833d913f5c71f189574c80ba5b0`.
+No cache input or rendered derivative is tracked.
+
+The licensed-cache distribution build reran all 179 tests and passed terminal
+inspection for both archives, including exact read-only cache contents,
+license/source records, empty adjacent exports folder, safe archive paths, and
+diagnostic entry points. The shaded JAR SHA-256 was
+`55d9487b65ff42691e62a06cf618014847ad1d4bc76663afe8da373f447ebe57`.
+External archive hashes were
+`dd77d257545be57d443ca5a3790073f56a4ae01f98fac40f513e900f0a320bee`
+(Linux) and
+`7bd1cf84b6a4d77a616009966b10213d39ac21e664eced2e437e0f8920aea1d5`
+(Windows); neither archive is committed.
+
+## Recommended next batch
+
+The color-gradient sample-count case in texture 334 is the sole remaining
+material blocker. Investigate its pinned serialization and exact zero/one
+sample behavior next while keeping every unrelated unsupported case
+fail-closed.

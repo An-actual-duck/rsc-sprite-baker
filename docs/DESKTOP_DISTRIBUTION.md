@@ -210,3 +210,23 @@ Two shaded-JAR full-cache censuses were byte-identical at the hash recorded in
 exercised material 361's combine function 8 across all 18 cells and confirmed
 both visible and transparent pixels. Cache identities remained unchanged, and
 no cache or rendered derivative entered the repository.
+
+## 2026-08-17 curve-mode-2 inspection
+
+The curve-mode-2 licensed-cache build passed all 179 Java 21 tests and the
+terminal archive inspector for both platforms. Inspection reconfirmed the 31
+read-only cache files, exact cache checksums, source/license records, empty
+adjacent exports directory, platform-specific launchers, safe paths, and all
+desktop plus advanced entry points. No GUI was launched or automated.
+
+- shaded JAR SHA-256: `55d9487b65ff42691e62a06cf618014847ad1d4bc76663afe8da373f447ebe57`
+- Linux archive SHA-256: `dd77d257545be57d443ca5a3790073f56a4ae01f98fac40f513e900f0a320bee`
+  (77,026,284 bytes)
+- Windows archive SHA-256: `7bd1cf84b6a4d77a616009966b10213d39ac21e664eced2e437e0f8920aea1d5`
+  (77,026,944 bytes)
+
+Two shaded-JAR full-cache censuses were byte-identical at the hash recorded in
+`COMPATIBILITY_CENSUS.md`. A validation-only packaged render of NPC 504
+exercised material 186's curve mode 2 across all 18 cells and confirmed both
+visible and transparent pixels. Cache identities remained unchanged, and no
+cache or rendered derivative entered the repository.

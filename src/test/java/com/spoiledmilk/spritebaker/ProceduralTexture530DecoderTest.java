@@ -40,7 +40,7 @@ class ProceduralTexture530DecoderTest {
             decoder.decode(1029,curve(1,new int[][]{{0,2048},{4096,4096}}),4).pixels);
         assertThrows(ArithmeticException.class,()->decoder.decode(1030,curve(1,new int[][]{{0,0},{0,4096}}),4));
     }
-    @Test void curveMode1RejectsMalformedPayloadsAndLeavesOtherModesFailClosed(){
+    @Test void curveRejectsMalformedPayloadsAndUnknownModesWhilePreservingMode0(){
         ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
         for(byte[] truncated:new byte[][]{{1,0,8,1,1,0},{1,0,8,1,1,0,1,2,0,0,0}}){
             UnsupportedTextureFormatException error=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(1031,truncated,4));
@@ -48,11 +48,33 @@ class ProceduralTexture530DecoderTest {
         }
         UnsupportedTextureFormatException count=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(1032,curve(1,new int[][]{{0,0}}),4));
         assertTrue(count.getMessage().contains("curve marker count"));
-        UnsupportedTextureFormatException mode=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(1033,curve(2,new int[][]{{0,0},{4096,4096}}),4));
-        assertTrue(mode.getMessage().contains("curve interpolation 2"));
+        UnsupportedTextureFormatException mode=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(1033,curve(3,new int[][]{{0,0},{4096,4096}}),4));
+        assertTrue(mode.getMessage().contains("curve interpolation 3"));
         assertArrayEquals(new int[]{0xc0c0c0,0x808080,0x404040,0},java.util.Arrays.copyOfRange(decoder.decode(1033,curve(0,new int[][]{{0,0},{4096,4096}}),4).pixels,0,4));
         UnsupportedTextureFormatException parameter=assertThrows(UnsupportedTextureFormatException.class,()->decoder.decode(1034,new byte[]{1,0,8,1,1,1,0,0,0},4));
         assertTrue(parameter.getMessage().contains("operation parameter 1 for Curve"));
+    }
+    @Test void curveMode2UsesPinnedGeneratedEndpointsAndCubicFixedPointCoefficients(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();byte[] graph=curve(2,new int[][]{{0,0},{4096,4096}});
+        ProceduralTexture530Decoder.Decoded first=decoder.decode(1047,graph,4),second=decoder.decode(1047,graph,4);
+        assertArrayEquals(new int[]{0xffffff,0xe0e0e0,0x7c7c7c,0},java.util.Arrays.copyOfRange(first.pixels,0,4));
+        assertArrayEquals(first.pixels,second.pixels);assertEquals(java.util.List.of(2,8),first.operationTypes);
+    }
+    @Test void curveMode2PreservesMarkerBoundariesLookupClampingAndShortNarrowing(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        assertArrayEquals(new int[]{0xa0a0a0,0,0x404040,0xffffff},java.util.Arrays.copyOfRange(
+            decoder.decode(1048,curve(2,new int[][]{{0,4096},{2048,0},{4096,4096}}),4).pixels,0,4));
+        assertTrue(java.util.Arrays.stream(decoder.decode(1049,curveOverConstant(2,65535,new int[][]{{0,0},{4096,2048}}),4).pixels).allMatch(pixel->pixel==0x808080));
+        assertTrue(java.util.Arrays.stream(decoder.decode(1050,curve(2,new int[][]{{0,65535},{4096,65535}}),4).pixels).allMatch(pixel->pixel==0xffffff));
+    }
+    @Test void curveMode2PreservesDuplicateUnsortedZeroWidthAndOverflowBehavior(){
+        ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
+        assertArrayEquals(new int[]{0xffffff,0xf0f0f0,0xbebebe,0x808080},java.util.Arrays.copyOfRange(
+            decoder.decode(1051,curve(2,new int[][]{{0,0},{0,2048},{4096,4096}}),4).pixels,0,4));
+        assertArrayEquals(new int[]{0xffffff,0x404040,0x909090,0xffffff},java.util.Arrays.copyOfRange(
+            decoder.decode(1052,curve(2,new int[][]{{4096,0},{0,4096},{2048,1024}}),4).pixels,0,4));
+        assertThrows(ArithmeticException.class,()->decoder.decode(1053,curve(2,new int[][]{{0,0},{0,4096}}),4));
+        assertTrue(java.util.Arrays.stream(decoder.decode(1054,curve(2,new int[][]{{45034,30190},{33253,13034}}),4).pixels).allMatch(pixel->pixel==0));
     }
     @Test void operation17DefaultsPreserveCoordinatesAndConvertColorAndMonochromeChildren(){
         ProceduralTexture530Decoder decoder=new ProceduralTexture530Decoder();
@@ -656,7 +678,10 @@ class ProceduralTexture530DecoderTest {
         bytes(out,0,1,0,0);return out.toByteArray();
     }
     static byte[] curveOverConstant(int value,int[][] markers){
-        ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,3,0,2,1,0);constantRange(out,value,0);bytes(out,0,8,1,1,0,1,markers.length);
+        return curveOverConstant(1,value,markers);
+    }
+    static byte[] curveOverConstant(int mode,int value,int[][] markers){
+        ByteArrayOutputStream out=new ByteArrayOutputStream();bytes(out,3,0,2,1,0);constantRange(out,value,0);bytes(out,0,8,1,1,0,mode,markers.length);
         for(int[] marker:markers)bytes(out,marker[0]>>>8,marker[0],marker[1]>>>8,marker[1]);
         bytes(out,1,2,0,0);return out.toByteArray();
     }
