@@ -2003,3 +2003,19 @@ Material compatibility is complete for this cache census. The next bounded
 compatibility work should investigate the two unchanged model-decoder failure
 clusters, beginning with deterministic raw-format clustering of the 1,954
 `BufferUnderflowException` definitions before changing production decoding.
+
+## 2026-08-17 model BufferUnderflow diagnostic result
+
+The diagnostic-only audit in
+[`MODEL_BUFFER_UNDERFLOW_AUDIT.md`](MODEL_BUFFER_UNDERFLOW_AUDIT.md)
+deduplicates the 1,954 definitions to 669 models and five structural
+signatures. All share one dependency limitation: the type-1 decoder advances
+two excess bytes per complex texture face relative to the pinned revision-530
+layout. No production decoder changed. The full census remains the baseline
+3,323 ready, 674 missing automatic animations, 3,946 unsupported models, 612
+morph/internal definitions, and 35 other failures.
+
+The highest-yield signature has seven complex texture faces: 205 unique
+models referenced by 768 affected NPCs. The narrowest safe follow-up is a
+fully bounded revision-530 `ff ff` type-1 decoder, not a footer adjustment;
+the existing dependency path also omits the pinned complex texture fields.
