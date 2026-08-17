@@ -124,7 +124,7 @@ public final class ProceduralTexture530Decoder {
             if(code==0||code==1){if(in.remaining()<1)throw new UnsupportedTextureFormatException(id,"truncated operation 7 parameter "+code);int value=in.u8();if(code==0)function=value;else monochrome=value==1;}
             else super.decode(id,code,in);
         }
-        void finish(int id){if(function!=1&&function!=2&&function!=3&&function!=5&&function!=6&&function!=7&&function!=10)throw new UnsupportedTextureFormatException(id,"combine function "+function);}
+        void finish(int id){if(function!=1&&function!=2&&function!=3&&function!=5&&function!=6&&function!=7&&function!=8&&function!=10)throw new UnsupportedTextureFormatException(id,"combine function "+function);}
         int[] rgb(int x,int y,int size)throws IOException{
             if(monochrome){int value=apply(children[0].mono(x,y,size),children[1].mono(x,y,size));return new int[]{value,value,value};}
             int[] first=children[0].rgb(x,y,size),second=children[1].rgb(x,y,size);
@@ -136,6 +136,7 @@ public final class ProceduralTexture530Decoder {
             if(function==3)return second*first>>12;
             if(function==5)return 4096-((4096-first)*(4096-second)>>12);
             if(function==7)return first==4096?4096:(second<<12)/(4096-first);
+            if(function==8)return first==0?0:4096-((4096-second<<12)/first);
             if(function==10)return first>second?first:second;
             return second>=2048?4096-((4096-first)*(4096-second)>>11):second*first>>11;
         }
