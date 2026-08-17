@@ -1717,3 +1717,94 @@ Combine function 8 is now the largest remaining material blocker at 16
 diagnostic occurrences. Trace it next as the highest-yield single batch while
 keeping curve mode 2, the color-gradient sample-count variant, and every other
 unsupported case fail-closed.
+
+## 2026-08-17 combine-function-8 audit
+
+Combine function 8 is implemented from the exact pinned
+`a569f0af7754ada96ed7ac76d7582b2c7511b7a0` client
+`TextureOpCombine.java`. Operation 7 retains two children, default function 6,
+unsigned function parameter 0, and the output-mode parameter 1 contract where
+only value 1 selects monochrome. Color mode applies the same arithmetic
+independently to all three channels; monochrome mode applies it to each child's
+first channel.
+
+For child 0 value `first` and child 1 value `second`, function 8 is exactly
+`first == 0 ? 0 : 4096 - (((4096 - second) << 12) / first)`. Child 0 is
+therefore the divisor and sole zero guard. Child 1 supplies the complemented
+numerator. There is no equality branch: equal nonzero operands pass through
+the same expression. Subtraction and the 12-bit left shift occur as Java
+signed `int` before division, so the shifted numerator wraps on overflow;
+division truncates toward zero, including for negative upstream values. The
+node does not clamp or wrap its result after division. Only final texture
+conversion shifts by four and clamps to 0..255. Focused regressions preserve
+the raw operand order, zero guard, equality cases, legal unsigned extremes,
+negative divisors, and an overflow-sensitive downstream graph that would
+differ if the shift were widened.
+
+Functions 1, 2, 3, 5, 6, 7, and 10 remain unchanged. Functions 0, 4, 9, 11,
+12, and every other unsupported function remain explicitly rejected. Curve
+mode 2, the color-gradient sample-count variant, and unrelated unsupported
+behavior remain fail-closed without material, texture, or color substitution.
+
+Two exhaustive shaded-JAR censuses were byte-identical at SHA-256
+`824a34350ee152fc625e903399ac0adf880b4677b4af18389793e86ecf4935b7`.
+The pre-change curve-mode-1 census was
+`8f085af31b45640cc85d3f015064b8f99b3860284ba7a5487c58d088b85015a5`;
+the cache identity remains unchanged.
+
+| Category | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Ready | 3,305 | 3,320 | +15 |
+| Missing automatic animations | 668 | 669 | +1 |
+| Unsupported material | 24 | 8 | -16 |
+| Unsupported model | 3,946 | 3,946 | 0 |
+| Morph/internal definition | 612 | 612 | 0 |
+| Other failure | 35 | 35 | 0 |
+
+All 16 combine-function-8 diagnostics in texture 361 reach zero. Fifteen NPC
+definitions become ready: 956, 2091, 2112, 2113, 2127, 2165, 2188, 2196,
+2424, 2426, 2428, 2429, 2994, 3837, and 4644. NPC 3938 (Donal) advances to
+missing standing-sequence metadata while retaining walking sequence 98. No
+definition exposes a new material, model, animation-decoder, or failure type.
+
+The remaining eight material diagnostics are curve interpolation mode 2 in
+texture 266 for five definitions and texture 186 for two, plus the
+color-gradient sample-count case in texture 334 for one. There are no
+unsupported operation IDs. Unsupported-model clusters remain
+`BufferUnderflowException` for 1,954 definitions and invalid decoded offsets
+(`newPosition > limit`) for 1,992. NPC 72 remains fully automatic and ready;
+NPC 40 remains model/material render-compatible and lacks only automatic
+standing metadata.
+
+NPC 956 (Drunken Dwarf) is the terminal packaged-render representative. Its
+seven component models 2974/2986/2983/2979/2981/2985/2992, twelve materials
+including function-8 material 361, 460 textured faces, standing sequence 900,
+walking sequence 104, and all 18 cells validate with visible and transparent
+pixels under the recorded RSC-restrained 128x128, 3x supersampled settings.
+The external project SHA-256 is
+`5e8f0237ff640a0a253c5cbe956dc413703818be03ba09439aa16ee04002206e`;
+the validation report SHA-256 is
+`9e4ad53efd494c9367316b712a8be566565518d1c41b171937ebadc159d33af3`,
+the PNG SHA-256 is
+`767ddb34ee0fb12fdfcb38b97844885a5c3054139cd783c667cc04d2daad5415`,
+and the provenance SHA-256 is
+`309d7689b98ae89506a9d282c8c416d6ea5f508156861e52746ffec4f3d9ca3b`.
+No cache input or rendered derivative is tracked.
+
+The licensed-cache distribution build reran all 174 tests and passed terminal
+inspection for both archives, including exact read-only cache contents,
+license/source records, empty adjacent exports folder, safe archive paths, and
+diagnostic entry points. The shaded JAR SHA-256 was
+`b673ba01e4f2d2bcf999a2554d911e532a5f116d561add8538bfd25a26ac17ef`.
+External archive hashes were
+`fe55badbf92ad33370acff419e73debe2bf2c6bbf8ff55d7dda6562a4d9c3009`
+(Linux) and
+`a7677c1317372a8697cd65eca757135e0e79406c87cb28e4923d7b0fa68123d3`
+(Windows); neither archive is committed.
+
+## Recommended next batch
+
+Curve interpolation mode 2 is now the largest remaining material blocker at
+seven diagnostic occurrences. Trace it next as the highest-yield semantics
+batch while keeping the color-gradient sample-count variant and all unrelated
+unsupported behavior fail-closed.

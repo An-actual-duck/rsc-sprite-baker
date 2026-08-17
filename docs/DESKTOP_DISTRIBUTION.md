@@ -190,3 +190,23 @@ Two shaded-JAR full-cache censuses were byte-identical at the hash recorded in
 exercised material 134's curve mode 1 across all 18 cells and confirmed both
 visible and transparent pixels. Cache identities remained unchanged, and no
 cache or rendered derivative entered the repository.
+
+## 2026-08-17 combine-function-8 inspection
+
+The combine-function-8 licensed-cache build passed all 174 Java 21 tests and
+the terminal archive inspector for both platforms. Inspection reconfirmed the
+31 read-only cache files, exact cache checksums, source/license records, empty
+adjacent exports directory, platform-specific launchers, safe paths, and all
+desktop plus advanced entry points. No GUI was launched or automated.
+
+- shaded JAR SHA-256: `b673ba01e4f2d2bcf999a2554d911e532a5f116d561add8538bfd25a26ac17ef`
+- Linux archive SHA-256: `fe55badbf92ad33370acff419e73debe2bf2c6bbf8ff55d7dda6562a4d9c3009`
+  (77,025,522 bytes)
+- Windows archive SHA-256: `a7677c1317372a8697cd65eca757135e0e79406c87cb28e4923d7b0fa68123d3`
+  (77,026,213 bytes)
+
+Two shaded-JAR full-cache censuses were byte-identical at the hash recorded in
+`COMPATIBILITY_CENSUS.md`. A validation-only packaged render of NPC 956
+exercised material 361's combine function 8 across all 18 cells and confirmed
+both visible and transparent pixels. Cache identities remained unchanged, and
+no cache or rendered derivative entered the repository.
