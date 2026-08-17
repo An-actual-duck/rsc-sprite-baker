@@ -12,8 +12,9 @@ linked.
 
 The supported procedural operations are deliberately limited to the first
 verified textured NPC: monochrome/color fill (0/1), horizontal/vertical
-gradient (2/3), randomized tiles (4), box blur (5), addition/multiply/overlay
-combine (7 functions 1/3/6), linear curve parsing (8), custom sampled color gradient (10 preset
+gradient (2/3), randomized tiles (4), box blur (5), clamp (6),
+addition/multiply/overlay combine (7 functions 1/3/6), linear curve parsing
+(8), custom sampled color gradient (10 preset
 0), hash noise (13), cellular distance noise (15), stripes (27), range (30),
 bump lighting (32), multi-octave gradient
 noise (34), nested texture dependencies (36), and line noise (38). Texture
@@ -40,6 +41,18 @@ and vertical passes. Monochrome mode reads a color child's first channel and
 replicates the blurred result; color mode blurs all three channels
 independently. Unexpected parameters fail closed. The primary trace is
 [`TextureOp5.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOp5.java).
+Operation 6 is the client's one-child clamp node. Parameter code 0 is an
+unsigned 16-bit lower bound (default 0), code 1 is an unsigned 16-bit upper
+bound (default 4096), and code 2 selects monochrome output only when its byte
+equals 1. Color output clamps each child RGB channel independently;
+monochrome output clamps the child first/monochrome channel and repeats it
+across RGB. Bounds and channel values stay in their serialized fixed-point
+domain with no scaling, interpolation, or arithmetic overflow. The child is
+sampled at the identical X/Y coordinate, so the clamp adds no transform or
+wrapping beyond the child's own behavior. Inclusive comparisons and even a
+lower bound greater than the upper bound retain the client's exact branch
+ordering. Unexpected parameters fail closed. The primary trace is
+[`TextureOpClamp.java`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/TextureOpClamp.java).
 Combine operation 7 has two child inputs and defaults to overlay function 6.
 Parameter code 0 is the unsigned function ID; code 1 selects monochrome output
 only when its unsigned byte equals 1. Function 1 adds child 1 to child 0 with
@@ -161,6 +174,7 @@ reference-index SHA-256
 | Line-noise animated | NPC 131 Penguin; model 21547; materials 182/347/171 | Supported | Operation 38 now decodes; standing sequence 5668, walking sequence 5666, and all 391 textured faces validate in a packaged 18-cell render. |
 | Bump-lit animated | NPC 1013 Swamp toad; model 3447; material 318 | Supported | Operation 32 now decodes; standing sequence 1018, walking sequence 1021, and all 155 textured faces validate in a packaged 18-cell render. |
 | Box-blurred animated | NPC 78 Giant bat; model 18898; materials 185/59 | Supported | Operation 5 now decodes; standing sequence 4914, walking sequence 4913, and all 524 textured faces validate in a packaged 18-cell render. |
+| Clamped animated | NPC 79 Death wing; model 18897; materials 182/281 | Supported | Material 281 directly exercises color-output operation 6. Standing sequence 4914, walking sequence 4913, all 645 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders (PNG SHA-256 `77b981f62a7694755150cced94833cc320505f13492c8e2059ff525d2239ebfd`). |
 | Randomized-tile material | Material 261; operations 0/4/30 | Supported | Operation 4 now decodes. A packaged-JAR render on a neutral in-memory textured triangle was deterministic with 434 visible pixels and ARGB SHA-256 `81706338fa2297a54f347e7a18fd34216b6d9f95065785d42adedbd07d0b8da0`. No affected NPC clears its other material blockers yet. |
 | Striped multipart | NPC 560 Jiminua; seven component models; materials 228/249/59/268/291/251/252 | Supported | Operation 27 now decodes; standing sequence 808, walking sequence 819, all 467 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders. |
 | Cellular-noise multipart | NPC 126 Otherworldly being; models 202/292/170/260; materials 268/252/256 | Supported | Operation 15 now decodes; standing sequence 808, walking sequence 819, all 550 textured faces, and all 18 cells validate in two byte-identical packaged-JAR renders. |
