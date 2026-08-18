@@ -12,4 +12,12 @@ class Sequence530DecoderTest {
         assertEquals(2,sequence.loopOffset);assertTrue(sequence.tween);assertEquals(160,sequence.totalMillis());
     }
     @Test void rejectsUnknownOpcode(){assertThrows(IllegalArgumentException.class,()->new Sequence530Decoder().decode(1,new byte[]{99,0}));}
+    @Test void consumesPinnedVariableSoundListsAndZeroPayloadOpcode16(){
+        byte[] fixture={13,0,3,0,2,1,2,3,4,5,1,6,7,8,16,15,0};
+        Sequence530 sequence=new Sequence530Decoder().decode(78,fixture);
+        assertTrue(sequence.tween);assertTrue(sequence.opcode16);assertEquals(0,sequence.frameIds.length);
+    }
+    @Test void soundListTruncationFailsClosed(){
+        assertThrows(IndexOutOfBoundsException.class,()->new Sequence530Decoder().decode(79,new byte[]{13,0,1,2,1,2,3,0}));
+    }
 }

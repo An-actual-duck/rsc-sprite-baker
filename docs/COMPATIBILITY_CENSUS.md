@@ -2266,3 +2266,41 @@ External archive hashes are
 No graph-language blocker remains in the pinned cache census. Keep texture ID
 65535 fail-closed unless its absent metadata and provenance can be established;
 do not treat the value as an average material or substitute texture.
+
+## 2026-08-17 animation compatibility batch
+
+The root-cause-grouped audit and pinned evidence are recorded in
+[`ANIMATION_COMPATIBILITY_AUDIT.md`](ANIMATION_COMPATIBILITY_AUDIT.md). The 228
+baseline `other-failure` definitions comprised 227 automatic animation
+failures and one unrelated NPC-definition failure. The animation failures
+grouped as 123 apparent unsupported sequence opcodes, 61 downstream frame
+lookup/decode exceptions, and 43 trailing-byte failures. All shared animation
+clusters trace to two sequence framing errors: opcode 13's pinned variable
+sound-list structure and opcode 16's zero-payload boolean flag.
+
+Two exhaustive shaded-JAR censuses were byte-identical at SHA-256
+`ce9ea749886e502b72f5f57788f0346ee8970057a96d2fc59b7b66baac748d78`.
+The pre-change census was
+`97e06eae6129d5a91bc5292a9aa5ce8ecbb324edcadfef40da0fed3e00072990`;
+cache identity is unchanged.
+
+| Category | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Ready | 6,698 | 6,925 | +227 |
+| Missing automatic animations | 1,051 | 1,051 | 0 |
+| Unsupported material | 1 | 1 | 0 |
+| Unsupported model | 0 | 0 | 0 |
+| Morph/internal definition | 612 | 612 | 0 |
+| Other failure | 228 | 1 | -227 |
+
+Sequence 4689's 29 definitions, sequence 112's 21, sequence 10920's 18,
+sequence 10288's 16, and every related animation cluster become ready. No
+definition moves into or out of missing automatic animations, and no sequence,
+opcode, byte, or frame is synthesized or ignored. NPC 1688 remains the sole
+other failure on unrelated NPC-definition opcode 138. Texture ID 65535 remains
+the sole unsupported-material definition and is unchanged.
+
+The full Java 21 suite passes 212 tests. A terminal-only packaged render of NPC
+4813 validates corrected standing sequence 4689 and walking sequence 4683
+across all 18 cells and 428 textured faces with visible and transparent pixels.
+No GUI was launched or automated, and no animation fallback was introduced.
