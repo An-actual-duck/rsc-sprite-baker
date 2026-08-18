@@ -294,3 +294,26 @@ exercised function-11 material 216 across all 18 cells and confirmed visible
 plus transparent pixels. All 49 function-11 definitions advanced, leaving
 four unrelated unsupported-material definitions. Cache identities remained
 unchanged, and no cache or rendered derivative entered the repository.
+
+## 2026-08-17 combine-function-9 inspection
+
+The licensed-cache build passed all 210 Java 21 tests and the terminal archive
+inspector for both platforms. Inspection reconfirmed 31 exact read-only cache
+files, source/license records, empty adjacent exports, platform launchers, safe
+paths, and desktop plus advanced entry points. No GUI was launched or
+automated.
+
+- shaded JAR SHA-256: `0835e7524dfeecf99fa0b3046b5931d6cd1d03ee1a06d56a86417335092b9fc3`
+  (6,347,741 bytes)
+- Linux archive SHA-256: `8a87c6b54b23825721a18212134e3d48bc596a221d7d445659ca06d62fc4edf2`
+  (77,061,824 bytes)
+- Windows archive SHA-256: `801f425528ce814c57ae364b5d55a591c525c080d14b978e76a815ee42b0025b`
+  (77,062,053 bytes)
+
+Two shaded-JAR full-cache censuses were byte-identical at the hash recorded in
+`COMPATIBILITY_CENSUS.md`. A validation-only terminal render of NPC 4474
+exercised texture 330 across all 202 textured faces and 18 cells, confirming
+visible plus transparent pixels. All three combine-function-9 definitions
+advanced, leaving only the deliberately fail-closed missing metadata for
+texture ID 65535. Cache identities remained unchanged, and no cache or rendered
+derivative entered the repository.
