@@ -130,7 +130,8 @@ public final class StaticRenderer {
                     try{
                         TextureMaterial530 material=materials.material(texture);double[] uv=textureCoordinates(model,face);
                         double brightness=faceBrightness(model,face,npc,lightDirection,ambient,diffuse);
-                        rasterizeTextured(image,zBuffer,screenX,screenY,depth,a,b,c,uv,material,brightness,alpha,width,height);
+                        int modulation=texturedModulation(recolor(model.faceColors[face],npc),material.definition,brightness);
+                        rasterizeTextured(image,zBuffer,screenX,screenY,depth,a,b,c,uv,material,modulation,alpha,width,height);
                     }catch(java.io.IOException exception){throw new IllegalArgumentException("cannot load texture "+texture,exception);}
                 }
             }
@@ -249,6 +250,32 @@ public final class StaticRenderer {
         }
         return((int)Math.round(red*255)<<16)|((int)Math.round(green*255)<<8)|(int)Math.round(blue*255);
     }
+    /** Pinned GlModel.method4096 face color and material-byte modulation. */
+    static int texturedModulation(int packedHsl,MaterialDefinition530 material,double brightness){
+        int light=(int)Math.round(brightness*128.0),lit=packedHslToRgb(multiplyLightness(packedHsl,light));
+        int grayscaleBlend=material.grayscaleBlend();
+        if(grayscaleBlend!=0){
+            int gray=light<0?0:light>127?0xffffff:light*0x020202;
+            if(grayscaleBlend==256)lit=gray;
+            else{
+                int keep=256-grayscaleBlend;
+                int red=(((gray>>>16)&255)*grayscaleBlend+((lit>>>16)&255)*keep)>>8;
+                int green=(((gray>>>8)&255)*grayscaleBlend+((lit>>>8)&255)*keep)>>8;
+                int blue=((gray&255)*grayscaleBlend+(lit&255)*keep)>>8;
+                lit=(red<<16)|(green<<8)|blue;
+            }
+        }
+        int boost=material.colorBoost();
+        if(boost!=0){
+            int scale=boost+256;
+            int red=Math.min(65535,((lit>>>16)&255)*scale);
+            int green=Math.min(65535,((lit>>>8)&255)*scale);
+            int blue=Math.min(65535,(lit&255)*scale);
+            lit=((red&0xff00)<<8)|(green&0xff00)|(blue>>>8);
+        }
+        return lit;
+    }
+    private static int multiplyLightness(int packedHsl,int light){int value=light*(packedHsl&127)>>7;if(value<2)value=2;else if(value>126)value=126;return(packedHsl&0xff80)+value;}
     private static double hueToRgb(double p,double q,double t){if(t<0)t+=1;if(t>1)t-=1;if(t<1.0/6.0)return p+(q-p)*6*t;if(t<.5)return q;if(t<2.0/3.0)return p+(q-p)*(2.0/3.0-t)*6;return p;}
 
     private static void rasterize(BufferedImage image,double[] zBuffer,double[] x,double[] y,double[] z,
@@ -267,13 +294,13 @@ public final class StaticRenderer {
         }
     }
     private static void rasterizeTextured(BufferedImage image,double[] zBuffer,double[] x,double[] y,double[] z,
-            int a,int b,int c,double[] uv,TextureMaterial530 material,double brightness,int faceAlpha,int width,int height){
+            int a,int b,int c,double[] uv,TextureMaterial530 material,int modulation,int faceAlpha,int width,int height){
         double area=edge(x[a],y[a],x[b],y[b],x[c],y[c]);if(Math.abs(area)<.00001||faceAlpha==0)return;
         int minX=Math.max(0,(int)Math.floor(Math.min(x[a],Math.min(x[b],x[c])))),maxX=Math.min(width-1,(int)Math.ceil(Math.max(x[a],Math.max(x[b],x[c]))));
         int minY=Math.max(0,(int)Math.floor(Math.min(y[a],Math.min(y[b],y[c])))),maxY=Math.min(height-1,(int)Math.ceil(Math.max(y[a],Math.max(y[b],y[c]))));
         for(int py=minY;py<=maxY;py++)for(int px=minX;px<=maxX;px++){double sx=px+.5,sy=py+.5,wa=edge(x[b],y[b],x[c],y[c],sx,sy)/area,wb=edge(x[c],y[c],x[a],y[a],sx,sy)/area,wc=1-wa-wb;if(wa<-.000001||wb<-.000001||wc<-.000001)continue;
             double pd=wa*z[a]+wb*z[b]+wc*z[c];int index=py*width+px;if(pd<=zBuffer[index])continue;double u=wa*uv[0]+wb*uv[2]+wc*uv[4],v=wa*uv[1]+wb*uv[3]+wc*uv[5];int tx=Math.floorMod((int)Math.floor(u*material.size),material.size),ty=Math.floorMod((int)Math.floor(v*material.size),material.size);int texel=material.pixels[ty*material.size+tx];if(!material.definition.opaque&&(texel&0xffffff)==0)continue;
-            int r=(int)Math.round(((texel>>>16)&255)*brightness),g=(int)Math.round(((texel>>>8)&255)*brightness),bl=(int)Math.round((texel&255)*brightness);int src=(faceAlpha<<24)|(r<<16)|(g<<8)|bl;
+            int r=((texel>>>16)&255)*((modulation>>>16)&255)/255,g=((texel>>>8)&255)*((modulation>>>8)&255)/255,bl=(texel&255)*(modulation&255)/255;int src=(faceAlpha<<24)|(r<<16)|(g<<8)|bl;
             if(faceAlpha==255)image.setRGB(px,py,src);else image.setRGB(px,py,blend(src,image.getRGB(px,py)));zBuffer[index]=pd;
         }
     }

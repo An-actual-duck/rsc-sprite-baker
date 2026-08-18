@@ -80,45 +80,70 @@ and supported material operations in the background.
 
 Known standing and walking sequences come from BAS metadata when present, with
 NPC-definition animation IDs as the fallback. Combat animations are not
-authoritatively identified by this metadata. The application therefore lists
-nearby, decodable sequences that share the locomotion framemap, with
-frame/cycle counts as clearly labeled possible Combat animations. Standing and
-Walking animations are selected by role name from discovered metadata. A
-candidate changes the Combat source only through the explicit **Use as Combat
-animation** action. Raw numeric selection is hidden by default under
-**Advanced: manual sequence override** for definitions without usable
-discovery. Existing suggestion, override, and lock rules remain authoritative.
+authoritatively identified by this metadata. The detector builds a normalized
+side-view geometry baseline from every encoded standing and walking keyframe,
+then examines nearby sequences whose complete frame set uses the locomotion
+framemap set. A candidate must contain at least three visibly distinct poses,
+depart from that locomotion baseline, and recover toward it; frozen sequences,
+locomotion duplicates, one-way death poses, and mismatched framemaps are
+rejected. The bounded sequence-ID neighborhood and frame count remain
+secondary ranking signals. Animation roles, candidate selection, and raw
+numeric sequence IDs are absent from the normal workflow. They remain
+available under **Advanced > Manual animation sources** for definitions
+without usable discovery. Existing overrides and locks remain authoritative
+when detection refreshes recommendations.
 
 ## Source selection and playback
 
 The editing path is deliberately linear:
 
-1. Select the target-sheet cell to establish the intended direction.
-2. Choose Standing animation, Walking animation, or Combat animation.
-3. Select one of the complete 20 ms timeline poses or scrub its client time.
-4. Replace the selected cell, or apply the pose to a shared movement row.
+1. Choose a direction or click a cell in that direction's sheet column.
+2. Select the Standing, Left step, or Right step cell to replace.
+3. Choose one of that direction's complete 20 ms alternative poses or scrub
+   within its source animation.
+4. Replace the selected cell.
+
+The six primary choices are **Facing camera**, **Facing diagonal**, **Side**,
+**Diagonal away**, **Away**, and **Combat side**. Direction choice and sheet
+column selection stay synchronized in both directions. The ordinary editor
+does not ask the user to select or assign Standing, Walking, or Combat
+animation sources.
 
 The final sheet and its animation preview receive roughly three quarters of
 the normal 1700×980 editor. The narrower source panel uses larger pose cards,
 two per row at its default width, with comfortable spacing and vertical
-scrolling.
+scrolling. The 3×6 placement grid is centered at a bounded compact size with
+smaller thumbnails. Its compact direction header is laid out separately from
+the three equal-height pose rows, so Standing, Left step, and Right step remain
+visible instead of losing a full sprite row to header spacing. The former
+row-setting button stack is replaced by one
+prominent **Auto populate** action. It recomputes all 18 recommended cells,
+replaces unlocked cells, preserves locks, and uses the movement recommendation
+as the existing bounded fallback when no combat animation can be discovered.
 
-The complete timeline is the default. It includes one entry per client cycle,
-so tweened positions between encoded keyframe starts are selectable. Every
-entry displays sequence ID, encoded frame index, cycle offset, and milliseconds.
-Entries matching the shared automatic-suggestion formulas are highlighted and
+For a movement direction, the browser combines every viable pose from the
+discovered standing and walking animations; for Combat side it contains only
+the current best combat poses. The complete timeline is the default. It
+includes one entry per client cycle, so tweened positions between encoded
+keyframe starts are selectable. Every entry leads with Standing, Walking, or
+Combat as its understandable source, then displays encoded frame index, cycle
+offset, and milliseconds; sequence ID remains secondary diagnostic detail.
+Entries matching the automatic suggestions are highlighted and
 labeled `AUTO Standing`, `AUTO Left step`, `AUTO Right step`, or `AUTO Combat
-1–3`. This includes fractional one-third/two-thirds samples after they are
-resolved to their exact client cycle. **Keyframes only** is an optional compact
-view. All poses use one stable timeline viewport, and every sample passes its
-own frame/cycle identity to the poser; multi-frame animations do not reuse
+1–3`. Movement suggestions retain their timeline formulas. Combat suggestions
+are distinct encoded wind-up, maximum-deviation, and recovery frames selected
+from the side-view analysis; elapsed-time thirds can no longer land all three
+slots inside one long frame. **Keyframes only** is an optional compact view.
+All poses use one stable direction-specific viewport, and every sample passes
+its own frame/cycle identity to the poser; multi-frame animations do not reuse
 frame zero.
 
-The source status begins with the meaningful role label and then displays
-frame, cycle, time, direction, and secondary sequence ID. Changing role,
-combat candidate, manual override, direction, or keyframe mode invalidates the
-old result before loading the replacement; stale asynchronous results cannot
-repopulate a timeline for another selected animation.
+The source status identifies the selected direction and destination sheet row
+first, followed by the alternative's source, frame, cycle, time, and secondary
+sequence ID. Changing direction, manual source, or keyframe mode invalidates
+the old result before loading its replacement; stale asynchronous results
+cannot repopulate another direction. Selecting an alternative also updates the
+final 1:1 preview before assignment without mutating the sheet.
 
 **Play final RSC loop** is the primary playback action and sits inside the
 final-sheet preview area rather than the bottom action bar. It uses the normal
@@ -132,11 +157,13 @@ There is no source-only playback control. The final assembled loop supports
 pause/resume and stops on NPC changes, editor closure, or invalidated project
 state.
 
-The final preview offers black, white, neutral-gray, grass-green, and custom
+The final playback/preview area is wider and taller. It always uses original
+model colors and offers black, white, neutral-gray, grass-green, and custom
 background choices plus an obvious current-color swatch. `PreviewCompositor`
-creates a separate opaque display image without mutating the palette-reduced
-transparent render. The background is ephemeral UI state: it is absent from
-the project schema, exporter, batch processor, manifest, and hashing paths.
+preserves sprite RGB and alpha, then creates a separate opaque
+background-composited image. Background choice is ephemeral UI state: it is
+absent from the project schema, exporter, batch processor, manifest, and
+hashing paths, and the palette-reduced transparent render is never mutated.
 
 ## Responsiveness and feedback
 
@@ -206,8 +233,11 @@ file under 2009scape was changed.
   11 or newer is required.
 - Name search decodes definitions lazily and may take time on a cold cache; it
   reports progress and caps one result set at 250 entries.
-- Combat ranking is intentionally conservative metadata proximity, not combat
-  semantics. Users must preview and choose.
+- Combat discovery is a bounded side-view motion heuristic, not authoritative
+  cache metadata. It requires distinct departure and recovery poses and leaves
+  manual sequence/frame selection available for exceptional NPCs.
+- Original-color preview and export retain the pinned textured-face packed-HSL
+  modulation, including intentional NPC recolors and model-authored accents.
 - The Phase-4 difficult-model and procedural-material limitations remain as
   documented in `TEXTURE_COMPATIBILITY.md`.
 - Cache payloads, extracted assets, previews, exports, and local preferences

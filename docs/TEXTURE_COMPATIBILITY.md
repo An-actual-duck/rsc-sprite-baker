@@ -22,6 +22,15 @@ noise (34), nested texture dependencies (36), and line noise (38). Texture
 generation uses the software client's 64/128 material-size flag and horizontal
 order. It uses a fixed, manifest-recorded gamma of 1.0 instead of the source
 client's preference-dependent and randomly perturbed brightness value.
+Textured faces use the pinned GL model color path: the recolored packed-HSL
+face color is lightness-adjusted, converted through the client palette, then
+modified by the material table's unsigned grayscale-blend and channel-boost
+bytes before it modulates the procedural texel. This retains model-authored
+color regions even when the procedural graph itself is grayscale. The export
+manifest records those semantic names and retains the historical `scrollU`,
+`scrollV`, `effect`, and `effectParam` keys for schema compatibility. The
+primary trace is
+[`GlModel.method4096`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/GlModel.java#L738-L779).
 Operation 4 is the client's zero-child monochrome randomized tile generator.
 Its serialized parameters are unsigned 8-bit column count (code 0) and row
 count/RNG seed (code 1), followed by unsigned 16-bit horizontal jitter (code
@@ -336,7 +345,9 @@ replaceable and persists the choices normally.
   compatibility; these mappings are not renderer fallbacks.
 - The current rasterizer uses affine interpolation under the orthographic
   camera. It does not emulate perspective-correct texture sampling.
-- Material scroll/effect bytes are decoded and diagnosed but animation of
-  scrolling/effect materials is not implemented for static sprite export.
+- The four material metadata bytes are decoded and diagnosed. The first two
+  drive the pinned face-color boost and grayscale blend during rendering; the
+  remaining material type and argument are preserved but their animated
+  material effects are not applied to static sprite export.
 - Model 23905 and 23889 remain outside the licensed decoder's understood
   formats. There is no alternate-model fallback.

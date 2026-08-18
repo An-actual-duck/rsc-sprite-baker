@@ -10,7 +10,12 @@ public final class AutomaticPoseSuggestions {
     public static PoseSelection standing(Sequence530 sequence){return pose(sequence,0,"suggestion");}
     public static PoseSelection leftStep(Sequence530 sequence){return pose(sequence,sequence.totalMillis()/3,"suggestion");}
     public static PoseSelection rightStep(Sequence530 sequence){return pose(sequence,sequence.totalMillis()*2/3,"suggestion");}
-    public static PoseSelection[] combat(Sequence530 sequence){return new PoseSelection[]{pose(sequence,0,"suggestion"),pose(sequence,sequence.totalMillis()/3,"suggestion"),pose(sequence,sequence.totalMillis()*2/3,"suggestion")};}
+    /** Bounded manual fallback: three distinct encoded frames, never three times inside one long frame. */
+    public static PoseSelection[] combat(Sequence530 sequence){
+        if(sequence.frameIds.length<3)throw new IllegalArgumentException("combat sequence needs at least three encoded frames");
+        int middle=(sequence.frameIds.length-1)/2;
+        return new PoseSelection[]{atFrame(sequence,0,"suggestion"),atFrame(sequence,middle,"suggestion"),atFrame(sequence,sequence.frameIds.length-1,"suggestion")};
+    }
 
     public static List<Marker> markers(SpriteProject project,Sequence530 sequence){
         List<Marker> markers=new ArrayList<>();
@@ -25,6 +30,7 @@ public final class AutomaticPoseSuggestions {
     }
 
     private static PoseSelection pose(Sequence530 sequence,long millis,String source){return new PoseSelection(AnimationTimeline.sample(sequence,millis),source);}
+    private static PoseSelection atFrame(Sequence530 sequence,int frame,String source){return pose(sequence,AnimationTimeline.frameStartMillis(sequence,frame),source);}
 
     public static final class Marker {
         public final String label;
