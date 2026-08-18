@@ -55,6 +55,7 @@ class NpcSearchCriteriaTest {
         assertEquals(50,new NpcSearchCriteria("50",NpcSearchCriteria.MatchMode.ALL,Set.of()).exactId());
         assertTrue(new NpcSearchCriteria("50",NpcSearchCriteria.MatchMode.ALL,Set.of()).matches(entry));
         assertFalse(new NpcSearchCriteria("5",NpcSearchCriteria.MatchMode.ALL,Set.of()).matches(entry));
+        assertFalse(new NpcSearchCriteria("50",NpcSearchCriteria.MatchMode.ALL,Set.of(NpcSearchCriteria.Tag.USES_RETEXTURES)).matches(entry));
     }
 
     private static NpcCatalogEntry entry(){
