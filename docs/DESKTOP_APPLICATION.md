@@ -113,8 +113,10 @@ The final sheet and its animation preview receive roughly three quarters of
 the normal 1700×980 editor. The narrower source panel uses larger pose cards,
 two per row at its default width, with comfortable spacing and vertical
 scrolling. The 3×6 placement grid is centered at a bounded compact size with
-smaller thumbnails, so the enlarged preview cannot stretch its columns while
-crushing its rows. The former row-setting button stack is replaced by one
+smaller thumbnails. Its compact direction header is laid out separately from
+the three equal-height pose rows, so Standing, Left step, and Right step remain
+visible instead of losing a full sprite row to header spacing. The former
+row-setting button stack is replaced by one
 prominent **Auto populate** action. It recomputes all 18 recommended cells,
 replaces unlocked cells, preserves locks, and uses the movement recommendation
 as the existing bounded fallback when no combat animation can be discovered.
