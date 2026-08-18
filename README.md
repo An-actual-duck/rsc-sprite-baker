@@ -79,10 +79,13 @@ mvn exec:java -Dexec.mainClass=com.spoiledmilk.spritebaker.SelectorMain \
 Select the target cell first, enter a source sequence, and choose **Browse /
 preview**. Browsing is temporary and never changes the project's Standing,
 Walking, or Combat sequence. The timeline follows the selected target-sheet
-direction; its explicit Direction selector can preview another view. Scrub or
-select a rendered frame, then replace the outlined cell or set its shared row.
-The status line identifies the sequence, frame, client cycle, time, direction,
-and current role assignments.
+direction; its explicit Direction selector can preview another view. By
+default it shows every selectable 20 ms client cycle, including tweened poses,
+instead of only encoded keyframe starts. Each card identifies sequence, frame,
+cycle offset, and time. Purple `AUTO` markers identify the precise Standing,
+Left step, Right step, and Combat samples used by automatic suggestions. An
+optional **Keyframes only** checkbox provides the compact view. Select a card
+or scrub the timeline, then replace the outlined cell or set its shared row.
 
 Use the separate Standing, Walking, and Combat buttons only when the browsed
 sequence should become that project's assigned source. The five movement
@@ -90,12 +93,19 @@ directions share row poses until individually overridden. Combat-side cells
 are assigned independently. Locks prevent row, suggestion, and replacement
 actions; suggestions fill empty cells only.
 
-**Play source** previews the browsed sequence with its encoded 20 ms frame
-cycles and configured tweening. **Play assembled** previews actual rendered
-sheet poses in the selected direction: movement directions loop Standing →
-Left step → Standing → Right step, while Combat side loops its three combat
-cells. Both controls pause/resume, render away from Swing's event thread, and
-stop when the NPC changes or the editor closes.
+The prominent **Play final RSC loop** control lives beside the final-sheet
+preview. It shows the actual assigned, palette-reduced export-size poses in the
+selected direction: movement directions loop Standing → Left step → Standing
+→ Right step, while Combat side loops its three combat cells. Its framing is
+calculated from the complete 18-cell sheet exactly like export. **Play source
+preview** remains available as a secondary inspection control.
+
+Black, white, neutral gray, grass green, and custom background controls make
+transparent edges easy to review. This background is composited into a
+temporary 1:1 preview only; it is not stored and cannot affect sprite alpha,
+PNG output, hashes, batch output, or provenance. Both playback controls render
+away from Swing's event thread and stop when the NPC changes or the editor
+closes.
 
 Double-click a timeline pose or target cell to assign it. `Enter` replaces the
 selected cell, `Ctrl+1`/`Ctrl+2`/`Ctrl+3` set shared rows, `L` toggles its lock,
