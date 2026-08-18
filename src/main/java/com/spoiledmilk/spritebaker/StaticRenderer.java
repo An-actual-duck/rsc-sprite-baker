@@ -119,6 +119,10 @@ public final class StaticRenderer {
         for (ModelDefinition model : models) {
             if(materials==null)rejectTextures(model);
             for (int face = 0; face < model.faceCount; face++) {
+                // RawModel face render type 2 becomes SoftwareModel triangleInfo -2 and is
+                // excluded from the pinned client's draw list. These are structural marker
+                // faces, not white geometry, even when their packed color is 65535.
+                if (hiddenFace(model,face)) continue;
                 int a = vertexOffset + model.faceIndices1[face];
                 int b = vertexOffset + model.faceIndices2[face];
                 int c = vertexOffset + model.faceIndices3[face];
@@ -193,6 +197,10 @@ public final class StaticRenderer {
         if (model.faceTextures == null) return;
         for (short texture : model.faceTextures) if (texture != -1)
             throw new UnsupportedOperationException("model " + model.id + " contains textured faces");
+    }
+
+    static boolean hiddenFace(ModelDefinition model,int face){
+        return model.faceRenderTypes!=null&&model.faceRenderTypes[face]==2;
     }
 
     private static int recolor(short source, NpcDefinition530 npc) {

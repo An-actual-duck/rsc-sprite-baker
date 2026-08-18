@@ -2,6 +2,7 @@ package com.spoiledmilk.spritebaker;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.image.BufferedImage;
@@ -10,6 +11,29 @@ import net.runelite.cache.definitions.ModelDefinition;
 import org.junit.jupiter.api.Test;
 
 class StaticRendererTest {
+    @Test void revision530RenderType2MarkerFaceIsNotRasterized(){
+        ModelDefinition fixture=neutralModel();fixture.faceColors=new short[]{(short)65535};fixture.faceRenderTypes=new byte[]{2};
+        NpcDefinition530 npc=new NpcDefinition530(1615);VisualSettings settings=new VisualSettings();settings.cellWidth=40;settings.cellHeight=40;settings.supersample=1;settings.padding=4;
+        BufferedImage image=new StaticRenderer().renderStyled(List.of(fixture),npc,0,null,settings);
+        assertTrue(java.util.Arrays.stream(image.getRGB(0,0,40,40,null,0,40)).allMatch(pixel->pixel==0));
+        assertTrue(StaticRenderer.hiddenFace(fixture,0));
+    }
+
+    @Test void packedColor65535IsStillRenderedWhenFaceTypeIsDrawable(){
+        ModelDefinition fixture=neutralModel();fixture.faceColors=new short[]{(short)65535};fixture.faceRenderTypes=new byte[]{0};
+        NpcDefinition530 npc=new NpcDefinition530(2783);VisualSettings settings=new VisualSettings();settings.cellWidth=40;settings.cellHeight=40;settings.supersample=1;settings.padding=4;
+        BufferedImage image=new StaticRenderer().renderStyled(List.of(fixture),npc,0,null,settings);
+        assertTrue(java.util.Arrays.stream(image.getRGB(0,0,40,40,null,0,40)).anyMatch(pixel->(pixel>>>24)!=0));
+        assertFalse(StaticRenderer.hiddenFace(fixture,0));
+    }
+
+    @Test void hiddenTexturedFaceDoesNotResolveOrSubstituteItsMaterial(){
+        ModelDefinition fixture=neutralModel();fixture.faceColors=new short[]{123};fixture.faceRenderTypes=new byte[]{2};fixture.faceTextures=new short[]{12};
+        NpcDefinition530 npc=new NpcDefinition530(1);VisualSettings settings=new VisualSettings();settings.cellWidth=40;settings.cellHeight=40;settings.supersample=1;settings.padding=4;
+        BufferedImage image=new StaticRenderer().renderStyled(List.of(fixture),npc,0,null,settings,id->{throw new AssertionError("hidden face requested material "+id);});
+        assertTrue(java.util.Arrays.stream(image.getRGB(0,0,40,40,null,0,40)).allMatch(pixel->pixel==0));
+    }
+
     @Test
     void rendersGeneratedNeutralMeshDeterministicallyOnTransparency() {
         ModelDefinition fixture = new ModelDefinition();
