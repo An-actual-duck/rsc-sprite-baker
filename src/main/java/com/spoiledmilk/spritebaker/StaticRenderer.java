@@ -15,6 +15,8 @@ public final class StaticRenderer {
     public static final double[] LIGHT_DIRECTION = {-0.35, 0.65, -0.68};
     public static final double AMBIENT_LIGHT = 0.45;
     public static final double DIFFUSE_LIGHT = 0.55;
+    /** Revision-530's default display preference is brightness 3, which selects exponent 0.7. */
+    static final double PINNED_DEFAULT_BRIGHTNESS = 0.7;
 
     /** Legacy Phase-1 entry point. Its camera, lighting and 256px output remain fixed. */
     public BufferedImage render(List<ModelDefinition> models, NpcDefinition530 npc) {
@@ -242,13 +244,17 @@ public final class StaticRenderer {
     }
 
     static int packedHslToRgb(int packed) {
-        double hue=((packed>>>10)&63)/64.0,saturation=((packed>>>7)&7)/8.0,lightness=(packed&127)/128.0;
+        // Rasteriser.calculateBrightness(), without its deliberately random +/-0.015 display perturbation.
+        double hue=((packed>>>10)&63)/64.0+0.0078125,saturation=((packed>>>7)&7)/8.0+0.0625,lightness=(packed&127)/128.0;
         double red,green,blue;
         if(saturation==0){red=green=blue=lightness;}else{
             double q=lightness<0.5?lightness*(1+saturation):lightness+saturation-lightness*saturation;
             double p=2*lightness-q;red=hueToRgb(p,q,hue+1.0/3.0);green=hueToRgb(p,q,hue);blue=hueToRgb(p,q,hue-1.0/3.0);
         }
-        return((int)Math.round(red*255)<<16)|((int)Math.round(green*255)<<8)|(int)Math.round(blue*255);
+        int rgb=((int)(Math.pow(red,PINNED_DEFAULT_BRIGHTNESS)*256)<<16)
+            |((int)(Math.pow(green,PINNED_DEFAULT_BRIGHTNESS)*256)<<8)
+            |(int)(Math.pow(blue,PINNED_DEFAULT_BRIGHTNESS)*256);
+        return rgb==0?1:rgb;
     }
     /** Pinned GlModel.method4096 face color and material-byte modulation. */
     static int texturedModulation(int packedHsl,MaterialDefinition530 material,double brightness){

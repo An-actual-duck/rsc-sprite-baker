@@ -37,8 +37,9 @@ public final class NonHumanoidVisualAuditMain {
             "directory", cache.toString(),
             "dataSha256", Hashing.sha256(cache.resolve("main_file_cache.dat2")),
             "referenceIndexSha256", Hashing.sha256(cache.resolve("main_file_cache.idx255"))));
+        VisualSettings defaults = new VisualSettings();
         report.put("render", ordered(
-            "preset", "RSC restrained",
+            "preset", defaults.preset,
             "cellSize", "128x128",
             "sheetSize", "768x384",
             "supersample", 3,
@@ -47,7 +48,10 @@ public final class NonHumanoidVisualAuditMain {
             "pitchDegrees", 12.0,
             "directionYawDegrees", SheetDirection.YAW_DEGREES,
             "timelineUnitMillis", 20,
-            "tweening", true));
+            "tweening", true,
+            "palette", defaults.palette,
+            "dithering", defaults.dithering,
+            "packedHslBrightnessExponent", StaticRenderer.PINNED_DEFAULT_BRIGHTNESS));
 
         List<Map<String,Object>> results = new ArrayList<>();
         Map<String,Integer> familyCounts = new LinkedHashMap<>();
@@ -158,6 +162,7 @@ public final class NonHumanoidVisualAuditMain {
                     hashes[row][column] = metrics.sha256;
                     cells.add(metrics.asMap(row, column));
                     if (metrics.visiblePixels == 0) issues.add("empty rendered cell " + row + "," + column);
+                    if (metrics.visiblePixels > 0 && metrics.blackPixels * 4 > metrics.visiblePixels * 3) issues.add("more than 75% exact-black pixels in cell " + row + "," + column);
                     if (metrics.edgePixels > 0) issues.add("rendered pixels touch cell edge at " + row + "," + column);
                 }
                 result.put("cells", cells);
@@ -181,7 +186,9 @@ public final class NonHumanoidVisualAuditMain {
     private static CellMetrics measure(BufferedImage image, int startX, int startY, int width, int height) throws Exception {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         ByteBuffer bytes = ByteBuffer.allocate(4);
-        int visible = 0, translucent = 0, edge = 0;
+        int visible = 0, translucent = 0, edge = 0, black = 0;
+        long red = 0, green = 0, blue = 0;
+        LinkedHashSet<Integer> colors = new LinkedHashSet<>();
         int minX = width, minY = height, maxX = -1, maxY = -1;
         for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
             int argb = image.getRGB(startX + x, startY + y);
@@ -190,11 +197,13 @@ public final class NonHumanoidVisualAuditMain {
             if (alpha == 0) continue;
             visible++;
             if (alpha < 255) translucent++;
+            int rgb=argb&0xffffff;if(rgb==0)black++;colors.add(rgb);red+=(rgb>>>16)&255;green+=(rgb>>>8)&255;blue+=rgb&255;
             minX = Math.min(minX, x); minY = Math.min(minY, y);
             maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
             if (x == 0 || y == 0 || x == width - 1 || y == height - 1) edge++;
         }
-        return new CellMetrics(hex(digest.digest()), visible, translucent, edge, minX, minY, maxX, maxY);
+        return new CellMetrics(hex(digest.digest()), visible, translucent, edge, black, colors.size(),
+            visible==0?List.of(0L,0L,0L):List.of(red/visible,green/visible,blue/visible),minX,minY,maxX,maxY);
     }
 
     private static int distinct(String... values) { return new LinkedHashSet<>(Arrays.asList(values)).size(); }
@@ -211,17 +220,20 @@ public final class NonHumanoidVisualAuditMain {
 
     private static final class CellMetrics {
         final String sha256;
-        final int visiblePixels, translucentPixels, edgePixels, minX, minY, maxX, maxY;
-        CellMetrics(String sha256, int visiblePixels, int translucentPixels, int edgePixels,
-                    int minX, int minY, int maxX, int maxY) {
+        final int visiblePixels, translucentPixels, edgePixels, blackPixels, distinctRgb, minX, minY, maxX, maxY;
+        final List<Long> averageRgb;
+        CellMetrics(String sha256,int visiblePixels,int translucentPixels,int edgePixels,int blackPixels,int distinctRgb,List<Long> averageRgb,
+                    int minX,int minY,int maxX,int maxY) {
             this.sha256 = sha256; this.visiblePixels = visiblePixels; this.translucentPixels = translucentPixels;
-            this.edgePixels = edgePixels; this.minX = minX; this.minY = minY; this.maxX = maxX; this.maxY = maxY;
+            this.edgePixels=edgePixels;this.blackPixels=blackPixels;this.distinctRgb=distinctRgb;this.averageRgb=averageRgb;
+            this.minX = minX; this.minY = minY; this.maxX = maxX; this.maxY = maxY;
         }
         Map<String,Object> asMap(int row, int column) {
             return ordered("row", row, "rowLabel", TargetSheet.ROW_LABELS[row],
                 "column", column, "columnLabel", TargetSheet.COLUMN_LABELS[column],
                 "yawDegrees", SheetDirection.yawDegrees(column), "argbSha256", sha256,
                 "visiblePixels", visiblePixels, "translucentPixels", translucentPixels,
+                "blackPixels",blackPixels,"distinctRgb",distinctRgb,"averageRgb",averageRgb,
                 "edgePixels", edgePixels, "bounds", maxX < 0 ? null : List.of(minX, minY, maxX, maxY),
                 "widthOccupancy", maxX < 0 ? 0.0 : (maxX - minX + 1) / 128.0,
                 "heightOccupancy", maxY < 0 ? 0.0 : (maxY - minY + 1) / 128.0);

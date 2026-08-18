@@ -25,8 +25,8 @@ The current desktop distribution is a zero-configuration workflow: users
 launch the platform start file directly into the NPC browser, select an NPC from the bundled
 read-only licensed cache, customize the sheet, and export PNG + provenance to
 the adjacent `exports` folder. No cache, project, or export path setup is part
-of the ordinary workflow. The browser begins with an empty instruction and
-supports debounced live name/ID search plus All/Any metadata filters. See
+of the ordinary workflow. The browser begins with an empty instruction; a
+name search or one exact numeric ID runs only after Search or Enter. See
 [`docs/DESKTOP_DISTRIBUTION.md`](docs/DESKTOP_DISTRIBUTION.md) for the build,
 license/provenance, and terminal inspection contract.
 
@@ -109,7 +109,7 @@ sheet in one action, replacing unlocked cells while preserving locks.
 Individual cells can then be replaced from the direction browser.
 
 The prominent **Play final RSC loop** control lives beside the final-sheet
-preview. It shows the actual assigned, palette-reduced export-size poses in the
+preview. It shows the actual assigned export-size poses in the
 selected direction: movement directions loop Standing → Left step → Standing
 → Right step, while Combat side loops its three combat cells. Its framing is
 calculated from the complete 18-cell sheet exactly like export. It is the
