@@ -48,6 +48,9 @@ lazy browser compatibility status, and current 8,590-definition results are in
 terminal-only opcode-255 forensic audit. The resolved model-underflow audit
 and bounded revision-530 decoder evidence are in
 [`docs/MODEL_BUFFER_UNDERFLOW_AUDIT.md`](docs/MODEL_BUFFER_UNDERFLOW_AUDIT.md).
+The repeatable terminal-only creature-body review matrix, current results, and
+suggested manual browse list are in
+[`docs/NON_HUMANOID_VISUAL_VALIDATION.md`](docs/NON_HUMANOID_VISUAL_VALIDATION.md).
 The Phase 1 CLI remains unchanged.
 
 ## Compatibility-spike CLI
