@@ -97,7 +97,7 @@ The editing path is deliberately linear:
 2. Select the Standing, Left step, or Right step cell to replace.
 3. Choose one of that direction's complete 20 ms alternative poses or scrub
    within its source animation.
-4. Replace the selected cell, or apply the pose to a shared movement row.
+4. Replace the selected cell.
 
 The six primary choices are **Facing camera**, **Facing diagonal**, **Side**,
 **Diagonal away**, **Away**, and **Combat side**. Direction choice and sheet
@@ -108,7 +108,10 @@ animation sources.
 The final sheet and its animation preview receive roughly three quarters of
 the normal 1700×980 editor. The narrower source panel uses larger pose cards,
 two per row at its default width, with comfortable spacing and vertical
-scrolling.
+scrolling. The former row-setting button stack is replaced by one prominent
+**Auto populate** action. It recomputes all 18 recommended cells, replaces
+unlocked cells, preserves locks, and uses the movement recommendation as the
+existing bounded fallback when no combat animation can be discovered.
 
 For a movement direction, the browser combines every viable pose from the
 discovered standing and walking animations; for Combat side it contains only
@@ -144,11 +147,15 @@ There is no source-only playback control. The final assembled loop supports
 pause/resume and stops on NPC changes, editor closure, or invalidated project
 state.
 
-The final preview offers black, white, neutral-gray, grass-green, and custom
-background choices plus an obvious current-color swatch. `PreviewCompositor`
-creates a separate opaque display image without mutating the palette-reduced
-transparent render. The background is ephemeral UI state: it is absent from
-the project schema, exporter, batch processor, manifest, and hashing paths.
+The final playback/preview area is wider and taller. It offers black, white,
+neutral-gray, grass-green, and custom background choices plus an obvious
+current-color swatch. A separate sprite-color row offers original white, red,
+blue, green, gold, and custom choices. `PreviewCompositor` multiplies the
+displayed RGB by that color while preserving the sprite's shading and alpha,
+then creates a separate opaque background-composited image. Both settings are
+ephemeral UI state: they are absent from the project schema, exporter, batch
+processor, manifest, and hashing paths, and the palette-reduced transparent
+render is never mutated.
 
 ## Responsiveness and feedback
 

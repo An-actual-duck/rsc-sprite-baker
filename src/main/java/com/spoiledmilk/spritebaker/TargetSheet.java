@@ -20,6 +20,35 @@ public final class TargetSheet {
         if(cell.pose!=null || cell.locked) return false;
         cell.pose=selection.copy(); cell.pose.source="suggestion"; return true;
     }
+    /** Replaces every unlocked cell with the current recommendations. */
+    public int autoPopulate(PoseSelection[] movement,PoseSelection[] combat){
+        if(movement==null||movement.length!=ROWS)throw new IllegalArgumentException("three movement poses required");
+        if(combat!=null&&combat.length!=ROWS)throw new IllegalArgumentException("three combat poses required");
+        int changed=0;
+        for(int row=0;row<ROWS;row++){
+            PoseSelection movementPose=movement[row];
+            if(movementPose!=null){sharedRows[row]=movementPose.copy();sharedRows[row].source="auto-populate";}
+            for(int column=0;column<COLUMNS;column++){
+                Cell cell=cells[row][column];if(cell.locked)continue;
+                PoseSelection recommended=column<5?movementPose:combat==null?movementPose:combat[row];
+                if(recommended==null)continue;
+                if(cell.override||!samePose(cell.pose,recommended)||!"auto-populate".equals(cell.pose.source))changed++;
+                cell.pose=recommended.copy();cell.pose.source="auto-populate";cell.override=false;
+            }
+        }
+        return changed;
+    }
+    public int autoPopulateCombat(PoseSelection[] combat){
+        if(combat==null||combat.length!=ROWS)throw new IllegalArgumentException("three combat poses required");
+        int changed=0;
+        for(int row=0;row<ROWS;row++){
+            Cell cell=cells[row][COLUMNS-1];if(cell.locked||combat[row]==null)continue;
+            if(cell.override||!samePose(cell.pose,combat[row])||!"auto-populate".equals(cell.pose.source))changed++;
+            cell.pose=combat[row].copy();cell.pose.source="auto-populate";cell.override=false;
+        }
+        return changed;
+    }
+    private static boolean samePose(PoseSelection left,PoseSelection right){return left!=null&&left.sequenceId==right.sequenceId&&left.frameIndex==right.frameIndex&&left.cycleOffset==right.cycleOffset&&left.timeMillis==right.timeMillis;}
     public void override(int row,int col,PoseSelection selection) {
         Cell cell=cells[row][col]; if(cell.locked) return;
         cell.pose=selection.copy(); cell.pose.source="user-cell"; cell.override=true;

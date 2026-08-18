@@ -91,15 +91,15 @@ source, frame, cycle offset, and time; the sequence ID is secondary. Purple
 `AUTO` markers identify the exact Standing, Left step, Right step, and Combat
 samples used by automatic sheet completion. An optional **Keyframes only**
 view remains available. Select a card or scrub it, then replace the
-orange-outlined cell or set its shared movement row.
+orange-outlined cell.
 
 Standing and walking sources come from discovered NPC/BAS metadata. The best
 compatible combat candidate is used automatically when the cache does not
 already provide a current choice. Raw source roles, candidate choices, and
 sequence IDs are confined to **Advanced > Manual animation sources** for
-exceptional NPCs. The five movement directions share row poses until
-individually overridden. Combat-side cells remain independent, and locks and
-suggestions retain their existing behavior.
+exceptional NPCs. **Auto populate** recalculates recommended poses across the
+entire 18-cell sheet in one action, replacing unlocked cells while preserving
+locks. Individual cells can then be replaced from the direction browser.
 
 The prominent **Play final RSC loop** control lives beside the final-sheet
 preview. It shows the actual assigned, palette-reduced export-size poses in the
@@ -108,16 +108,18 @@ selected direction: movement directions loop Standing → Left step → Standing
 calculated from the complete 18-cell sheet exactly like export. It is the
 editor's only playback control.
 
-Black, white, neutral gray, grass green, and custom background controls make
-transparent edges easy to review. This background is composited into a
-temporary 1:1 preview only; it is not stored and cannot affect sprite alpha,
-PNG output, hashes, batch output, or provenance. Final playback renders away
-from Swing's event thread and stops when the NPC changes or editor closes.
+The enlarged playback area has two independent preview-only color controls.
+Black, white, neutral gray, grass green, and custom backgrounds make
+transparent edges easy to review. Original white, red, blue, green, gold, and
+custom sprite colors multiply the displayed sprite RGB while retaining its
+shading and alpha, which makes palette-swap possibilities easier to judge.
+Neither choice is stored or can affect sprite pixels, alpha, PNG output,
+hashes, batch output, or provenance. Final playback renders away from Swing's
+event thread and stops when the NPC changes or editor closes.
 
 Double-click a timeline pose or target cell to assign it. `Enter` replaces the
-selected cell, `Ctrl+1`/`Ctrl+2`/`Ctrl+3` set shared rows, `L` toggles its lock,
-and `Backspace` restores the shared row pose. Green, blue, purple, and red cell
-frames identify shared, override, suggested, and locked states.
+selected cell and `L` toggles its lock. Purple, blue, green, and red cell
+frames identify automatic, overridden, assigned, and locked states.
 
 The default export uses 128×128 cells and creates a transparent 768×384 PNG;
 cell width and height are configurable. Every cell shares scale, ground anchor,
