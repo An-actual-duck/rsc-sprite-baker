@@ -13,7 +13,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import javax.imageio.ImageIO;
 
 /** Deterministic terminal-only export and visual-metric audit for varied creature bodies. */
@@ -85,6 +84,8 @@ public final class NonHumanoidVisualAuditMain {
         System.out.println("Flagged results: " + (results.size() - passed));
         System.out.println("Wrote " + output);
         System.out.println("Export evidence: " + exports);
+        if (passed != results.size()) throw new IllegalStateException(
+            (results.size() - passed) + " non-humanoid matrix entries require review; see " + output);
     }
 
     private static Map<String,Object> audit(Path cache, Path exports, NonHumanoidVisualMatrix.Entry entry) throws Exception {

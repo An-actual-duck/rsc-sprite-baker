@@ -66,6 +66,25 @@ uses the three movement recommendations and is reported as
 This is the only matrix fallback. The terminal review found no justification
 for an NPC-specific renderer, camera, scale, animation, or material override.
 
+Two complete runs from the shaded JAR were byte-identical at report SHA-256
+`4d123ac92d60fe630160c269195f38057c6a490a4c0bf7402a28ffb19664dec7`.
+The exhaustive 8,590-definition census remained unchanged at SHA-256
+`360ab988150e65c42cadc1dc46f7fbd480e0b7b8413d8595a0c16f4fe0d04e10`:
+6,926 ready, 1,051 missing automatic animations, 612 morph/internal, one
+unsupported material, and zero model or other failures. Java 21 clean verify
+passes all 253 tests.
+
+The licensed-cache distribution builder and terminal inspector accepted both
+platform archives, including exact cache identities, read-only cache contents,
+empty adjacent exports directories, launcher separation, license/source
+records, and application-JAR contents. The shaded JAR SHA-256 is
+`618d165c02561094dfbe6ca9d8a743620f98e03e5b17f07331b172e1455aa08c`.
+The Linux archive is 77,108,164 bytes at SHA-256
+`b50bd1e55d43c3734996bee891950f9123d354feee82571071afecf4bdddbd41`;
+the Windows archive is 77,108,958 bytes at SHA-256
+`9ac3e69d8ea95a7dbde5dbb400f3d95c1a0ad269f727961a1f670749b8fed302`.
+All reports, archives, and rendered derivatives remain outside Git.
+
 ## Suggested visual browse list
 
 The complete matrix is source-controlled in `NonHumanoidVisualMatrix`. A
