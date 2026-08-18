@@ -78,3 +78,9 @@ No cache input or generated derivative is tracked.
 The only remaining other failure is NPC 1688's unsupported revision-530 NPC
 definition opcode 138 at byte 115. It is not an animation failure, and this
 batch deliberately leaves it fail-closed.
+
+Subsequent status: the bounded NPC-definition compatibility batch traced and
+decoded NPC 1688's extended metadata. The final census moves NPC 1688 to ready
+and reduces `other-failure` to zero without changing the 1,051 definitions
+that genuinely lack automatic animation metadata. See the latest section of
+[`COMPATIBILITY_CENSUS.md`](COMPATIBILITY_CENSUS.md).

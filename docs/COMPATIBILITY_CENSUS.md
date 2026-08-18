@@ -2304,3 +2304,72 @@ The full Java 21 suite passes 212 tests. A terminal-only packaged render of NPC
 4813 validates corrected standing sequence 4689 and walking sequence 4683
 across all 18 cells and 428 textured faces with visible and transparent pixels.
 No GUI was launched or automated, and no animation fallback was introduced.
+
+## 2026-08-17 NPC-definition compatibility completion
+
+NPC 1688 (Ak-Haranu) was the sole remaining `other-failure`. Its 122-byte
+definition has SHA-256
+`8de638bd32197489fcf9211af6eeaf5d619f38b34cd42739d108ff1e26930e05`.
+The exact tail is opcode 137 plus `ff ff` at bytes 112–114, opcode 138 plus
+`ff ff` at bytes 115–117, zero-payload opcode 159 at byte 118, opcode 165 plus
+`ff` at bytes 119–120, and the terminator at byte 121. This framing is
+internally complete; it is not truncation or desynchronization.
+
+The pinned revision-530 client at
+`a569f0af7754ada96ed7ac76d7582b2c7511b7a0` ends its NPC format at opcode 137,
+so it cannot itself assign semantics to the local extension. The first traced
+client lineage that contains opcode 138 reads exactly one unsigned 16-bit
+value with no `65535` conversion. Its entity path returns that value as an
+overhead sprite identifier; the later named client field is `covermarker`.
+The bytecode evidence is the archived build-562 client JAR at SHA-256
+`beef038dd52170eeea521d647eb87b9023b1b4f06d1dcae9e3b5a156e6bebc6f`;
+the independently reconstructed RT5 client commit
+`7ca848cd34d5b2d250394174e071b18a0c07b433` shows the same `g2()` read and
+entity return path. The later named decoder at RT7 client commit
+`141bc4432ddeedcb62d5015a6ca074649ff08dd2` establishes the field names and
+the following opcode-159/165 meanings; its newer variable-width cover-marker
+encoding was not backported.
+Sprite Baker therefore preserves NPC 1688's serialized value as unsigned
+`65535`, even though rendering does not currently consume cover markers.
+
+NPC 1688's following bytes are independently framed metadata rather than part
+of opcode 138. The traced client lineage defines opcode 159 as the zero-payload
+attack-option priority mode 0 and opcode 165 as a one-byte picking-size shift.
+Sprite Baker preserves those values as 0 and 255. Unknown opcodes still throw,
+and truncated opcode-138 or opcode-165 payloads still raise a buffer-underflow
+failure; no generic byte skipping was added. Focused neutral fixtures cover
+unsigned-65535 retention, alignment into a following known field, the exact
+NPC-1688 tail, both truncation boundaries, and existing unknown-opcode
+rejection.
+
+Two exhaustive Java 21 shaded-JAR censuses were byte-identical at SHA-256
+`360ab988150e65c42cadc1dc46f7fbd480e0b7b8413d8595a0c16f4fe0d04e10`.
+The pre-change animation-batch census was
+`ce9ea749886e502b72f5f57788f0346ee8970057a96d2fc59b7b66baac748d78`;
+cache identity remains unchanged.
+
+| Category | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Ready | 6,925 | 6,926 | +1 |
+| Missing automatic animations | 1,051 | 1,051 | 0 |
+| Unsupported material | 1 | 1 | 0 |
+| Unsupported model | 0 | 0 | 0 |
+| Morph/internal definition | 612 | 612 | 0 |
+| Other failure | 1 | 0 | -1 |
+
+NPC 1688 is now ready: all nine component models, nine materials, standing
+sequence 808, and walking sequence 819 validate. `other-failure` and
+unsupported-model both reach zero. The 1,051 definitions without automatic
+standing or walking metadata remain accurately classified rather than being
+assigned invented sequences. NPC 1412 (Garkor) remains the sole unsupported
+material because texture ID 65535 has no metadata; it remains explicitly
+fail-closed.
+
+This is the final compatibility assessment for the recorded cache identity:
+6,926 definitions are fully automatic and ready, 1,051 have renderable content
+but lack automatic animation metadata, 612 are intentional morph/internal
+definitions, one is blocked by absent texture metadata, and no definition is
+blocked by a model decoder, graph-language decoder, animation decoder, or
+other unclassified failure. The Java 21 suite passes 216 tests. No cache input,
+report, or generated derivative is tracked, and no GUI was launched or
+automated.
