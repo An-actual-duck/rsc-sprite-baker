@@ -68,25 +68,30 @@ public final class DirectionFrameBrowser {
 
     public static List<Alternative> alternatives(int column,Sequence530 standing,Sequence530 walking,
                                                   Sequence530 combat,boolean keyframesOnly){
+        return alternatives(column,standing,walking,combat,keyframesOnly,null);
+    }
+
+    public static List<Alternative> alternatives(int column,Sequence530 standing,Sequence530 walking,
+                                                  Sequence530 combat,boolean keyframesOnly,PoseSelection[] combatSuggestions){
         List<Alternative> out=new ArrayList<>();
         for(Source source:sourcesFor(column)){
             Sequence530 sequence=source==Source.STANDING?standing:source==Source.WALKING?walking:combat;
             if(sequence==null)continue;
-            List<AutomaticPoseSuggestions.Marker> markers=markers(source,sequence);
+            List<AutomaticPoseSuggestions.Marker> markers=markers(source,sequence,combatSuggestions);
             for(FrameSample sample:AnimationTimeline.selectableSamples(sequence,keyframesOnly))
                 out.add(new Alternative(source,sample,AutomaticPoseSuggestions.labelsAt(markers,sample)));
         }
         return List.copyOf(out);
     }
 
-    private static List<AutomaticPoseSuggestions.Marker> markers(Source source,Sequence530 sequence){
+    private static List<AutomaticPoseSuggestions.Marker> markers(Source source,Sequence530 sequence,PoseSelection[] combatSuggestions){
         List<AutomaticPoseSuggestions.Marker> markers=new ArrayList<>();
         if(source==Source.STANDING)markers.add(new AutomaticPoseSuggestions.Marker("AUTO Standing",AutomaticPoseSuggestions.standing(sequence)));
         else if(source==Source.WALKING){
             markers.add(new AutomaticPoseSuggestions.Marker("AUTO Left step",AutomaticPoseSuggestions.leftStep(sequence)));
             markers.add(new AutomaticPoseSuggestions.Marker("AUTO Right step",AutomaticPoseSuggestions.rightStep(sequence)));
         }else{
-            PoseSelection[] poses=AutomaticPoseSuggestions.combat(sequence);
+            PoseSelection[] poses=combatSuggestions==null?AutomaticPoseSuggestions.combat(sequence):combatSuggestions;
             for(int i=0;i<poses.length;i++)markers.add(new AutomaticPoseSuggestions.Marker("AUTO Combat "+(i+1),poses[i]));
         }
         return List.copyOf(markers);

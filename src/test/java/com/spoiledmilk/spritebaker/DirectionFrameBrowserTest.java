@@ -37,6 +37,12 @@ class DirectionFrameBrowserTest {
         assertEquals(3,alternatives.stream().filter(DirectionFrameBrowser.Alternative::suggested).count());
     }
 
+    @Test void combatMarkersFollowDetectedFramesInsteadOfElapsedTimeFractions(){
+        Sequence530 combat=sequence(30,new int[]{20000,2,2,2});PoseSelection[] detected={at(combat,1),at(combat,2),at(combat,3)};
+        List<DirectionFrameBrowser.Alternative> alternatives=DirectionFrameBrowser.alternatives(5,null,null,combat,false,detected);
+        assertEquals(List.of(1,2,3),alternatives.stream().filter(DirectionFrameBrowser.Alternative::suggested).map(value->value.sample.frameIndex).collect(java.util.stream.Collectors.toList()));
+    }
+
     @Test void sheetCellDeterminesTechnicalSourceAndManualAssignmentIsBounded(){
         SpriteProject project=new SpriteProject();DirectionFrameBrowser browser=new DirectionFrameBrowser(project);
         assertEquals(DirectionFrameBrowser.Source.STANDING,DirectionFrameBrowser.sourceForCell(0,2));
@@ -47,4 +53,5 @@ class DirectionFrameBrowserTest {
     }
 
     private static Sequence530 sequence(int id,int[] durations){Sequence530 sequence=new Sequence530(id);sequence.durations=durations;sequence.frameIds=new int[durations.length];for(int i=0;i<durations.length;i++)sequence.frameIds[i]=100+i;sequence.loopOffset=durations.length;return sequence;}
+    private static PoseSelection at(Sequence530 sequence,int frame){return new PoseSelection(AnimationTimeline.sample(sequence,AnimationTimeline.frameStartMillis(sequence,frame)),"detected");}
 }

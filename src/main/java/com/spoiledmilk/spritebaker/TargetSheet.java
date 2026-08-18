@@ -48,6 +48,17 @@ public final class TargetSheet {
         }
         return changed;
     }
+    /** Refreshes detected combat recommendations without replacing user overrides or locks. */
+    public int refreshDetectedCombat(PoseSelection[] combat){
+        if(combat==null||combat.length!=ROWS)throw new IllegalArgumentException("three combat poses required");
+        int changed=0;
+        for(int row=0;row<ROWS;row++){
+            Cell cell=cells[row][COLUMNS-1];if(cell.locked||cell.override||combat[row]==null)continue;
+            if(!samePose(cell.pose,combat[row])||!"combat-detection".equals(cell.pose.source))changed++;
+            cell.pose=combat[row].copy();cell.pose.source="combat-detection";
+        }
+        return changed;
+    }
     private static boolean samePose(PoseSelection left,PoseSelection right){return left!=null&&left.sequenceId==right.sequenceId&&left.frameIndex==right.frameIndex&&left.cycleOffset==right.cycleOffset&&left.timeMillis==right.timeMillis;}
     public void override(int row,int col,PoseSelection selection) {
         Cell cell=cells[row][col]; if(cell.locked) return;

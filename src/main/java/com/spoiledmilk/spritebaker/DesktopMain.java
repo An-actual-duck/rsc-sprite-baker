@@ -135,8 +135,7 @@ public final class DesktopMain {
         List<CombatCandidate> candidates = AnimationDiscovery.combatCandidates(workspace);
         if (!candidates.isEmpty()) {
             project.combatSequenceId = candidates.get(0).sequenceId;
-            Sequence530 combat = workspace.cache.loadSequence(project.combatSequenceId);
-            PoseSelection[] suggestions=AutomaticPoseSuggestions.combat(combat);
+            PoseSelection[] suggestions=candidates.get(0).suggestions();
             for (int row = 0; row < 3; row++) {suggestions[row].source="automatic-combat-candidate";project.sheet.suggest(row,5,suggestions[row]);}
         } else {
             for (int row = 0; row < 3; row++) if (movement[row] != null) project.sheet.suggest(row, 5, movement[row]);

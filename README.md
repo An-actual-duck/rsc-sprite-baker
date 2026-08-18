@@ -93,13 +93,16 @@ samples used by automatic sheet completion. An optional **Keyframes only**
 view remains available. Select a card or scrub it, then replace the
 orange-outlined cell.
 
-Standing and walking sources come from discovered NPC/BAS metadata. The best
-compatible combat candidate is used automatically when the cache does not
-already provide a current choice. Raw source roles, candidate choices, and
-sequence IDs are confined to **Advanced > Manual animation sources** for
-exceptional NPCs. **Auto populate** recalculates recommended poses across the
-entire 18-cell sheet in one action, replacing unlocked cells while preserving
-locks. Individual cells can then be replaced from the direction browser.
+Standing and walking sources come from discovered NPC/BAS metadata. Combat
+detection projects those locomotion keyframes from the side, rejects nearby
+sequences that merely repeat locomotion or never recover from a departure, and
+ranks sequences with a distinct wind-up, peak deviation, and recovery. Its
+three suggestions are separate encoded frames even when one frame has an
+unusually long duration. Raw source roles, candidate choices, and sequence IDs
+are confined to **Advanced > Manual animation sources** for exceptional NPCs.
+**Auto populate** recalculates recommended poses across the entire 18-cell
+sheet in one action, replacing unlocked cells while preserving locks.
+Individual cells can then be replaced from the direction browser.
 
 The prominent **Play final RSC loop** control lives beside the final-sheet
 preview. It shows the actual assigned, palette-reduced export-size poses in the
@@ -108,18 +111,14 @@ selected direction: movement directions loop Standing → Left step → Standing
 calculated from the complete 18-cell sheet exactly like export. It is the
 editor's only playback control.
 
-The enlarged playback area has two independent preview-only color controls.
-**Original model colors** is the default sprite mode and preserves intentional
-cache colors and NPC recolors, including accent regions that should remain
-visually distinct. Textured faces retain the pinned client face-color and
-material-metadata modulation instead of displaying the procedural texture as
-uncolored gray. **Uniform tint preview** is a separate filter with red,
-blue, green, gold, and custom choices for rough palette-swap exploration; it is
-explicitly not a selective RSC recolor map. Black, white, neutral gray, grass
-green, and custom backgrounds make transparent edges easy to review. Neither
-preview choice is stored or can affect sprite pixels, alpha, PNG output,
-hashes, batch output, or provenance. Final playback renders away from Swing's
-event thread and stops when the NPC changes or editor closes.
+The enlarged playback area always shows original model colors, including
+intentional cache colors, NPC recolors, and accent regions. Textured faces
+retain the pinned client face-color and material-metadata modulation instead
+of displaying the procedural texture as uncolored gray. Black, white, neutral
+gray, grass green, and custom preview backgrounds make transparent edges easy
+to review. Background choice is not stored and cannot affect sprite pixels,
+alpha, PNG output, hashes, batch output, or provenance. Final playback renders
+away from Swing's event thread and stops when the NPC changes or editor closes.
 
 Double-click a timeline pose or target cell to assign it. `Enter` replaces the
 selected cell and `L` toggles its lock. Purple, blue, green, and red cell

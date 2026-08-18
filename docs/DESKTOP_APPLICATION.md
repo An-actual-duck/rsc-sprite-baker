@@ -80,14 +80,18 @@ and supported material operations in the background.
 
 Known standing and walking sequences come from BAS metadata when present, with
 NPC-definition animation IDs as the fallback. Combat animations are not
-authoritatively identified by this metadata. The application therefore lists
-nearby, decodable sequences that share the locomotion framemap, with
-frame/cycle counts as ranked Combat candidates and automatically uses the best
-compatible candidate when no current combat source exists. Animation roles,
-candidate selection, and raw numeric sequence IDs are absent from the normal
-workflow. They remain available under **Advanced > Manual animation sources**
-for definitions without usable discovery. Existing suggestion, override, and
-lock rules remain authoritative.
+authoritatively identified by this metadata. The detector builds a normalized
+side-view geometry baseline from every encoded standing and walking keyframe,
+then examines nearby sequences whose complete frame set uses the locomotion
+framemap set. A candidate must contain at least three visibly distinct poses,
+depart from that locomotion baseline, and recover toward it; frozen sequences,
+locomotion duplicates, one-way death poses, and mismatched framemaps are
+rejected. The bounded sequence-ID neighborhood and frame count remain
+secondary ranking signals. Animation roles, candidate selection, and raw
+numeric sequence IDs are absent from the normal workflow. They remain
+available under **Advanced > Manual animation sources** for definitions
+without usable discovery. Existing overrides and locks remain authoritative
+when detection refreshes recommendations.
 
 ## Source selection and playback
 
@@ -122,13 +126,15 @@ includes one entry per client cycle, so tweened positions between encoded
 keyframe starts are selectable. Every entry leads with Standing, Walking, or
 Combat as its understandable source, then displays encoded frame index, cycle
 offset, and milliseconds; sequence ID remains secondary diagnostic detail.
-Entries matching the shared automatic-suggestion formulas are highlighted and
+Entries matching the automatic suggestions are highlighted and
 labeled `AUTO Standing`, `AUTO Left step`, `AUTO Right step`, or `AUTO Combat
-1–3`. This includes fractional one-third/two-thirds samples after they are
-resolved to their exact client cycle. **Keyframes only** is an optional compact
-view. All poses use one stable direction-specific viewport, and every sample
-passes its own frame/cycle identity to the poser; multi-frame animations do not
-reuse frame zero.
+1–3`. Movement suggestions retain their timeline formulas. Combat suggestions
+are distinct encoded wind-up, maximum-deviation, and recovery frames selected
+from the side-view analysis; elapsed-time thirds can no longer land all three
+slots inside one long frame. **Keyframes only** is an optional compact view.
+All poses use one stable direction-specific viewport, and every sample passes
+its own frame/cycle identity to the poser; multi-frame animations do not reuse
+frame zero.
 
 The source status identifies the selected direction and destination sheet row
 first, followed by the alternative's source, frame, cycle, time, and secondary
@@ -149,15 +155,11 @@ There is no source-only playback control. The final assembled loop supports
 pause/resume and stops on NPC changes, editor closure, or invalidated project
 state.
 
-The final playback/preview area is wider and taller. It offers black, white,
-neutral-gray, grass-green, and custom background choices plus an obvious
-current-color swatch. Its separate sprite-color mode defaults to **Original
-model colors**, which applies no display tint and therefore retains distinct
-cache colors, textures, and NPC recolors. **Uniform tint preview** offers red,
-blue, green, gold, and custom filters for rough palette-swap visualization; it
-does not claim to identify selectively swappable regions. `PreviewCompositor`
-preserves shading and alpha, then creates a separate opaque
-background-composited image. Both settings are ephemeral UI state: they are
+The final playback/preview area is wider and taller. It always uses original
+model colors and offers black, white, neutral-gray, grass-green, and custom
+background choices plus an obvious current-color swatch. `PreviewCompositor`
+preserves sprite RGB and alpha, then creates a separate opaque
+background-composited image. Background choice is ephemeral UI state: it is
 absent from the project schema, exporter, batch processor, manifest, and
 hashing paths, and the palette-reduced transparent render is never mutated.
 
@@ -229,11 +231,11 @@ file under 2009scape was changed.
   11 or newer is required.
 - Name search decodes definitions lazily and may take time on a cold cache; it
   reports progress and caps one result set at 250 entries.
-- Combat ranking is intentionally conservative metadata proximity, not combat
-  semantics. Users must preview and choose.
+- Combat discovery is a bounded side-view motion heuristic, not authoritative
+  cache metadata. It requires distinct departure and recovery poses and leaves
+  manual sequence/frame selection available for exceptional NPCs.
 - Original-color preview and export retain the pinned textured-face packed-HSL
-  modulation, including intentional NPC recolors and model-authored accents;
-  uniform tint remains a preview-only inspection filter.
+  modulation, including intentional NPC recolors and model-authored accents.
 - The Phase-4 difficult-model and procedural-material limitations remain as
   documented in `TEXTURE_COMPATIBILITY.md`.
 - Cache payloads, extracted assets, previews, exports, and local preferences
