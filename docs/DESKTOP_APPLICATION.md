@@ -74,9 +74,36 @@ marker and prompt to Save, Discard, or Cancel before closing or switching.
 ## NPC and animation discovery
 
 The browser indexes NPC IDs from index 18 metadata without initially
-decompressing every definition. It loads the first page or matching names on
-demand. Selecting a result checks component models, textures, mapping modes,
-and supported material operations in the background.
+decompressing every definition. Its initial result list is deliberately empty
+and explains that the user can type a name or exact ID or select metadata
+filters. Typing starts a live search after a 300 ms debounce; a newer text or
+filter change cancels and supersedes the older request, whose progress and
+results cannot update the new query. An entire numeric query uses direct exact-
+ID lookup. General searches remain capped at 250 results.
+
+Whitespace-separated text terms are case-insensitive and all must occur in the
+combined NPC ID/name text. The text condition is always ANDed with the metadata
+tag group. **All** requires every selected tag; **Any** requires at least one.
+A blank text query with tags searches by metadata alone. Blank text with no
+tags restores the empty instruction rather than listing arbitrary definitions.
+
+The tags are derived from decoded NPC/BAS metadata, not names or manually
+maintained NPC lists:
+
+- **Automatic animations available** means resolved standing and walking IDs
+  are both present; **Needs manual animation selection** is its complement.
+- **Multipart model** means the definition references more than one component
+  model.
+- **Uses recolors** and **Uses retextures** come from their respective mapping
+  arrays.
+- **Altered model scale** means width or height scale differs from 128.
+- **Morph/internal definition** means morph metadata is present or the
+  definition has no component model.
+
+Selecting a result checks component models, textures, mapping modes, and
+supported material operations in the background. Search/filter work and full
+compatibility diagnosis never run on Swing's event thread. The cache session
+remains read-only and closes with the browser.
 
 Known standing and walking sequences come from BAS metadata when present, with
 NPC-definition animation IDs as the fallback. Combat animations are not
@@ -231,12 +258,51 @@ A clean workflow was exercised against the read-only cache at
 Neutral screenshots and all cache-derived previews remained outside Git. No
 file under 2009scape was changed.
 
+## 2026-08-18 live browser-filter evidence
+
+A terminal-only metadata audit exercised the production `NpcCatalog` against
+all 8,590 definitions in the pinned read-only cache. Every definition received
+exactly one of the complementary animation tags. Counts were:
+
+| Metadata tag | Definitions |
+| --- | ---: |
+| Automatic animations available | 7,466 |
+| Needs manual animation selection | 1,124 |
+| Multipart model | 5,261 |
+| Uses recolors | 4,940 |
+| Uses retextures | 1,380 |
+| Altered model scale | 1,423 |
+| Morph/internal definition | 612 |
+
+Blank criteria returned zero results. Exact ID 50 returned King Black Dragon
+directly; text terms `king dragon` plus the All/Multipart filter returned IDs
+50 and 2642; a blank-text All query for Uses retextures plus Altered model
+scale returned 219 definitions. A deliberately cancelled broad query stopped
+after 129 cancellation checks rather than scanning the remaining definitions.
+
+Java 21 `mvn clean verify` passes all 262 tests. The exhaustive compatibility
+census remains byte-identical at SHA-256
+`360ab988150e65c42cadc1dc46f7fbd480e0b7b8413d8595a0c16f4fe0d04e10`:
+6,926 ready, 1,051 missing automatic animations, 612 morph/internal, and one
+unsupported material, with no model or other failures. The shaded JAR is
+6,408,437 bytes at SHA-256
+`2eb020a68f7ed61ac97de3f3319a930efe4633b75176bd867eb0c50a65ec4c5a`.
+
+The licensed-cache distribution builder and terminal inspector accepted the
+77,117,605-byte Linux archive at SHA-256
+`b06ab324440b264acc777baeb4507b46fbbe1d68ae5284f286ca5da7edd21718`
+and the 77,118,461-byte Windows archive at SHA-256
+`f655b0bfdc976e9ab525c38aab5931a1546bc3c750b3448c0c211394fd92b6ce`.
+No GUI was launched or automated, the source cache remained unchanged, and no
+cache payload, report, or generated derivative was added to Git.
+
 ## Boundaries and limitations
 
 - The application bundles its Java dependencies but not a Java runtime. Java
   11 or newer is required.
-- Name search decodes definitions lazily and may take time on a cold cache; it
-  reports progress and caps one result set at 250 entries.
+- Name and metadata search decode definitions lazily and may take time on a
+  cold cache; they report progress, supersede stale requests, and cap one
+  result set at 250 entries. Exact numeric IDs use direct lookup.
 - Combat discovery is a bounded side-view motion heuristic, not authoritative
   cache metadata. It requires distinct departure and recovery poses and leaves
   manual sequence/frame selection available for exceptional NPCs.
