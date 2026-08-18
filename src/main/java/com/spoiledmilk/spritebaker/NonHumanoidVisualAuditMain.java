@@ -37,8 +37,9 @@ public final class NonHumanoidVisualAuditMain {
             "directory", cache.toString(),
             "dataSha256", Hashing.sha256(cache.resolve("main_file_cache.dat2")),
             "referenceIndexSha256", Hashing.sha256(cache.resolve("main_file_cache.idx255"))));
+        VisualSettings defaults = new VisualSettings();
         report.put("render", ordered(
-            "preset", "RSC restrained",
+            "preset", defaults.preset,
             "cellSize", "128x128",
             "sheetSize", "768x384",
             "supersample", 3,
@@ -47,7 +48,10 @@ public final class NonHumanoidVisualAuditMain {
             "pitchDegrees", 12.0,
             "directionYawDegrees", SheetDirection.YAW_DEGREES,
             "timelineUnitMillis", 20,
-            "tweening", true));
+            "tweening", true,
+            "palette", defaults.palette,
+            "dithering", defaults.dithering,
+            "packedHslBrightnessExponent", StaticRenderer.PINNED_DEFAULT_BRIGHTNESS));
 
         List<Map<String,Object>> results = new ArrayList<>();
         Map<String,Integer> familyCounts = new LinkedHashMap<>();

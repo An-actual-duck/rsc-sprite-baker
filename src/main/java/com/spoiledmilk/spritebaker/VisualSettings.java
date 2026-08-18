@@ -14,10 +14,10 @@ public final class VisualSettings {
     public double diffuse = 0.40;
     public double lightAzimuthDegrees = -125.0;
     public double lightElevationDegrees = 45.0;
-    public String palette = PaletteReducer.RSC_125;
-    public String dithering = PaletteReducer.ORDERED_4X4;
+    public String palette = PaletteReducer.UNMODIFIED;
+    public String dithering = PaletteReducer.NO_DITHER;
     public double ditherStrength = 0.30;
-    public String preset = "RSC restrained";
+    public String preset = "Original colors";
 
     public void validate() {
         if (cellWidth < 16 || cellWidth > 512 || cellHeight < 16 || cellHeight > 512) {
@@ -38,6 +38,10 @@ public final class VisualSettings {
     public void applyPreset(String name) {
         preset = name;
         switch (name) {
+            case "Original colors":
+                pitchDegrees = 12; modelScale = 0.9; verticalOffsetPixels = 0;
+                ambient = 0.52; diffuse = 0.40; lightAzimuthDegrees = -125; lightElevationDegrees = 45;
+                palette = PaletteReducer.UNMODIFIED; dithering = PaletteReducer.NO_DITHER; break;
             case "Unmodified studio":
                 pitchDegrees = 15; modelScale = 0.92; verticalOffsetPixels = 0;
                 ambient = 0.45; diffuse = 0.55; lightAzimuthDegrees = -117; lightElevationDegrees = 41;

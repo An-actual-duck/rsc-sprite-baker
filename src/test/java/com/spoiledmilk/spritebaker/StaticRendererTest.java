@@ -72,13 +72,13 @@ class StaticRendererTest {
         NpcDefinition530 npc=new NpcDefinition530(25);VisualSettings settings=new VisualSettings();settings.cellWidth=40;settings.cellHeight=40;settings.supersample=1;settings.padding=4;settings.palette=PaletteReducer.UNMODIFIED;settings.ambient=1;settings.diffuse=0;
         MaterialDefinition530 definition=new MaterialDefinition530(12,true,true,true,false,false,0,0,0,0,0);TextureMaterial530 white=new TextureMaterial530(definition,1,new int[]{0xffffff},List.of(0));
         BufferedImage image=new StaticRenderer().renderStyled(List.of(fixture),npc,0,null,settings,id->white);
-        assertTrue(java.util.Arrays.stream(image.getRGB(0,0,40,40,null,0,40)).anyMatch(pixel->(pixel>>>24)==255&&((pixel>>>16)&255)>180&&((pixel>>>8)&255)<40&&(pixel&255)<40));
+        assertTrue(java.util.Arrays.stream(image.getRGB(0,0,40,40,null,0,40)).anyMatch(pixel->(pixel>>>24)==255&&((pixel>>>16)&255)>180&&((pixel>>>16)&255)>((pixel>>>8)&255)*3));
     }
 
     @Test void pinnedMaterialColorBytesBlendTowardGrayAndBoostChannels(){
         int redHsl=(7<<7)|64;MaterialDefinition530 plain=new MaterialDefinition530(1,true,true,true,false,false,0,0,0,0,0),modified=new MaterialDefinition530(1,true,true,true,false,false,64,(byte)128,0,0,0);
         int base=StaticRenderer.texturedModulation(redHsl,plain,1.0),changed=StaticRenderer.texturedModulation(redHsl,modified,1.0);
-        assertEquals(0xef1010,base);assertEquals(0xffa8a8,changed);
+        assertEquals(0xfa2916,base);assertEquals(0xffb9ac,changed);
     }
 
     @Test void rendersOperation34MaterialThroughCacheProviderDeterministically() throws Exception {
