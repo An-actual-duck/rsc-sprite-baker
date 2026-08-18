@@ -82,21 +82,26 @@ Known standing and walking sequences come from BAS metadata when present, with
 NPC-definition animation IDs as the fallback. Combat animations are not
 authoritatively identified by this metadata. The application therefore lists
 nearby, decodable sequences that share the locomotion framemap, with
-frame/cycle counts under the label “Likely combat (review).” Browsing any
-numeric sequence or likely-combat candidate changes only the ephemeral source
-preview. Standing, Walking, and Combat assignments change solely through
-their three explicit assignment buttons; browsing never marks the project
-dirty or replaces a target-sheet pose. Existing suggestion, override, and lock
-rules remain authoritative.
+frame/cycle counts as clearly labeled possible Combat animations. Standing and
+Walking animations are selected by role name from discovered metadata. A
+candidate changes the Combat source only through the explicit **Use as Combat
+animation** action. Raw numeric selection is hidden by default under
+**Advanced: manual sequence override** for definitions without usable
+discovery. Existing suggestion, override, and lock rules remain authoritative.
 
 ## Source selection and playback
 
 The editing path is deliberately linear:
 
 1. Select the target-sheet cell to establish the intended direction.
-2. Browse a source sequence or a likely-combat candidate.
+2. Choose Standing animation, Walking animation, or Combat animation.
 3. Select one of the complete 20 ms timeline poses or scrub its client time.
 4. Replace the selected cell, or apply the pose to a shared movement row.
+
+The final sheet and its animation preview receive roughly three quarters of
+the normal 1700×980 editor. The narrower source panel uses larger pose cards,
+two per row at its default width, with comfortable spacing and vertical
+scrolling.
 
 The complete timeline is the default. It includes one entry per client cycle,
 so tweened positions between encoded keyframe starts are selectable. Every
@@ -109,10 +114,11 @@ view. All poses use one stable timeline viewport, and every sample passes its
 own frame/cycle identity to the poser; multi-frame animations do not reuse
 frame zero.
 
-The source status displays the same position fields, direction, and all three
-assigned role IDs. Timeline thumbnails and the rendered source preview use the
-selected cell's direction by default; the nearby Direction selector makes a
-different view explicit.
+The source status begins with the meaningful role label and then displays
+frame, cycle, time, direction, and secondary sequence ID. Changing role,
+combat candidate, manual override, direction, or keyframe mode invalidates the
+old result before loading the replacement; stale asynchronous results cannot
+repopulate a timeline for another selected animation.
 
 **Play final RSC loop** is the primary playback action and sits inside the
 final-sheet preview area rather than the bottom action bar. It uses the normal
@@ -122,9 +128,9 @@ smooth scaling. Movement columns loop Standing, Left step, Standing, Right
 step; Combat side loops its three independently assigned combat poses. Each
 pose remains visible for its selected source frame's encoded duration.
 
-**Play source preview** is secondary. It samples the browsed sequence on the
-20 ms timer with project/sequence tweening. Both controls support pause/resume
-and stop on NPC changes, editor closure, or invalidated project state.
+There is no source-only playback control. The final assembled loop supports
+pause/resume and stops on NPC changes, editor closure, or invalidated project
+state.
 
 The final preview offers black, white, neutral-gray, grass-green, and custom
 background choices plus an obvious current-color swatch. `PreviewCompositor`
@@ -137,16 +143,18 @@ the project schema, exporter, batch processor, manifest, and hashing paths.
 One serial background lane owns cache reads for the active project. Model and
 material diagnosis, combat discovery, timeline thumbnail generation, pose
 suggestions, cell/actual-size previews, project export, and save operations do
-not execute on the Swing event thread. Source playback submits at most one
-render at a time and advances from elapsed client time instead of accumulating
-render work; assembled playback pre-renders its bounded three/four-pose loop in
-the same background lane. Rapid preview changes supersede queued preview work.
+not execute on the Swing event thread. Final playback pre-renders its bounded
+three/four-pose loop in the same background lane. Rapid preview changes
+supersede queued preview work.
 The status bar and indeterminate progress indicator identify the active
 operation; failures are shown both in context and in an error dialog.
 
 The NPC browser uses its own read-only cache session and reports search
 progress. It closes that session with the browser. Closing the editor stops
-queued work before closing the active cache store.
+queued work before closing the active cache store. When an NPC choice replaces
+an editor, the old editor is explicitly marked as a programmatic replacement;
+its close callback therefore cannot reopen another NPC browser beside the new
+editor. An intentional close of a transient editor still returns to browsing.
 
 Save and export operate on an immutable project snapshot. If editing continues
 while background I/O runs, the completed operation does not incorrectly mark
