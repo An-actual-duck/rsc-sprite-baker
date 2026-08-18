@@ -19,6 +19,12 @@ public final class NpcDefinition530 {
     public int heightScale = 128;
     public int ambient;
     public int contrast;
+    /** Overhead cover-marker sprite ID. Opcode 138 preserves unsigned 65535. */
+    public int coverMarker = -1;
+    /** Explicit attack-option priority mode from opcode 159. */
+    public int attackOptionPriority = -1;
+    /** Model picking-size shift from opcode 165. */
+    public int pickSizeShift;
     public boolean morphDefinition;
 
     public NpcDefinition530(int id) {

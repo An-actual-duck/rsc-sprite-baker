@@ -105,6 +105,11 @@ public final class NpcDefinition530Decoder {
             case 137:
                 skip(in, 2);
                 break;
+            case 138:
+                // Introduced immediately after the revision-530 format: unlike
+                // nullable definition IDs, the client preserves unsigned 65535.
+                npc.coverMarker = u16(in);
+                break;
             case 127:
                 npc.renderAnimation = nullableUnsignedShort(in);
                 break;
@@ -114,6 +119,12 @@ public final class NpcDefinition530Decoder {
             case 135:
             case 136:
                 skip(in, 3);
+                break;
+            case 159:
+                npc.attackOptionPriority = 0;
+                break;
+            case 165:
+                npc.pickSizeShift = u8(in);
                 break;
             case 95:
             case 102:
