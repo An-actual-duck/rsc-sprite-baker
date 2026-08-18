@@ -3,7 +3,7 @@ package com.spoiledmilk.spritebaker;
 public final class TargetSheet {
     public static final int ROWS=3, COLUMNS=6;
     public static final String[] ROW_LABELS={"Standing","Left step","Right step"};
-    public static final String[] COLUMN_LABELS={"Front","Diagonal","Side","Diagonal away","Away","Combat side"};
+    public static final String[] COLUMN_LABELS={"Facing camera","Facing diagonal","Side","Diagonal away","Away","Combat side"};
     public Cell[][] cells=new Cell[ROWS][COLUMNS];
     public PoseSelection[] sharedRows=new PoseSelection[ROWS];
 

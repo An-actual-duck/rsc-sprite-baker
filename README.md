@@ -76,26 +76,30 @@ mvn exec:java -Dexec.mainClass=com.spoiledmilk.spritebaker.SelectorMain \
   --output-dir /tmp/troll-sheet --npc 72"
 ```
 
-The final RSC sheet occupies most of the editor. Select a target cell, then
-choose **Standing animation**, **Walking animation**, or **Combat animation**
-and a Direction in the narrower Source poses panel. The role name is primary;
-its technical sequence ID is shown secondarily. Changing roles clears and
-reloads the timeline immediately, so its label and cards cannot describe a
-different animation.
+The final RSC sheet occupies most of the editor. Choose one of its six
+directions—**Facing camera**, **Facing diagonal**, **Side**, **Diagonal away**,
+**Away**, or **Combat side**—then select the Standing, Left step, or Right step
+cell to complete. Clicking a sheet cell and choosing a direction update one
+another. There is no ordinary animation-role selector.
 
-The timeline defaults to every selectable 20 ms client cycle, including
-tweened poses, rather than only encoded keyframe starts. Larger cards show
-frame, cycle offset, time, and secondary sequence ID; purple `AUTO` markers
-identify automatic Standing, Left step, Right step, and Combat samples. An
-optional **Keyframes only** view remains available. Select a card or scrub the
-timeline, then replace the outlined cell or set its shared row.
+For each movement direction, the alternative-pose browser automatically
+combines the discovered standing and walking animations. Combat side shows the
+best current combat animation instead. The browser defaults to every
+selectable 20 ms client cycle, including tweened poses, rather than only
+encoded keyframe starts. Larger cards show their understandable animation
+source, frame, cycle offset, and time; the sequence ID is secondary. Purple
+`AUTO` markers identify the exact Standing, Left step, Right step, and Combat
+samples used by automatic sheet completion. An optional **Keyframes only**
+view remains available. Select a card or scrub it, then replace the
+orange-outlined cell or set its shared movement row.
 
-Standing and Walking come from discovered NPC/BAS metadata. Combat offers
-clearly labeled candidate animations. Raw sequence IDs are hidden under
-**Advanced: manual sequence override** for NPCs whose source cannot be
-discovered. The five movement directions share row poses until individually
-overridden. Combat-side cells remain independent, and locks and suggestions
-retain their existing behavior.
+Standing and walking sources come from discovered NPC/BAS metadata. The best
+compatible combat candidate is used automatically when the cache does not
+already provide a current choice. Raw source roles, candidate choices, and
+sequence IDs are confined to **Advanced > Manual animation sources** for
+exceptional NPCs. The five movement directions share row poses until
+individually overridden. Combat-side cells remain independent, and locks and
+suggestions retain their existing behavior.
 
 The prominent **Play final RSC loop** control lives beside the final-sheet
 preview. It shows the actual assigned, palette-reduced export-size poses in the
