@@ -74,9 +74,36 @@ marker and prompt to Save, Discard, or Cancel before closing or switching.
 ## NPC and animation discovery
 
 The browser indexes NPC IDs from index 18 metadata without initially
-decompressing every definition. It loads the first page or matching names on
-demand. Selecting a result checks component models, textures, mapping modes,
-and supported material operations in the background.
+decompressing every definition. Its initial result list is deliberately empty
+and explains that the user can type a name or exact ID or select metadata
+filters. Typing starts a live search after a 300 ms debounce; a newer text or
+filter change cancels and supersedes the older request, whose progress and
+results cannot update the new query. An entire numeric query uses direct exact-
+ID lookup. General searches remain capped at 250 results.
+
+Whitespace-separated text terms are case-insensitive and all must occur in the
+combined NPC ID/name text. The text condition is always ANDed with the metadata
+tag group. **All** requires every selected tag; **Any** requires at least one.
+A blank text query with tags searches by metadata alone. Blank text with no
+tags restores the empty instruction rather than listing arbitrary definitions.
+
+The tags are derived from decoded NPC/BAS metadata, not names or manually
+maintained NPC lists:
+
+- **Automatic animations available** means resolved standing and walking IDs
+  are both present; **Needs manual animation selection** is its complement.
+- **Multipart model** means the definition references more than one component
+  model.
+- **Uses recolors** and **Uses retextures** come from their respective mapping
+  arrays.
+- **Altered model scale** means width or height scale differs from 128.
+- **Morph/internal definition** means morph metadata is present or the
+  definition has no component model.
+
+Selecting a result checks component models, textures, mapping modes, and
+supported material operations in the background. Search/filter work and full
+compatibility diagnosis never run on Swing's event thread. The cache session
+remains read-only and closes with the browser.
 
 Known standing and walking sequences come from BAS metadata when present, with
 NPC-definition animation IDs as the fallback. Combat animations are not
@@ -235,8 +262,9 @@ file under 2009scape was changed.
 
 - The application bundles its Java dependencies but not a Java runtime. Java
   11 or newer is required.
-- Name search decodes definitions lazily and may take time on a cold cache; it
-  reports progress and caps one result set at 250 entries.
+- Name and metadata search decode definitions lazily and may take time on a
+  cold cache; they report progress, supersede stale requests, and cap one
+  result set at 250 entries. Exact numeric IDs use direct lookup.
 - Combat discovery is a bounded side-view motion heuristic, not authoritative
   cache metadata. It requires distinct departure and recovery poses and leaves
   manual sequence/frame selection available for exceptional NPCs.

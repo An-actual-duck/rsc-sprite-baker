@@ -25,7 +25,8 @@ The current desktop distribution is a zero-configuration workflow: users
 launch the platform start file directly into the NPC browser, select an NPC from the bundled
 read-only licensed cache, customize the sheet, and export PNG + provenance to
 the adjacent `exports` folder. No cache, project, or export path setup is part
-of the ordinary workflow. See
+of the ordinary workflow. The browser begins with an empty instruction and
+supports debounced live name/ID search plus All/Any metadata filters. See
 [`docs/DESKTOP_DISTRIBUTION.md`](docs/DESKTOP_DISTRIBUTION.md) for the build,
 license/provenance, and terminal inspection contract.
 
