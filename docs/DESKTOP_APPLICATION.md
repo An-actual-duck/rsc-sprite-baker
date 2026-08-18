@@ -231,6 +231,9 @@ file under 2009scape was changed.
   reports progress and caps one result set at 250 entries.
 - Combat ranking is intentionally conservative metadata proximity, not combat
   semantics. Users must preview and choose.
+- Original-color preview and export retain the pinned textured-face packed-HSL
+  modulation, including intentional NPC recolors and model-authored accents;
+  uniform tint remains a preview-only inspection filter.
 - The Phase-4 difficult-model and procedural-material limitations remain as
   documented in `TEXTURE_COMPATIBILITY.md`.
 - Cache payloads, extracted assets, previews, exports, and local preferences

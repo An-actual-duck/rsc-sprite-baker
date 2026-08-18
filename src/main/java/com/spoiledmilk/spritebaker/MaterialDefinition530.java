@@ -13,4 +13,11 @@ public final class MaterialDefinition530 {
         this.lowDetail=lowDetail;this.materialFlag3=materialFlag3;this.scrollU=scrollU;this.scrollV=scrollV;
         this.effect=effect;this.effectParam=effectParam;this.averageColor=averageColor;
     }
+
+    /** Pinned GlModel.method4096 channel boost; the stored byte is unsigned. */
+    public int colorBoost(){return scrollU&255;}
+    /** Pinned GlModel.method4096 grayscale blend; the stored byte is unsigned. */
+    public int grayscaleBlend(){return scrollV&255;}
+    public int materialType(){return effect&255;}
+    public int materialArgument(){return effectParam&255;}
 }

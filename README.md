@@ -111,7 +111,9 @@ editor's only playback control.
 The enlarged playback area has two independent preview-only color controls.
 **Original model colors** is the default sprite mode and preserves intentional
 cache colors and NPC recolors, including accent regions that should remain
-visually distinct. **Uniform tint preview** is a separate filter with red,
+visually distinct. Textured faces retain the pinned client face-color and
+material-metadata modulation instead of displaying the procedural texture as
+uncolored gray. **Uniform tint preview** is a separate filter with red,
 blue, green, gold, and custom choices for rough palette-swap exploration; it is
 explicitly not a selective RSC recolor map. Black, white, neutral gray, grass
 green, and custom backgrounds make transparent edges easy to review. Neither
