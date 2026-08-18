@@ -76,36 +76,39 @@ mvn exec:java -Dexec.mainClass=com.spoiledmilk.spritebaker.SelectorMain \
   --output-dir /tmp/troll-sheet --npc 72"
 ```
 
-Select the target cell first, enter a source sequence, and choose **Browse /
-preview**. Browsing is temporary and never changes the project's Standing,
-Walking, or Combat sequence. The timeline follows the selected target-sheet
-direction; its explicit Direction selector can preview another view. By
-default it shows every selectable 20 ms client cycle, including tweened poses,
-instead of only encoded keyframe starts. Each card identifies sequence, frame,
-cycle offset, and time. Purple `AUTO` markers identify the precise Standing,
-Left step, Right step, and Combat samples used by automatic suggestions. An
-optional **Keyframes only** checkbox provides the compact view. Select a card
-or scrub the timeline, then replace the outlined cell or set its shared row.
+The final RSC sheet occupies most of the editor. Select a target cell, then
+choose **Standing animation**, **Walking animation**, or **Combat animation**
+and a Direction in the narrower Source poses panel. The role name is primary;
+its technical sequence ID is shown secondarily. Changing roles clears and
+reloads the timeline immediately, so its label and cards cannot describe a
+different animation.
 
-Use the separate Standing, Walking, and Combat buttons only when the browsed
-sequence should become that project's assigned source. The five movement
-directions share row poses until individually overridden. Combat-side cells
-are assigned independently. Locks prevent row, suggestion, and replacement
-actions; suggestions fill empty cells only.
+The timeline defaults to every selectable 20 ms client cycle, including
+tweened poses, rather than only encoded keyframe starts. Larger cards show
+frame, cycle offset, time, and secondary sequence ID; purple `AUTO` markers
+identify automatic Standing, Left step, Right step, and Combat samples. An
+optional **Keyframes only** view remains available. Select a card or scrub the
+timeline, then replace the outlined cell or set its shared row.
+
+Standing and Walking come from discovered NPC/BAS metadata. Combat offers
+clearly labeled candidate animations. Raw sequence IDs are hidden under
+**Advanced: manual sequence override** for NPCs whose source cannot be
+discovered. The five movement directions share row poses until individually
+overridden. Combat-side cells remain independent, and locks and suggestions
+retain their existing behavior.
 
 The prominent **Play final RSC loop** control lives beside the final-sheet
 preview. It shows the actual assigned, palette-reduced export-size poses in the
 selected direction: movement directions loop Standing → Left step → Standing
 → Right step, while Combat side loops its three combat cells. Its framing is
-calculated from the complete 18-cell sheet exactly like export. **Play source
-preview** remains available as a secondary inspection control.
+calculated from the complete 18-cell sheet exactly like export. It is the
+editor's only playback control.
 
 Black, white, neutral gray, grass green, and custom background controls make
 transparent edges easy to review. This background is composited into a
 temporary 1:1 preview only; it is not stored and cannot affect sprite alpha,
-PNG output, hashes, batch output, or provenance. Both playback controls render
-away from Swing's event thread and stop when the NPC changes or the editor
-closes.
+PNG output, hashes, batch output, or provenance. Final playback renders away
+from Swing's event thread and stops when the NPC changes or editor closes.
 
 Double-click a timeline pose or target cell to assign it. `Enter` replaces the
 selected cell, `Ctrl+1`/`Ctrl+2`/`Ctrl+3` set shared rows, `L` toggles its lock,

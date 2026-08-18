@@ -101,7 +101,7 @@ public final class DesktopMain {
                     }
                     SelectorMain.SelectorFrame frame = new SelectorMain.SelectorFrame(workspace, session);
                     frame.setVisible(true);
-                    if (ownerWindow instanceof SelectorMain.SelectorFrame) ownerWindow.dispose();
+                    if (ownerWindow instanceof SelectorMain.SelectorFrame) ((SelectorMain.SelectorFrame)ownerWindow).disposeForReplacement();
                 } catch (Exception e) {
                     showError(ownerWindow, e);
                 }
@@ -118,12 +118,12 @@ public final class DesktopMain {
         PoseSelection right = null;
         if (project.standingSequenceId >= 0) {
             Sequence530 sequence = workspace.cache.loadSequence(project.standingSequenceId);
-            standing = new PoseSelection(AnimationTimeline.sample(sequence, 0), "automatic-default");
+            standing = AutomaticPoseSuggestions.standing(sequence);standing.source="automatic-default";
         }
         if (project.walkingSequenceId >= 0) {
             Sequence530 sequence = workspace.cache.loadSequence(project.walkingSequenceId);
-            left = new PoseSelection(AnimationTimeline.sample(sequence, sequence.totalMillis() / 3), "automatic-default");
-            right = new PoseSelection(AnimationTimeline.sample(sequence, sequence.totalMillis() * 2 / 3), "automatic-default");
+            left = AutomaticPoseSuggestions.leftStep(sequence);left.source="automatic-default";
+            right = AutomaticPoseSuggestions.rightStep(sequence);right.source="automatic-default";
         }
         if (left == null) left = standing;
         if (right == null) right = standing;
@@ -136,10 +136,8 @@ public final class DesktopMain {
         if (!candidates.isEmpty()) {
             project.combatSequenceId = candidates.get(0).sequenceId;
             Sequence530 combat = workspace.cache.loadSequence(project.combatSequenceId);
-            for (int row = 0; row < 3; row++) {
-                long time = combat.totalMillis() * row / 3;
-                project.sheet.suggest(row, 5, new PoseSelection(AnimationTimeline.sample(combat, time), "automatic-combat-candidate"));
-            }
+            PoseSelection[] suggestions=AutomaticPoseSuggestions.combat(combat);
+            for (int row = 0; row < 3; row++) {suggestions[row].source="automatic-combat-candidate";project.sheet.suggest(row,5,suggestions[row]);}
         } else {
             for (int row = 0; row < 3; row++) if (movement[row] != null) project.sheet.suggest(row, 5, movement[row]);
         }
