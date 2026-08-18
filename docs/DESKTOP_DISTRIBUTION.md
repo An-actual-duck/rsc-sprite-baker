@@ -10,9 +10,9 @@ current working directory.
 
 The default desktop does not ask for cache, project, or export locations. It
 opens directly to the NPC browser and reads the bundled `cache` directory
-through a strictly read-only storage implementation. The browser starts empty,
-then searches names/IDs live or filters decoded metadata tags with All/Any
-matching; it does not preload an arbitrary first page. A selected NPC opens as a
+through a strictly read-only storage implementation. The browser starts empty
+with a clear instruction. Search or Enter explicitly searches a partial name
+or one exact numeric ID; it does not preload an arbitrary first page. A selected NPC opens as a
 temporary editing session with discovered movement poses and conservative
 combat suggestions. Export writes a human-readable PNG and provenance JSON to
 the adjacent `exports` directory. Existing output is never replaced without a

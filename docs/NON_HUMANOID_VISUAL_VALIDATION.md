@@ -13,7 +13,8 @@ amorphous bodies, large bosses, multipart/textured monsters, and Slayer-style
 monsters. For every NPC the audit records the cache identity, component model
 IDs, automatic sequence choices, all 18 pose selections, material diagnostics,
 direction yaw, per-cell ARGB hash, visible/translucent pixel counts, alpha
-bounds, edge contact, occupancy, and exported PNG/provenance hashes.
+bounds, exact-black count, distinct RGB count, average RGB, edge contact,
+occupancy, and exported PNG/provenance hashes.
 
 Run it from a built checkout with output outside both Git and the cache:
 
@@ -27,7 +28,8 @@ java -cp target/rsc-sprite-baker.jar \
 
 The entry point fails individual definitions closed in the report. A clean
 entry requires all 18 cells, a decodable 768×384 transparent export, non-empty
-cells, no cell-edge contact, at least two rendered movement poses in every
+cells, no cell with more than 75% exact-black visible pixels, no cell-edge
+contact, at least two rendered movement poses in every
 direction, at least three distinct standing directions, distinct detected
 combat poses, and no material diagnostic error. Hashes and occupancy remain
 available for review even when a threshold is flagged. Cache data and generated
@@ -85,6 +87,37 @@ the Windows archive is 77,108,958 bytes at SHA-256
 `9ac3e69d8ea95a7dbde5dbb400f3d95c1a0ad269f727961a1f670749b8fed302`.
 All reports, archives, and rendered derivatives remain outside Git.
 
+## 2026-08-18 original-color correction
+
+NPC 1615's single model 5062 has 488 faces, of which 480 are textured through
+materials 59, 283, 310, and 318. Its definition recolors packed HSL 4015 to
+528; 254 faces use the recolored value and 198 use packed HSL 16. There is no
+NPC retexture. The pre-change unmodified raster retained 171 colors and an RGB
+average of 24/17/17, but the zero-configuration 5-level cube plus dithering
+collapsed 1,796 of 2,008 visible pixels to exact black. This established that
+the failure was after model decode, recolor, material resolution, lighting,
+and rasterization rather than missing cache color.
+
+The systemic correction uses the pinned revision-530 packed-HSL palette
+conversion at deterministic default brightness 0.7 and makes unmodified RGB
+the zero-configuration default. Optional RSC cube presets remain available for
+deliberate advanced styling. A representative side render of NPC 1615 now has
+2,008 visible pixels, zero exact black, 370 distinct colors, and average RGB
+44/32/31. Equivalent cache-backed samples of King Black Dragon, Red dragon,
+Kurask, Gargoyle, Nechryael, Bloodveld, Dark beast, and Tormented demon also
+retain non-black color.
+
+The strengthened 29-NPC matrix passed all 522 cells under `Original colors`.
+NPC 1615's complete sheet contains 36,907 visible pixels, zero exact black,
+and at least 319 distinct RGB values in every cell. The external matrix report
+SHA-256 is
+`026e75033612102ced926f6540e5dbe3205f22ad6b2c398c3b9b2a3e7f44ba8f`;
+the NPC-1615 PNG is 76,545 bytes at SHA-256
+`f3dd808338ad14be265ae86fb60d0c29e699177c2d98c7c7761cb6490da786a0`.
+The focused neutral regression also proves the 4015-to-528 recolor remains
+chromatic through preview-only compositing and a transparent PNG round trip.
+No NPC-specific recolor, material, camera, or renderer override was added.
+
 ## Suggested visual browse list
 
 The complete matrix is source-controlled in `NonHumanoidVisualMatrix`. A
@@ -104,8 +137,8 @@ Especially unusual first checks are Tortoise (six multipart models and 21
 materials), Kree'arra (winged multipart boss), Big Snake (very long/thin
 silhouette), Jelly (amorphous textured body), Penance Queen (eight component
 models), and Shark (walking-only automatic metadata). Manual inspection should
-use a neutral-gray preview background for predominantly black creatures such
-as King Black Dragon; the exported PNG remains transparent.
+use a neutral-gray preview background for intentionally dark creatures such as
+King Black Dragon; the exported PNG remains transparent.
 
 ## Limits
 

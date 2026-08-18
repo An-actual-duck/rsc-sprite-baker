@@ -22,6 +22,9 @@ Each sheet export performs the following operations in order:
    threshold. Alpha values are retained exactly.
 
 The default is a 128×128 target cell rendered at 384×384 (3×) before reduction.
+The zero-configuration default preserves original rendered colors and applies
+no palette reduction or dithering. Reduced palettes remain explicit advanced
+style choices.
 Widths and heights from 16 through 512, supersampling from 1× through 8×,
 padding, model scale, pitch, yaw offset, and vertical position are persisted in
 the project. All 18 output cells always have the same dimensions and viewport.
@@ -34,6 +37,7 @@ manifest.
 
 | Preset | Camera/scale | Light | Color |
 | --- | --- | --- | --- |
+| Original colors (default) | 12° pitch, 0.90 scale | ambient 0.52, directional 0.40 | original rendered RGB, no dither |
 | Unmodified studio | 15° pitch, 0.92 scale | ambient 0.45, directional 0.55 | original rendered RGB, no dither |
 | RSC crisp | 12° pitch, 0.90 scale | ambient 0.52, directional 0.40 | fixed 5×5×5 RGB cube, no dither |
 | RSC restrained | same as crisp | same as crisp | 5×5×5 cube, 4×4 ordered dither at 0.30 strength |
@@ -49,6 +53,22 @@ The palette menu also exposes the coarser 3×3×3 cube for deliberate stylized
 experiments. Ordered dithering is spatially fixed to output coordinates, so it
 is reproducible and does not shimmer between frames. Dithering never changes
 transparent pixels.
+
+## Revision-530 packed-HSL color
+
+Model face colors and NPC recolor targets are packed HSL values, not direct
+RGB. The pinned client constructs its 65,536-entry raster palette with the
+half-bin hue and saturation offsets, 128 lightness steps, per-channel power,
+integer `* 256` narrowing, and nonzero-black rule in
+[`Rasteriser.calculateBrightness`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/Rasteriser.java#L3151-L3228).
+The default client preference is brightness 3, selecting exponent 0.7 in
+[`DisplayMode`](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/DisplayMode.java#L245-L260).
+
+Sprite Baker now uses that exact 0.7 conversion deterministically for model
+and textured-face modulation. It intentionally omits the client's random
+plus-or-minus 0.015 display perturbation because identical exports must hash
+identically. Post-render palette cubes are optional style transforms and are
+not pinned-client color behavior.
 
 ## Selector behavior
 
@@ -99,6 +119,7 @@ No comparison PNG, project, cache data, or decoded asset is committed.
   claim to reproduce the original RSC palette or rasterizer exactly.
 - Face priorities, clipping, animation blending, equipment overrides, and
   non-65535 framemap masks remain outside the current renderer.
-- Textured faces are still rejected and remain explicitly Phase 4.
-- Large cells and high supersampling increase CPU and memory cost; selector
-  previews currently render synchronously.
+- Textured faces use the fail-closed material pipeline documented in
+  `TEXTURE_COMPATIBILITY.md`; absent material metadata remains unsupported.
+- Large cells and high supersampling increase CPU, memory use, and background
+  preview latency.

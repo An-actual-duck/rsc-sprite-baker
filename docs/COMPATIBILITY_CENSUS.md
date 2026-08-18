@@ -2373,3 +2373,25 @@ blocked by a model decoder, graph-language decoder, animation decoder, or
 other unclassified failure. The Java 21 suite passes 216 tests. No cache input,
 report, or generated derivative is tracked, and no GUI was launched or
 automated.
+
+## 2026-08-18 browser simplification and color correction
+
+Removing live browser filters did not restrict the audited definition set or
+move compatibility categories. The production catalog still indexes all 8,590
+definitions and the full terminal census remains byte-identical at SHA-256
+`360ab988150e65c42cadc1dc46f7fbd480e0b7b8413d8595a0c16f4fe0d04e10`:
+
+| Category | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Ready | 6,926 | 6,926 | 0 |
+| Missing automatic animations | 1,051 | 1,051 | 0 |
+| Unsupported material | 1 | 1 | 0 |
+| Unsupported model | 0 | 0 | 0 |
+| Morph/internal definition | 612 | 612 | 0 |
+| Other failure | 0 | 0 | 0 |
+
+The NPC-1615 correction changes packed-HSL conversion and the default
+post-render color style, not model, material, or animation support. NPC 1412's
+missing texture ID 65535 metadata remains fail-closed. Java 21 clean verify
+passes 258 tests, the 29-entry non-humanoid export matrix passes all 522 cells,
+and no cache input or rendered derivative is tracked.
