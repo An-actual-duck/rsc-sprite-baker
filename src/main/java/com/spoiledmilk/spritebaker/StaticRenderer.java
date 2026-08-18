@@ -195,12 +195,15 @@ public final class StaticRenderer {
 
     private static void rejectTextures(ModelDefinition model) {
         if (model.faceTextures == null) return;
-        for (short texture : model.faceTextures) if (texture != -1)
-            throw new UnsupportedOperationException("model " + model.id + " contains textured faces");
+        for (int face = 0; face < model.faceCount; face++) {
+            if (!hiddenFace(model, face) && model.faceTextures[face] != -1) {
+                throw new UnsupportedOperationException("model " + model.id + " contains textured faces");
+            }
+        }
     }
 
-    static boolean hiddenFace(ModelDefinition model,int face){
-        return model.faceRenderTypes!=null&&model.faceRenderTypes[face]==2;
+    static boolean hiddenFace(ModelDefinition model, int face) {
+        return model.faceRenderTypes != null && model.faceRenderTypes[face] == 2;
     }
 
     private static int recolor(short source, NpcDefinition530 npc) {

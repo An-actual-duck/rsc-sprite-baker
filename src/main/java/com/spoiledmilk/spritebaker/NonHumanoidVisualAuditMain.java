@@ -107,6 +107,15 @@ public final class NonHumanoidVisualAuditMain {
             if (!entry.expectedName.equals(workspace.npc.name)) issues.add("cache name differs from matrix expectation");
             result.put("componentModelIds", workspace.npc.modelIds);
             TextureDiagnostics530.Report materials = TextureDiagnostics530.analyze(workspace.baseModel, workspace.npc, workspace.textures);
+            int hiddenFaces = 0, hiddenWhiteFaces = 0, hiddenTexturedFaces = 0;
+            for (int face = 0; face < workspace.baseModel.faceCount; face++) {
+                if (!StaticRenderer.hiddenFace(workspace.baseModel, face)) continue;
+                hiddenFaces++;
+                if (Short.toUnsignedInt(workspace.baseModel.faceColors[face]) == 65535) hiddenWhiteFaces++;
+                if (workspace.baseModel.faceTextures != null && workspace.baseModel.faceTextures[face] != -1) {
+                    hiddenTexturedFaces++;
+                }
+            }
             result.put("materials", ordered(
                 "materialIds", materials.materialIds,
                 "supportedMaterialIds", materials.supportedMaterialIds,
@@ -114,6 +123,9 @@ public final class NonHumanoidVisualAuditMain {
                 "type0Mappings", materials.type0Mappings,
                 "advancedMappings", materials.advancedMappingFallbacks,
                 "faceLocalMappings", materials.faceLocalMappings,
+                "hiddenRenderType2Faces", hiddenFaces,
+                "hiddenWhiteMarkerFaces", hiddenWhiteFaces,
+                "hiddenTexturedFaces", hiddenTexturedFaces,
                 "errors", materials.errors));
             if (!materials.errors.isEmpty()) issues.add("material diagnostics reported errors: " + materials.errors);
             result.put("animations", ordered(

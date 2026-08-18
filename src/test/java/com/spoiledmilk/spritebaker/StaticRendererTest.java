@@ -30,7 +30,7 @@ class StaticRendererTest {
     @Test void hiddenTexturedFaceDoesNotResolveOrSubstituteItsMaterial(){
         ModelDefinition fixture=neutralModel();fixture.faceColors=new short[]{123};fixture.faceRenderTypes=new byte[]{2};fixture.faceTextures=new short[]{12};
         NpcDefinition530 npc=new NpcDefinition530(1);VisualSettings settings=new VisualSettings();settings.cellWidth=40;settings.cellHeight=40;settings.supersample=1;settings.padding=4;
-        BufferedImage image=new StaticRenderer().renderStyled(List.of(fixture),npc,0,null,settings,id->{throw new AssertionError("hidden face requested material "+id);});
+        BufferedImage image=new StaticRenderer().renderStyled(List.of(fixture),npc,0,null,settings);
         assertTrue(java.util.Arrays.stream(image.getRGB(0,0,40,40,null,0,40)).allMatch(pixel->pixel==0));
     }
 

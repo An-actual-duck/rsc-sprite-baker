@@ -167,7 +167,11 @@ poser, full 18-cell export viewport, palette reducer, selected direction, and
 actual configured cell dimensions. Swing presents those pixels 1:1 with no
 smooth scaling. Movement columns loop Standing, Left step, Standing, Right
 step; Combat side loops its three independently assigned combat poses. Each
-pose remains visible for its selected source frame's encoded duration.
+pose remains visible for its selected source frame's encoded duration. The
+adjacent **Preview speed** control offers 0.5×, 0.75×, and 1× and defaults
+to the inspection-friendly 0.5× rate. It scales only the playback clock;
+encoded source durations, pose choices, projects, exports, and provenance are
+unchanged.
 
 There is no source-only playback control. The final assembled loop supports
 pause/resume and stops on NPC changes, editor closure, or invalidated project
@@ -180,6 +184,14 @@ preserves sprite RGB and alpha, then creates a separate opaque
 background-composited image. Background choice is ephemeral UI state: it is
 absent from the project schema, exporter, batch processor, manifest, and
 hashing paths, and the transparent export render is never mutated.
+
+**Open large inspection view** opens the same current final frame in a
+modeless, resizable window. It stays synchronized with playback and direction
+changes, carries over the selected preview background and mirror setting, and
+offers exact 1× through 4× integer zoom. Pixel replication is used instead of
+smooth interpolation. Closing this auxiliary view does not close, pause, or
+otherwise alter the editor; its zoom is ephemeral and never enters project or
+export state.
 
 ## Responsiveness and feedback
 
