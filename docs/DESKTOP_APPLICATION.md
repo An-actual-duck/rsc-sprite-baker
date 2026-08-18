@@ -108,10 +108,12 @@ animation sources.
 The final sheet and its animation preview receive roughly three quarters of
 the normal 1700×980 editor. The narrower source panel uses larger pose cards,
 two per row at its default width, with comfortable spacing and vertical
-scrolling. The former row-setting button stack is replaced by one prominent
-**Auto populate** action. It recomputes all 18 recommended cells, replaces
-unlocked cells, preserves locks, and uses the movement recommendation as the
-existing bounded fallback when no combat animation can be discovered.
+scrolling. The 3×6 placement grid is centered at a bounded compact size with
+smaller thumbnails, so the enlarged preview cannot stretch its columns while
+crushing its rows. The former row-setting button stack is replaced by one
+prominent **Auto populate** action. It recomputes all 18 recommended cells,
+replaces unlocked cells, preserves locks, and uses the movement recommendation
+as the existing bounded fallback when no combat animation can be discovered.
 
 For a movement direction, the browser combines every viable pose from the
 discovered standing and walking animations; for Combat side it contains only
@@ -149,13 +151,15 @@ state.
 
 The final playback/preview area is wider and taller. It offers black, white,
 neutral-gray, grass-green, and custom background choices plus an obvious
-current-color swatch. A separate sprite-color row offers original white, red,
-blue, green, gold, and custom choices. `PreviewCompositor` multiplies the
-displayed RGB by that color while preserving the sprite's shading and alpha,
-then creates a separate opaque background-composited image. Both settings are
-ephemeral UI state: they are absent from the project schema, exporter, batch
-processor, manifest, and hashing paths, and the palette-reduced transparent
-render is never mutated.
+current-color swatch. Its separate sprite-color mode defaults to **Original
+model colors**, which applies no display tint and therefore retains distinct
+cache colors, textures, and NPC recolors. **Uniform tint preview** offers red,
+blue, green, gold, and custom filters for rough palette-swap visualization; it
+does not claim to identify selectively swappable regions. `PreviewCompositor`
+preserves shading and alpha, then creates a separate opaque
+background-composited image. Both settings are ephemeral UI state: they are
+absent from the project schema, exporter, batch processor, manifest, and
+hashing paths, and the palette-reduced transparent render is never mutated.
 
 ## Responsiveness and feedback
 

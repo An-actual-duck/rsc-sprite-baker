@@ -24,4 +24,10 @@ class PreviewCompositorTest {
         BufferedImage preview=PreviewCompositor.over(sprite,Color.BLACK,false,new Color(200,100,50));
         assertEquals(0xffc86432,preview.getRGB(0,0));assertEquals(0xff32190d,preview.getRGB(1,0));assertArrayEquals(original,sprite.getRGB(0,0,2,1,null,0,2));assertEquals(128,sprite.getRGB(1,0)>>>24);
     }
+
+    @Test void originalModePreservesWhiteAndIntentionalAccentColors(){
+        BufferedImage sprite=new BufferedImage(2,1,BufferedImage.TYPE_INT_ARGB);sprite.setRGB(0,0,0xffffffff);sprite.setRGB(1,0,0xffffff00);
+        BufferedImage original=PreviewCompositor.over(sprite,Color.BLACK,false);
+        assertEquals(0xffffffff,original.getRGB(0,0));assertEquals(0xffffff00,original.getRGB(1,0));
+    }
 }

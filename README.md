@@ -109,11 +109,13 @@ calculated from the complete 18-cell sheet exactly like export. It is the
 editor's only playback control.
 
 The enlarged playback area has two independent preview-only color controls.
-Black, white, neutral gray, grass green, and custom backgrounds make
-transparent edges easy to review. Original white, red, blue, green, gold, and
-custom sprite colors multiply the displayed sprite RGB while retaining its
-shading and alpha, which makes palette-swap possibilities easier to judge.
-Neither choice is stored or can affect sprite pixels, alpha, PNG output,
+**Original model colors** is the default sprite mode and preserves intentional
+cache colors and NPC recolors, including accent regions that should remain
+visually distinct. **Uniform tint preview** is a separate filter with red,
+blue, green, gold, and custom choices for rough palette-swap exploration; it is
+explicitly not a selective RSC recolor map. Black, white, neutral gray, grass
+green, and custom backgrounds make transparent edges easy to review. Neither
+preview choice is stored or can affect sprite pixels, alpha, PNG output,
 hashes, batch output, or provenance. Final playback renders away from Swing's
 event thread and stops when the NPC changes or editor closes.
 
