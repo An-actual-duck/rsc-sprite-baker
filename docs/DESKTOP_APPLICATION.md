@@ -120,6 +120,10 @@ row-setting button stack is replaced by one
 prominent **Auto populate** action. It recomputes all 18 recommended cells,
 replaces unlocked cells, preserves locks, and uses the movement recommendation
 as the existing bounded fallback when no combat animation can be discovered.
+When cache metadata supplies walking but no separate standing animation, cycle
+zero of that walking animation supplies the visible Standing row without
+inventing or persisting a standing sequence ID. Definitions missing both
+automatic sources remain fail-closed.
 
 For a movement direction, the browser combines every viable pose from the
 discovered standing and walking animations; for Combat side it contains only

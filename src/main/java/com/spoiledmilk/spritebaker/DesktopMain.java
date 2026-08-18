@@ -5,7 +5,6 @@ import java.awt.GraphicsEnvironment;
 import java.awt.Window;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
@@ -84,7 +83,7 @@ public final class DesktopMain {
         SwingWorker<AnimationWorkspace,Void> worker = new SwingWorker<>() {
             protected AnimationWorkspace doInBackground() throws Exception {
                 AnimationWorkspace workspace = new AnimationWorkspace(session.cacheDirectory, session.project.npcId);
-                if (session.transientDesktop) prepareTransientProject(session.project, workspace);
+                if (session.transientDesktop) AutomaticSheetBuilder.populate(session.project, workspace);
                 return workspace;
             }
             protected void done() {
@@ -109,37 +108,6 @@ public final class DesktopMain {
         };
         worker.execute();
         progress.setVisible(true);
-    }
-
-    private static void prepareTransientProject(SpriteProject project, AnimationWorkspace workspace) throws Exception {
-        AnimationDiscovery.populateKnown(project, workspace);
-        PoseSelection standing = null;
-        PoseSelection left = null;
-        PoseSelection right = null;
-        if (project.standingSequenceId >= 0) {
-            Sequence530 sequence = workspace.cache.loadSequence(project.standingSequenceId);
-            standing = AutomaticPoseSuggestions.standing(sequence);standing.source="automatic-default";
-        }
-        if (project.walkingSequenceId >= 0) {
-            Sequence530 sequence = workspace.cache.loadSequence(project.walkingSequenceId);
-            left = AutomaticPoseSuggestions.leftStep(sequence);left.source="automatic-default";
-            right = AutomaticPoseSuggestions.rightStep(sequence);right.source="automatic-default";
-        }
-        if (left == null) left = standing;
-        if (right == null) right = standing;
-        PoseSelection[] movement = {standing, left, right};
-        for (int row = 0; row < movement.length; row++) {
-            if (movement[row] != null) for (int column = 0; column < 5; column++) project.sheet.suggest(row, column, movement[row]);
-        }
-
-        List<CombatCandidate> candidates = AnimationDiscovery.combatCandidates(workspace);
-        if (!candidates.isEmpty()) {
-            project.combatSequenceId = candidates.get(0).sequenceId;
-            PoseSelection[] suggestions=candidates.get(0).suggestions();
-            for (int row = 0; row < 3; row++) {suggestions[row].source="automatic-combat-candidate";project.sheet.suggest(row,5,suggestions[row]);}
-        } else {
-            for (int row = 0; row < 3; row++) if (movement[row] != null) project.sheet.suggest(row, 5, movement[row]);
-        }
     }
 
     static void editorClosed(boolean transientDesktop) {
