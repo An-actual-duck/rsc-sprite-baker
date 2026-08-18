@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.BufferUnderflowException;
 import org.junit.jupiter.api.Test;
 
 class NpcDefinition530DecoderTest {
@@ -50,5 +51,46 @@ class NpcDefinition530DecoderTest {
             UnsupportedOperationException.class,
             () -> new NpcDefinition530Decoder().decode(9, new byte[] {(byte) 200, 0}));
         assertEquals("unsupported revision-530 NPC opcode 200 at byte 0", error.getMessage());
+    }
+
+    @Test
+    void decodesCoverMarkerAndPreservesUnsignedSentinel() {
+        NpcDefinition530 result = new NpcDefinition530Decoder().decode(1688, new byte[] {
+            (byte) 138, (byte) 0xff, (byte) 0xff,
+            (byte) 97, 0, 96,
+            0
+        });
+
+        assertEquals(65535, result.coverMarker);
+        assertEquals(96, result.widthScale);
+    }
+
+    @Test
+    void decodesNpc1688TrailingMetadataAtExactBoundaries() {
+        NpcDefinition530 result = new NpcDefinition530Decoder().decode(1688, new byte[] {
+            (byte) 137, (byte) 0xff, (byte) 0xff,
+            (byte) 138, (byte) 0xff, (byte) 0xff,
+            (byte) 159,
+            (byte) 165, (byte) 0xff,
+            0
+        });
+
+        assertEquals(65535, result.coverMarker);
+        assertEquals(0, result.attackOptionPriority);
+        assertEquals(255, result.pickSizeShift);
+    }
+
+    @Test
+    void keepsOpcode138TruncationFailClosed() {
+        assertThrows(BufferUnderflowException.class,
+            () -> new NpcDefinition530Decoder().decode(1688,
+                new byte[] {(byte) 138, 1}));
+    }
+
+    @Test
+    void keepsOpcode165TruncationFailClosed() {
+        assertThrows(BufferUnderflowException.class,
+            () -> new NpcDefinition530Decoder().decode(1688,
+                new byte[] {(byte) 165}));
     }
 }
