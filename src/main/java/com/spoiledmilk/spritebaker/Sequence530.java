@@ -19,6 +19,7 @@ public final class Sequence530 {
     public int[] secondaryFrameIds;
     public boolean tween;
     public boolean special;
+    public boolean opcode16;
 
     Sequence530(int id) { this.id = id; }
 

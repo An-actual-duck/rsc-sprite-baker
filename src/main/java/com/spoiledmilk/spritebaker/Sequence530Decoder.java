@@ -38,12 +38,18 @@ public final class Sequence530Decoder {
                     for (int i = 0; i < secondaryCount; i++) out.secondaryFrameIds[i] |= in.u16() << 16;
                     break;
                 case 13:
-                    int soundCount = in.u8();
-                    for (int i = 0; i < soundCount; i++) in.u24();
+                    int soundCount = in.u16();
+                    for (int i = 0; i < soundCount; i++) {
+                        int variants = in.u8();
+                        if (variants > 0) {
+                            in.u24();
+                            for (int variant = 1; variant < variants; variant++) in.u16();
+                        }
+                    }
                     break;
                 case 14: out.special = true; break;
                 case 15: out.tween = true; break;
-                case 16: in.i8(); break;
+                case 16: out.opcode16 = true; break;
                 default: throw new IllegalArgumentException("sequence " + id + " has unsupported opcode " + opcode);
             }
         }
