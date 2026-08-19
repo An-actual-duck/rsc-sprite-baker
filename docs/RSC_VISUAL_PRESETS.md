@@ -411,6 +411,16 @@ unchanged alpha, 86 RGB colors, and 22 luminance levels. The nine-NPC report is
 This checkpoint changes no shadow placement and exists for hands-on validation
 of highlight removal on Abyssal Demon 1615.
 
+### Editor-review disposition
+
+On 2026-08-19 the user approved this cumulative RSC-material branch for READY
+handoff after direct editor testing. The appearance is suitable for integration
+and in-game evaluation; that later game-context review may identify additional
+aesthetic tuning, but it is not a known renderer correctness failure or a gate
+for this handoff. **Original colors** remains the unchanged reference path, and
+**RSC material** remains an explicit optional preset shared by preview and
+export.
+
 ## Revision-530 packed-HSL color
 
 Model face colors and NPC recolor targets are packed HSL values, not direct
