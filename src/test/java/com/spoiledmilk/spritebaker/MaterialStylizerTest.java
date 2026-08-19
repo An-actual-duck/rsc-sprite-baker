@@ -18,6 +18,21 @@ class MaterialStylizerTest {
         assertTrue(MaterialStylizer.luminance(a.getRGB(0, 0)) >= 60);
     }
 
+    @Test void supportedDarkSubpixelFeatureSurvivesButOneSpeckDoesNot() {
+        StaticRenderer.RasterFrame feature=detailBlock(2),speck=detailBlock(1);
+        BufferedImage preserved=MaterialStylizer.reduce(feature,1,1,3);
+        BufferedImage rejected=MaterialStylizer.reduce(speck,1,1,3);
+        assertTrue(MaterialStylizer.luminance(preserved.getRGB(0,0))+28
+            < MaterialStylizer.luminance(rejected.getRGB(0,0)));
+    }
+
+    @Test void everyBaseToneHasDistinctDarkerShadowSteps() {
+        for(int base:new int[]{40,68,104,148,204,236}){
+            assertTrue(MaterialStylizer.shadowLight(base,1)<base);
+            assertTrue(MaterialStylizer.shadowLight(base,2)<MaterialStylizer.shadowLight(base,1));
+        }
+    }
+
     @Test void centerSamplePreservesSilhouetteAndMaterialBoundary() {
         BufferedImage image = new BufferedImage(6, 3, BufferedImage.TYPE_INT_ARGB);
         int[] surfaces = new int[18];
@@ -181,5 +196,11 @@ class MaterialStylizerTest {
         Arrays.fill(surfaces, surface);
         for (int i = 0; i < 9; i++) image.setRGB(i % 3, i / 3, i == darkIndex ? 0xff010101 : color);
         return new StaticRenderer.RasterFrame(image, surfaces);
+    }
+    private static StaticRenderer.RasterFrame detailBlock(int darkPixels){
+        BufferedImage image=new BufferedImage(3,3,BufferedImage.TYPE_INT_ARGB);int[] surfaces=new int[9];
+        Arrays.fill(surfaces,7);for(int i=0;i<9;i++)image.setRGB(i%3,i/3,0xffb08060);
+        for(int i=0;i<darkPixels;i++){image.setRGB(i,0,0xff201814);surfaces[i]=8;}
+        return new StaticRenderer.RasterFrame(image,surfaces);
     }
 }

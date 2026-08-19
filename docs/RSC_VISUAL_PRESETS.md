@@ -300,6 +300,46 @@ for Dark beast. The external report is
 `4732bb3725e6132547556233f73683d18db9b3d9f4cc741c4a4aa449602dc48d`.
 Hands-on review remains the approval gate.
 
+### Eighth checkpoint: detail-preserving reduction and real dark ramps
+
+Further hands-on review identified that the flattening stage itself was
+discarding facial features, narrow edges, and small part boundaries before the
+new form shadows could use them. Two mechanisms were responsible. First, the
+center supersample alone selected the output material, so a narrow eye or dark
+edge covering two high-resolution samples could disappear. Second, two
+final-resolution median passes removed supported detail along with procedural
+noise. Separately, dark material bases already at the first fixed ramp entry
+could not move any lower, making a requested shadow numerically identical to
+the base.
+
+Reduction now keeps center ownership for alpha and silhouettes but may select a
+different decoded surface inside the same supersample block only when at least
+two samples support it and its median is at least 28 luminance points darker.
+There is deliberately no corresponding bright-minority rule, so small pale
+facets cannot be promoted. One material-bounded median pass replaces two. Dark
+features within a shared texture/material survive only when a neighboring
+pixel supports the same local luminance departure; single dark texels still
+fail the support test.
+
+Shade steps are now multiplicative at 72 percent of the preceding material
+tone rather than lower indexes in a globally fixed base table. Every base can
+therefore produce a darker mid and shadow. The final luminance floor is 34:
+the first audit at a lower floor demonstrated that intentional dither could
+re-enter the near-black speckle metric, so that version was rejected rather
+than checkpointed.
+
+Java 21 `mvn clean verify` passes all 285 tests. New regressions prove that a
+two-subpixel dark feature survives while a lone speck does not, and that every
+base has distinct mathematical shadow steps. The final nine-NPC audit reports
+zero alpha mismatches, exact-black pixels, isolated dark speckles, or temporal
+speckle variation. Complete sheets retain 17–74 RGB colors across the varied
+textured set, while individual frames peak at 10–47 colors. Original-colors
+hashes remain unchanged. The external report is
+`/tmp/rsc-material-detail-shadow-floor.ohvsHA/report.json`, SHA-256
+`b8d3b3c60e024b33b0ed8e5eb0c04d200a2eeca7c82a744ded9d8d0537c9e976`.
+Visual inspection must determine whether recovered eyes, part edges, and
+shadows now balance correctly against the flattened material regions.
+
 ## Revision-530 packed-HSL color
 
 Model face colors and NPC recolor targets are packed HSL values, not direct

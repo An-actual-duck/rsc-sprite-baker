@@ -41,11 +41,13 @@ public final class MaterialStylizer {
                 int centerY = y * factor + center;
                 int centerPixel = source.image.getRGB(centerX, centerY);
                 if ((centerPixel >>> 24) == 0) continue;
-                int surface = source.surfaces[centerY * source.image.getWidth() + centerX];
+                int sampleIndex = detailSurfaceSample(source, x * factor, y * factor, factor,
+                    centerY * source.image.getWidth() + centerX);
+                int surface = source.surfaces[sampleIndex];
                 int index = y * width + x;
                 surfaces[y * width + x] = surface;
-                facets[index] = source.facets[centerY * source.image.getWidth() + centerX];
-                depth[index] = source.depth[centerY * source.image.getWidth() + centerX];
+                facets[index] = source.facets[sampleIndex];
+                depth[index] = source.depth[sampleIndex];
                 lighting[index] = robustBlockLighting(source, source.lighting,
                     x * factor, y * factor, factor, surface);
                 shading[index] = robustBlockLighting(source, source.shading,
@@ -55,7 +57,8 @@ public final class MaterialStylizer {
             }
         }
         BufferedImage cleaned = suppressIsolatedDarkPixels(reduced, surfaces);
-        BufferedImage smoothed = medianWithinSurface(medianWithinSurface(cleaned, surfaces), surfaces);
+        double[] details = supportedDarkDetails(cleaned, surfaces);
+        BufferedImage smoothed = restoreDetails(medianWithinSurface(cleaned, surfaces), cleaned, details);
         // A single small, material-bounded pass joins tiny coplanar facets without
         // washing limb and body illumination into one universal midtone.
         double[] broadShading = averageLighting(shading, surfaces, width, height);
@@ -64,8 +67,36 @@ public final class MaterialStylizer {
         double[] edgeShadows = directionalInnerShadows(reduced, surfaces, width, height,
             source.lightScreenX, source.lightScreenY);
         for (int index = 0; index < contactShadows.length; index++)
-            contactShadows[index] = Math.max(contactShadows[index], edgeShadows[index]);
+            contactShadows[index] = Math.max(details[index],
+                Math.max(contactShadows[index], edgeShadows[index]));
         return ramp(smoothed, surfaces, broadShading, baseRamps, contactShadows);
+    }
+
+    private static int detailSurfaceSample(StaticRenderer.RasterFrame source, int startX, int startY,
+                                           int factor, int centerIndex) {
+        int centerSurface = source.surfaces[centerIndex];
+        if (factor == 1 || centerSurface == 0) return centerIndex;
+        int[] ids = new int[factor * factor], counts = new int[factor * factor], samples = new int[factor * factor];
+        int unique = 0, sourceWidth = source.image.getWidth();
+        for (int dy = 0; dy < factor; dy++) for (int dx = 0; dx < factor; dx++) {
+            int index = (startY + dy) * sourceWidth + startX + dx;
+            int surface = source.surfaces[index];
+            if (surface == 0 || (source.image.getRGB(startX + dx, startY + dy) >>> 24) == 0) continue;
+            int slot = 0;while (slot < unique && ids[slot] != surface) slot++;
+            if (slot == unique) { ids[unique] = surface;samples[unique] = index;unique++; }
+            counts[slot]++;
+        }
+        int centerColor = robustBlockColor(source, startX, startY, factor, centerSurface, 255);
+        int selected = centerIndex, selectedLight = luminance(centerColor);
+        int minimumCoverage = Math.max(2, factor / 2);
+        for (int slot = 0; slot < unique; slot++) if (ids[slot] != centerSurface && counts[slot] >= minimumCoverage) {
+            int candidate = robustBlockColor(source, startX, startY, factor, ids[slot], 255);
+            int candidateLight = luminance(candidate);
+            if (candidateLight + 28 <= selectedLight) {
+                selected = samples[slot];selectedLight = candidateLight;
+            }
+        }
+        return selected;
     }
 
     private static int robustBlockColor(StaticRenderer.RasterFrame source, int startX, int startY,
@@ -170,11 +201,40 @@ public final class MaterialStylizer {
             double reference = lightReferences.get(surfaces[y * width + x]);
             double illuminationShadow = illuminationShadow(reference - shade);
             double shadow = Math.min(3, Math.max(illuminationShadow, contactShadows[y * width + x]));
-            rampIndex -= ditheredShadowSteps(shadow, x, y);
-            int light = LIGHTNESS_RAMP[Math.max(0, Math.min(LIGHTNESS_RAMP.length - 1, rampIndex))];
-            int rgb = liftMinimumLuminance(Color.HSBtoRGB(hue, saturation, light / 255f) & 0xffffff, 36);
+            int steps = ditheredShadowSteps(shadow, x, y);
+            int baseLight = LIGHTNESS_RAMP[Math.max(0, Math.min(LIGHTNESS_RAMP.length - 1, rampIndex))];
+            int light = shadowLight(baseLight, steps);
+            int rgb = liftMinimumLuminance(Color.HSBtoRGB(hue, saturation, light / 255f) & 0xffffff, 34);
             output.setRGB(x, y, (alpha << 24) | rgb);
         }
+        return output;
+    }
+
+    static int shadowLight(int baseLight, int steps) {
+        double light = baseLight;
+        for (int step = 0; step < steps; step++) light *= .72;
+        return Math.max(16, (int)Math.round(light));
+    }
+
+    private static double[] supportedDarkDetails(BufferedImage image, int[] surfaces) {
+        int width=image.getWidth(),height=image.getHeight();double[] details=new double[surfaces.length];
+        int[] values=new int[25];
+        for(int y=2;y<height-2;y++)for(int x=2;x<width-2;x++){
+            int index=y*width+x,surface=surfaces[index],pixel=image.getRGB(x,y);if(surface==0||(pixel>>>24)==0)continue;
+            int count=0;for(int dy=-2;dy<=2;dy++)for(int dx=-2;dx<=2;dx++){
+                int neighbor=(y+dy)*width+x+dx;if(surfaces[neighbor]==surface)values[count++]=luminance(image.getRGB(x+dx,y+dy));
+            }
+            if(count<8)continue;Arrays.sort(values,0,count);int median=values[count/2],current=luminance(pixel),support=0;
+            if(median-current<28)continue;
+            for(int dy=-1;dy<=1;dy++)for(int dx=-1;dx<=1;dx++)if(dx!=0||dy!=0){int neighbor=(y+dy)*width+x+dx;if(surfaces[neighbor]==surface&&luminance(image.getRGB(x+dx,y+dy))<=median-20)support++;}
+            if(support>0)details[index]=median-current>=60?2:1;
+        }
+        return details;
+    }
+
+    private static BufferedImage restoreDetails(BufferedImage smoothed,BufferedImage source,double[] details){
+        BufferedImage output=copy(smoothed);int width=source.getWidth();
+        for(int index=0;index<details.length;index++)if(details[index]>0)output.setRGB(index%width,index/width,source.getRGB(index%width,index/width));
         return output;
     }
 
