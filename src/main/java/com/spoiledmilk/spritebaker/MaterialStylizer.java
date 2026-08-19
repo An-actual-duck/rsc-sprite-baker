@@ -12,6 +12,9 @@ public final class MaterialStylizer {
     public static final String NONE = "Original material detail";
     public static final String RSC_RAMPS = "RSC material ramps";
     private static final int[] LIGHTNESS_RAMP = {40, 68, 104, 148, 204, 236};
+    private static final int[][] SHADOW_DITHER = {
+        {0, 8, 2, 10}, {12, 4, 14, 6}, {3, 11, 1, 9}, {15, 7, 13, 5}
+    };
 
     private MaterialStylizer() { }
 
@@ -53,11 +56,12 @@ public final class MaterialStylizer {
         }
         BufferedImage cleaned = suppressIsolatedDarkPixels(reduced, surfaces);
         BufferedImage smoothed = medianWithinSurface(medianWithinSurface(cleaned, surfaces), surfaces);
-        double[] broadShading = averageLighting(averageLighting(shading, surfaces, width, height),
-            surfaces, width, height);
+        // A single small, material-bounded pass joins tiny coplanar facets without
+        // washing limb and body illumination into one universal midtone.
+        double[] broadShading = averageLighting(shading, surfaces, width, height);
         Map<Integer,Integer> baseRamps = materialBaseRamps(smoothed, surfaces, lighting);
-        boolean[] occlusion = depthOcclusionBands(surfaces, facets, depth, width, height);
-        return suppressIsolatedDarkPixels(ramp(smoothed, surfaces, broadShading, baseRamps, occlusion), surfaces);
+        double[] contactShadows = depthOcclusionShadows(surfaces, facets, depth, width, height);
+        return ramp(smoothed, surfaces, broadShading, baseRamps, contactShadows);
     }
 
     private static int robustBlockColor(StaticRenderer.RasterFrame source, int startX, int startY,
@@ -104,14 +108,15 @@ public final class MaterialStylizer {
 
     private static double[] averageLighting(double[] source, int[] surfaces, int width, int height) {
         double[] output = source.clone();
-        for (int y = 3; y < height - 3; y++) for (int x = 3; x < width - 3; x++) {
-            if (surfaces[y * width + x] == 0) continue;
+        for (int y = 2; y < height - 2; y++) for (int x = 2; x < width - 2; x++) {
+            int surface = surfaces[y * width + x];
+            if (surface == 0) continue;
             int count = 0;double sum=0;
-            for (int dy = -3; dy <= 3; dy++) for (int dx = -3; dx <= 3; dx++) {
+            for (int dy = -2; dy <= 2; dy++) for (int dx = -2; dx <= 2; dx++) {
                 int index = (y + dy) * width + x + dx;
-                if (surfaces[index] != 0){sum+=source[index];count++;}
+                if (surfaces[index] == surface){sum+=source[index];count++;}
             }
-            if (count >= 7) output[y * width + x] = sum / count;
+            if (count >= 5) output[y * width + x] = sum / count;
         }
         return output;
     }
@@ -146,9 +151,10 @@ public final class MaterialStylizer {
     }
 
     private static BufferedImage ramp(BufferedImage source, int[] surfaces, double[] lighting,
-                                      Map<Integer,Integer> baseRamps, boolean[] occlusion) {
+                                      Map<Integer,Integer> baseRamps, double[] contactShadows) {
         int width = source.getWidth(), height = source.getHeight();
         BufferedImage output = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Map<Integer,Double> lightReferences = materialLightReferences(surfaces, lighting);
         for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
             int pixel = source.getRGB(x, y), alpha = pixel >>> 24;
             if (alpha == 0) continue;
@@ -157,8 +163,10 @@ public final class MaterialStylizer {
             float saturation = hsb[1] < .16f ? 0f : hsb[1] < .52f ? .42f : .78f;
             double shade = lighting[y * width + x];
             int rampIndex = baseRamps.get(surfaces[y * width + x]);
-            rampIndex -= shade < .60 ? 2 : shade < .72 ? 1 : 0;
-            if (occlusion[y * width + x]) rampIndex--;
+            double reference = lightReferences.get(surfaces[y * width + x]);
+            double illuminationShadow = illuminationShadow(reference - shade);
+            double shadow = Math.min(3, illuminationShadow + contactShadows[y * width + x]);
+            rampIndex -= ditheredShadowSteps(shadow, x, y);
             int light = LIGHTNESS_RAMP[Math.max(0, Math.min(LIGHTNESS_RAMP.length - 1, rampIndex))];
             int rgb = liftMinimumLuminance(Color.HSBtoRGB(hue, saturation, light / 255f) & 0xffffff, 36);
             output.setRGB(x, y, (alpha << 24) | rgb);
@@ -166,8 +174,24 @@ public final class MaterialStylizer {
         return output;
     }
 
-    static boolean[] depthOcclusionBands(int[] surfaces, int[] facets, double[] depth,
-                                         int width, int height) {
+    static double illuminationShadow(double lightDeficit) {
+        if (lightDeficit <= .06) return 0;
+        if (lightDeficit < .10) return (lightDeficit - .06) / .04;
+        if (lightDeficit <= .22) return 1;
+        if (lightDeficit < .28) return 1 + (lightDeficit - .22) / .06;
+        return 2;
+    }
+
+    private static Map<Integer,Double> materialLightReferences(int[] surfaces, double[] lighting) {
+        Map<Integer,Double> references = new HashMap<>();
+        for (int index = 0; index < surfaces.length; index++) if (surfaces[index] != 0) {
+            references.merge(surfaces[index], lighting[index], Math::max);
+        }
+        return references;
+    }
+
+    static double[] depthOcclusionShadows(int[] surfaces, int[] facets, double[] depth,
+                                          int width, int height) {
         if (surfaces.length != width * height || facets.length != surfaces.length
             || depth.length != surfaces.length) throw new IllegalArgumentException("occlusion buffers differ");
         double minimum = Double.POSITIVE_INFINITY, maximum = Double.NEGATIVE_INFINITY;
@@ -176,7 +200,8 @@ public final class MaterialStylizer {
             maximum = Math.max(maximum, depth[index]);
         }
         boolean[] boundary = new boolean[surfaces.length];
-        if (!Double.isFinite(minimum)) return boundary;
+        double[] shadow = new double[surfaces.length];
+        if (!Double.isFinite(minimum)) return shadow;
         double threshold = Math.max(.5, (maximum - minimum) * .05);
         for (int y = 1; y < height - 1; y++) for (int x = 1; x < width - 1; x++) {
             int index = y * width + x;
@@ -187,24 +212,36 @@ public final class MaterialStylizer {
                 if (surfaces[neighbor] != 0 && facets[neighbor] != facets[index]
                     && depth[neighbor] > depth[index] + threshold) {
                     boundary[index] = true;
+                    shadow[index] = 1.6;
                     break;
                 }
             }
         }
-        boolean[] band = boundary.clone();
-        for (int y = 1; y < height - 1; y++) for (int x = 1; x < width - 1; x++) {
-            int index = y * width + x;
-            if (boundary[index]) continue;
-            for (int dy = -1; dy <= 1 && !band[index]; dy++) for (int dx = -1; dx <= 1; dx++) {
-                int neighbor = (y + dy) * width + x + dx;
-                if (boundary[neighbor] && facets[neighbor] == facets[index]
-                    && Math.abs(depth[neighbor] - depth[index]) <= threshold) {
-                    band[index] = true;
-                    break;
+        double[] previous = shadow;
+        for (int distance = 1; distance <= 3; distance++) {
+            double[] expanded = previous.clone();
+            for (int y = 1; y < height - 1; y++) for (int x = 1; x < width - 1; x++) {
+                int index = y * width + x;
+                if (surfaces[index] == 0 || shadow[index] > 0) continue;
+                for (int dy = -1; dy <= 1; dy++) for (int dx = -1; dx <= 1; dx++) {
+                    int neighbor = (y + dy) * width + x + dx;
+                    if (previous[neighbor] > .4 && facets[neighbor] == facets[index]
+                        && Math.abs(depth[neighbor] - depth[index]) <= threshold) {
+                        expanded[index] = Math.max(expanded[index], previous[neighbor] - .4);
+                    }
                 }
             }
+            previous = expanded;
         }
-        return band;
+        return previous;
+    }
+
+    static int ditheredShadowSteps(double shadow, int x, int y) {
+        if (shadow <= 0) return 0;
+        int solid = (int) Math.floor(shadow);
+        double fraction = shadow - solid;
+        double threshold = (SHADOW_DITHER[y & 3][x & 3] + .5) / 16.0;
+        return solid + (fraction >= threshold ? 1 : 0);
     }
 
     private static Map<Integer,Integer> materialBaseRamps(BufferedImage image, int[] surfaces,

@@ -62,25 +62,64 @@ class MaterialStylizerTest {
     }
 
     @Test void depthOverlapDarkensOnlyTheFartherInteriorSurface() {
-        BufferedImage image = new BufferedImage(7, 3, BufferedImage.TYPE_INT_ARGB);
-        int[] surfaces = new int[21], facets = new int[21];
-        double[] lighting = new double[21], depth = new double[21];
+        BufferedImage image = new BufferedImage(13, 3, BufferedImage.TYPE_INT_ARGB);
+        int[] surfaces = new int[39], facets = new int[39];
+        double[] lighting = new double[39], depth = new double[39];
         Arrays.fill(surfaces, 4);
         Arrays.fill(facets, 1);
-        Arrays.fill(lighting, .72);
-        for (int y = 0; y < 3; y++) for (int x = 0; x < 7; x++) image.setRGB(x, y, 0xff8c6048);
+        Arrays.fill(lighting, .78);
+        for (int y = 0; y < 3; y++) for (int x = 0; x < 13; x++) image.setRGB(x, y, 0xff8c6048);
         for (int y = 0; y < 3; y++) {
-            facets[y * 7 + 3] = 2;
-            depth[y * 7 + 3] = 10;
+            facets[y * 13 + 6] = 2;
+            depth[y * 13 + 6] = 10;
         }
         BufferedImage output = MaterialStylizer.reduce(
-            new StaticRenderer.RasterFrame(image, surfaces, facets, lighting, depth), 7, 3, 1);
+            new StaticRenderer.RasterFrame(image, surfaces, facets, lighting, depth), 13, 3, 1);
         int farBody = MaterialStylizer.luminance(output.getRGB(0, 1));
-        int contactBody = MaterialStylizer.luminance(output.getRGB(2, 1));
-        int foreground = MaterialStylizer.luminance(output.getRGB(3, 1));
+        int contactBody = MaterialStylizer.luminance(output.getRGB(5, 1));
+        int foreground = MaterialStylizer.luminance(output.getRGB(6, 1));
         assertTrue(contactBody < farBody);
         assertTrue(contactBody < foreground);
-        assertEquals(farBody, MaterialStylizer.luminance(output.getRGB(6, 1)));
+        assertEquals(farBody, MaterialStylizer.luminance(output.getRGB(12, 1)));
+    }
+
+    @Test void contactShadowHasDarkCoreAndShortDitheredFalloff() {
+        int width = 13, height = 3;
+        int[] surfaces = new int[width * height], facets = new int[width * height];
+        double[] depth = new double[width * height];
+        Arrays.fill(surfaces, 4);Arrays.fill(facets, 1);
+        for (int y = 0; y < height; y++) {
+            facets[y * width + 6] = 2;depth[y * width + 6] = 10;
+        }
+        double[] shadow = MaterialStylizer.depthOcclusionShadows(
+            surfaces, facets, depth, width, height);
+        assertTrue(shadow[1 * width + 5] > shadow[1 * width + 4]);
+        assertTrue(shadow[1 * width + 4] > shadow[1 * width + 3]);
+        assertEquals(0, shadow[1 * width]);
+        assertEquals(0, shadow[1 * width + 6]);
+    }
+
+    @Test void shadingDitherIsLocalizedDeterministicAndUsesAdjacentRampSteps() {
+        for (int y = 0; y < 4; y++) for (int x = 0; x < 4; x++) {
+            assertEquals(0, MaterialStylizer.ditheredShadowSteps(0, x, y));
+            assertEquals(1, MaterialStylizer.ditheredShadowSteps(1, x, y));
+        }
+        int lighter = 0, darker = 0;
+        for (int y = 0; y < 4; y++) for (int x = 0; x < 4; x++) {
+            int first = MaterialStylizer.ditheredShadowSteps(.5, x, y);
+            assertEquals(first, MaterialStylizer.ditheredShadowSteps(.5, x, y));
+            if (first == 0) lighter++; else if (first == 1) darker++;
+            else throw new AssertionError("fractional shadow skipped an adjacent ramp");
+        }
+        assertEquals(8, lighter);assertEquals(8, darker);
+    }
+
+    @Test void illuminationUsesDitherOnlyBetweenSolidShadeBands() {
+        assertEquals(0, MaterialStylizer.illuminationShadow(.04));
+        assertEquals(.5, MaterialStylizer.illuminationShadow(.08), .0001);
+        assertEquals(1, MaterialStylizer.illuminationShadow(.16));
+        assertEquals(1.5, MaterialStylizer.illuminationShadow(.25), .0001);
+        assertEquals(2, MaterialStylizer.illuminationShadow(.34));
     }
 
     @Test void transparentSilhouetteEdgeDoesNotReceiveAnOutline() {
@@ -110,7 +149,7 @@ class MaterialStylizerTest {
         int shadow = MaterialStylizer.luminance(output.getRGB(0, 0));
         int mid = MaterialStylizer.luminance(output.getRGB(1, 0));
         int lightFacing = MaterialStylizer.luminance(output.getRGB(2, 0));
-        assertTrue(shadow < mid);assertEquals(mid, lightFacing);
+        assertTrue(shadow < mid);assertTrue(mid < lightFacing);
     }
 
     @Test void originalStyleRemainsTheDefaultReference() {

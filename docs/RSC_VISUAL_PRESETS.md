@@ -75,16 +75,16 @@ before ordinary palette reduction:
    bleed into one another.
 4. Fixed chroma families and six light/mid/shadow levels produce bold regions
    without a global RGB cube. The renderer carries each triangle's actual 3D
-   face light through the depth buffer. A broad alpha-aware light field and a
-   robust per-material base tone select coherent shadow, mid, and highlight
-   bands; texture noise cannot select its own shade. A restrained one-step
-   silhouette shade supplies edge definition, while a minimum luminance
-   prevents isolated near-black texture values from becoming black outlines.
-5. Isolated dark cleanup runs before and after ramp selection. Blanket ordered
-   dithering is intentionally disabled in this checkpoint: the diagnosis found
-   that it added single-pixel transitions to already textured materials. The
-   treatment will add dithering only if visual review identifies a specific
-   smooth transition where it improves the result without temporal noise.
+   signed face light through the depth buffer. One material-bounded 5×5 pass
+   joins tiny coplanar facets without washing limb and body lighting together.
+   A robust per-material base tone and its brightest visible orientation select
+   shadow bands; texture noise cannot select its own shade and lighting never
+   invents a highlight above the base tone.
+5. Isolated dark cleanup runs before ramp selection. There is no global palette
+   dither. A fixed 4×4 pattern appears only in the narrow transition between
+   solid base/mid/shadow bands and in the falloff behind a genuine depth
+   overlap. Flat materials remain solid, transparent silhouettes are never
+   outlined, and stable output coordinates prevent random frame noise.
 
 `MaterialStylizationAuditMain` is a terminal-only, cache-backed comparison for
 Abyssal demon 1615, Dark beast 2783, King Black Dragon 50, Tortoise 3808,
@@ -205,6 +205,36 @@ external report SHA-256 is
 `90fd47b5f63fd352939153803ac7557029cbf3c3b3f2e082bb4af5a79786e318`.
 Java 21 clean verification passes all 278 tests. This checkpoint remains
 subject to hands-on approval of shadow strength.
+
+### Fifth checkpoint: localized dithered shadow bands
+
+Hands-on review confirmed that removing false highlights was correct but that
+solid ramp thresholds still did not resemble RSC's pixel-drawn shading. This
+checkpoint uses dithering as the boundary of a detected shadow, never as a
+whole-image effect. Signed illumination is measured relative to the brightest
+visible orientation of the same decoded material. Well-lit, clearly midtone,
+and clearly shadowed regions use solid adjacent ramp colors; only two narrow
+illumination intervals alternate those adjacent colors with a fixed 4×4 mask.
+A uniformly lit surface therefore has no dither at all.
+
+The earlier two broad 7×7 illumination passes are replaced by one
+material-bounded 5×5 pass so a small limb does not inherit the body's average
+light. Real depth overlaps now create a solid dark core on the farther face and
+a three-pixel diminishing, dithered falloff within that same face. Neither the
+foreground part nor a transparent silhouette is modified.
+
+Java 21 `mvn clean verify` passes all 281 tests. Focused regressions cover flat
+surface exclusion, deterministic adjacent-ramp coverage, solid shade bands,
+contact-shadow falloff, foreground preservation, and transparent-edge
+exclusion. The nine-NPC terminal audit reports zero alpha mismatches, exact
+black pixels, or isolated dark speckles in all 162 styled frames. Styled sheets
+contain 8–35 RGB colors and 4–26 luminance levels; transition counts now include
+the intentional shadow-boundary pattern and range from 17 for Big Snake to
+17,757 for the large Troll control. The external report is
+`/tmp/rsc-material-banded-dither.hYPzkH/report.json`, SHA-256
+`b2af61f0f6ee0850a361affddc7b1c3e34769e35a3aedd3364026d3ce2938b2a`.
+Visual review remains the approval gate for shadow placement and pattern
+strength.
 
 ## Revision-530 packed-HSL color
 
