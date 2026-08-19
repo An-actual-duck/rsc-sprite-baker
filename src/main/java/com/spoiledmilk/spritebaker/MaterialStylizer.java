@@ -29,6 +29,7 @@ public final class MaterialStylizer {
         int[] surfaces = new int[width * height];
         int[] facets = new int[width * height];
         double[] lighting = new double[width * height];
+        double[] shading = new double[width * height];
         double[] depth = new double[width * height];
         int center = factor / 2;
         for (int y = 0; y < height; y++) {
@@ -42,18 +43,21 @@ public final class MaterialStylizer {
                 surfaces[y * width + x] = surface;
                 facets[index] = source.facets[centerY * source.image.getWidth() + centerX];
                 depth[index] = source.depth[centerY * source.image.getWidth() + centerX];
-                lighting[y * width + x] = robustBlockLighting(source, x * factor, y * factor, factor, surface);
+                lighting[index] = robustBlockLighting(source, source.lighting,
+                    x * factor, y * factor, factor, surface);
+                shading[index] = robustBlockLighting(source, source.shading,
+                    x * factor, y * factor, factor, surface);
                 reduced.setRGB(x, y, robustBlockColor(source, x * factor, y * factor,
                     factor, surface, centerPixel >>> 24));
             }
         }
         BufferedImage cleaned = suppressIsolatedDarkPixels(reduced, surfaces);
         BufferedImage smoothed = medianWithinSurface(medianWithinSurface(cleaned, surfaces), surfaces);
-        double[] broadLighting = averageLighting(averageLighting(lighting, surfaces, width, height),
+        double[] broadShading = averageLighting(averageLighting(shading, surfaces, width, height),
             surfaces, width, height);
-        Map<Integer,Integer> baseRamps = materialBaseRamps(smoothed, surfaces, broadLighting);
+        Map<Integer,Integer> baseRamps = materialBaseRamps(smoothed, surfaces, lighting);
         boolean[] occlusion = depthOcclusionBands(surfaces, facets, depth, width, height);
-        return suppressIsolatedDarkPixels(ramp(smoothed, surfaces, broadLighting, baseRamps, occlusion), surfaces);
+        return suppressIsolatedDarkPixels(ramp(smoothed, surfaces, broadShading, baseRamps, occlusion), surfaces);
     }
 
     private static int robustBlockColor(StaticRenderer.RasterFrame source, int startX, int startY,
@@ -82,14 +86,15 @@ public final class MaterialStylizer {
         return (alpha << 24) | (red[middle] << 16) | (green[middle] << 8) | blue[middle];
     }
 
-    private static double robustBlockLighting(StaticRenderer.RasterFrame source, int startX, int startY,
+    private static double robustBlockLighting(StaticRenderer.RasterFrame source, double[] input,
+                                              int startX, int startY,
                                               int factor, int surface) {
         double[] values = new double[factor * factor];
         int count = 0, width = source.image.getWidth();
         for (int dy = 0; dy < factor; dy++) for (int dx = 0; dx < factor; dx++) {
             int index = (startY + dy) * width + startX + dx;
             if (source.surfaces[index] == surface && (source.image.getRGB(startX + dx, startY + dy) >>> 24) != 0) {
-                values[count++] = source.lighting[index];
+                values[count++] = input[index];
             }
         }
         if (count == 0) return .72;
@@ -152,7 +157,7 @@ public final class MaterialStylizer {
             float saturation = hsb[1] < .16f ? 0f : hsb[1] < .52f ? .42f : .78f;
             double shade = lighting[y * width + x];
             int rampIndex = baseRamps.get(surfaces[y * width + x]);
-            rampIndex += shade < .64 ? -1 : shade >= .80 ? 1 : 0;
+            rampIndex -= shade < .60 ? 2 : shade < .72 ? 1 : 0;
             if (occlusion[y * width + x]) rampIndex--;
             int light = LIGHTNESS_RAMP[Math.max(0, Math.min(LIGHTNESS_RAMP.length - 1, rampIndex))];
             int rgb = liftMinimumLuminance(Color.HSBtoRGB(hue, saturation, light / 255f) & 0xffffff, 36);

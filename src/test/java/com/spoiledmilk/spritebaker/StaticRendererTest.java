@@ -11,6 +11,14 @@ import net.runelite.cache.definitions.ModelDefinition;
 import org.junit.jupiter.api.Test;
 
 class StaticRendererTest {
+    @Test void rscStyleUsesSignedNormalsSoUndersidesCannotBecomeHighlights(){
+        ModelDefinition fixture=neutralModel();NpcDefinition530 npc=new NpcDefinition530(1);
+        double underside=StaticRenderer.styleFaceBrightness(fixture,0,npc,new double[]{0,1,0},.54,.36);
+        fixture.faceIndices2[0]=2;fixture.faceIndices3[0]=1;
+        double upward=StaticRenderer.styleFaceBrightness(fixture,0,npc,new double[]{0,1,0},.54,.36);
+        assertEquals(.54,underside,1e-12);assertTrue(upward>underside);
+    }
+
     @Test void revision530RenderType2MarkerFaceIsNotRasterized(){
         ModelDefinition fixture=neutralModel();fixture.faceColors=new short[]{(short)65535};fixture.faceRenderTypes=new byte[]{2};
         NpcDefinition530 npc=new NpcDefinition530(1615);VisualSettings settings=new VisualSettings();settings.cellWidth=40;settings.cellHeight=40;settings.supersample=1;settings.padding=4;

@@ -181,6 +181,31 @@ Java 21 clean verification passes all 276 tests. The unchanged Original-colors
 29-NPC matrix passes all 522 cells, including the established Abyssal demon and
 Dark beast PNG hashes.
 
+### Fourth checkpoint: shadow-only signed lighting
+
+Visual review of the depth checkpoint found misplaced highlights without
+useful shadow definition. The cause was the reference renderer's deliberately
+two-sided absolute Lambert term: a polygon pointing away from the light can
+receive the same magnitude as one pointing toward it. That remains unchanged
+for Original colors, but it is unsuitable for choosing RSC shade ramps.
+
+Rasterization now carries two separate light channels. Original RGB continues
+to use the established absolute reference value, preserving every reference
+pixel. RSC material shading uses `max(0, signedNormalDotLight)` plus the same
+ambient, directional strength, and NPC ambient/contrast adjustments. It can
+move a material down by one or two ramp entries for midtone and shadow, but can
+never promote a light-facing surface above the material's robust base. The
+depth-contact band remains an additional shadow on only the farther surface.
+
+Neutral tests reverse one triangle's winding and prove that its underside is
+ambient-only while its upward face is brighter; a separate ramp test proves
+that signed light adds shadows but never highlights. The nine-NPC audit retains
+zero alpha mismatches, exact-black pixels, and isolated dark speckles. Its
+external report SHA-256 is
+`90fd47b5f63fd352939153803ac7557029cbf3c3b3f2e082bb4af5a79786e318`.
+Java 21 clean verification passes all 278 tests. This checkpoint remains
+subject to hands-on approval of shadow strength.
+
 ## Revision-530 packed-HSL color
 
 Model face colors and NPC recolor targets are packed HSL values, not direct

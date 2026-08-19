@@ -96,6 +96,23 @@ class MaterialStylizerTest {
         assertEquals(output.getRGB(1, 2), output.getRGB(2, 2));
     }
 
+    @Test void signedLightingAddsShadowsButNeverPromotesHighlights() {
+        BufferedImage image = new BufferedImage(9, 3, BufferedImage.TYPE_INT_ARGB);
+        int[] surfaces = new int[27], facets = new int[27];
+        double[] sourceLighting = new double[27], signedShading = new double[27], depth = new double[27];
+        Arrays.fill(surfaces, 4);Arrays.fill(sourceLighting, .9);
+        for (int y = 0; y < 3; y++) for (int x = 0; x < 9; x++) {
+            int index = y * 9 + x;image.setRGB(x, y, 0xffa25a36);facets[index] = x / 3 + 1;
+            signedShading[index] = x < 3 ? .55 : x < 6 ? .75 : .9;
+        }
+        BufferedImage output = MaterialStylizer.reduce(new StaticRenderer.RasterFrame(
+            image, surfaces, facets, sourceLighting, signedShading, depth), 3, 1, 3);
+        int shadow = MaterialStylizer.luminance(output.getRGB(0, 0));
+        int mid = MaterialStylizer.luminance(output.getRGB(1, 0));
+        int lightFacing = MaterialStylizer.luminance(output.getRGB(2, 0));
+        assertTrue(shadow < mid);assertEquals(mid, lightFacing);
+    }
+
     @Test void originalStyleRemainsTheDefaultReference() {
         VisualSettings settings = new VisualSettings();
         assertEquals(MaterialStylizer.NONE, settings.materialStyle);
