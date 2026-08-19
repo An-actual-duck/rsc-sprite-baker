@@ -74,9 +74,12 @@ before ordinary palette reduction:
    decoded surface identity. Strong material boundaries and alpha edges cannot
    bleed into one another.
 4. Fixed chroma families and six light/mid/shadow levels produce bold regions
-   without a global RGB cube. A restrained one-step silhouette shade supplies
-   edge definition, while a minimum luminance prevents isolated near-black
-   texture values from becoming black outlines.
+   without a global RGB cube. The renderer carries each triangle's actual 3D
+   face light through the depth buffer. A broad alpha-aware light field and a
+   robust per-material base tone select coherent shadow, mid, and highlight
+   bands; texture noise cannot select its own shade. A restrained one-step
+   silhouette shade supplies edge definition, while a minimum luminance
+   prevents isolated near-black texture values from becoming black outlines.
 5. Isolated dark cleanup runs before and after ramp selection. Blanket ordered
    dithering is intentionally disabled in this checkpoint: the diagnosis found
    that it added single-pixel transitions to already textured materials. The
@@ -130,6 +133,29 @@ and
 `e54ee8218425c92518f4c46579174991c4b70ecec80d24c18aed309de7d6e9d1`.
 These measurements establish a safe technical checkpoint, not final aesthetic
 approval. The branch remains active for hands-on review and tuning.
+
+### Second checkpoint: geometric ramp shading
+
+Hands-on review approved the smoothed colors and speckle removal but found the
+first checkpoint too flat. The second checkpoint restores volume from model
+geometry rather than treating ordered dithering as a substitute for shading.
+Rasterization records the exact two-sided face-normal light value already used
+by Original colors. Two bounded 7×7 alpha-aware averaging passes consolidate
+small facets into readable shadow regions. Each decoded material derives one
+robust unlit base tone, then the geometric field selects an adjacent shadow,
+mid, or highlight entry from the fixed ramp. This avoids both extremes tested
+during development: flattening all material lighting and outlining every tiny
+triangle as an independent shade patch.
+
+The nine-NPC audit still reports zero alpha mismatch, exact-black pixels, or
+isolated dark speckles in all 162 frames. It now measures 8–27 distinct
+luminance values per complete sheet and 7–32 RGB colors in the busiest
+individual frame. Strong-transition counts are intentionally higher than the
+flat checkpoint because actual shadow boundaries have returned, while remaining
+below Original colors for Dark beast, Kree'arra, Big Snake, and Penance Queen;
+King Black Dragon is effectively unchanged. The external report SHA-256 is
+`e5cad7972e518de19cce30e3318d37bc6286a0d6a75a2b7145d62aacc9e40361`.
+Visual approval remains the deciding gate for ramp spacing and shading strength.
 
 ## Revision-530 packed-HSL color
 

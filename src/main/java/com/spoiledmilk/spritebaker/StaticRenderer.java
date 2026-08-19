@@ -119,9 +119,11 @@ public final class StaticRenderer {
         }
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         int[] surfaces = new int[width * height];
+        int[] facets = new int[width * height];
+        double[] lighting = new double[width * height];
         double[] zBuffer = new double[width * height];
         Arrays.fill(zBuffer, Double.NEGATIVE_INFINITY);
-        vertexOffset = 0;
+        vertexOffset = 0;int facetOffset=1;
         for (ModelDefinition model : models) {
             if(materials==null)rejectTextures(model);
             for (int face = 0; face < model.faceCount; face++) {
@@ -135,24 +137,24 @@ public final class StaticRenderer {
                 int alpha = model.faceTransparencies == null ? 255
                     : 255 - Byte.toUnsignedInt(model.faceTransparencies[face]);
                 int texture=texture(model,face,npc);
+                double brightness=faceBrightness(model,face,npc,lightDirection,ambient,diffuse);
                 if(texture==-1){
                     int packedColor=recolor(model.faceColors[face],npc);
-                    int rgb = litColor(packedColor, model, face, npc,lightDirection, ambient, diffuse);
-                    rasterize(image,zBuffer,surfaces,screenX,screenY,depth,a,b,c,(alpha<<24)|rgb,
-                        0x10000+packedColor,width,height);
+                    int rgb = litColor(packedColor,brightness);
+                    rasterize(image,zBuffer,surfaces,facets,lighting,screenX,screenY,depth,a,b,c,
+                        (alpha<<24)|rgb,0x10000+packedColor,facetOffset+face,brightness,width,height);
                 }else{
                     try{
                         TextureMaterial530 material=materials.material(texture);double[] uv=textureCoordinates(model,face);
-                        double brightness=faceBrightness(model,face,npc,lightDirection,ambient,diffuse);
                         int modulation=texturedModulation(recolor(model.faceColors[face],npc),material.definition,brightness);
-                        rasterizeTextured(image,zBuffer,surfaces,screenX,screenY,depth,a,b,c,uv,material,
-                            modulation,alpha,0x20000+texture,width,height);
+                        rasterizeTextured(image,zBuffer,surfaces,facets,lighting,screenX,screenY,depth,a,b,c,
+                            uv,material,modulation,alpha,0x20000+texture,facetOffset+face,brightness,width,height);
                     }catch(java.io.IOException exception){throw new IllegalArgumentException("cannot load texture "+texture,exception);}
                 }
             }
-            vertexOffset += model.vertexCount;
+            vertexOffset += model.vertexCount;facetOffset+=model.faceCount;
         }
-        return new RasterFrame(image,surfaces);
+        return new RasterFrame(image,surfaces,facets,lighting);
     }
 
     private Viewport fitRaw(List<View> views, NpcDefinition530 npc, int width, int height,
@@ -224,6 +226,9 @@ public final class StaticRenderer {
     private static int litColor(int packedHsl, ModelDefinition model, int face, NpcDefinition530 npc,
                                 double[] lightDirection, double ambient, double diffuse) {
         double brightness=faceBrightness(model,face,npc,lightDirection,ambient,diffuse);
+        return litColor(packedHsl,brightness);
+    }
+    private static int litColor(int packedHsl,double brightness){
         int base=packedHslToRgb(packedHsl);
         int red=(int)Math.round(((base>>>16)&255)*brightness);
         int green=(int)Math.round(((base>>>8)&255)*brightness);
@@ -304,8 +309,9 @@ public final class StaticRenderer {
     private static int multiplyLightness(int packedHsl,int light){int value=light*(packedHsl&127)>>7;if(value<2)value=2;else if(value>126)value=126;return(packedHsl&0xff80)+value;}
     private static double hueToRgb(double p,double q,double t){if(t<0)t+=1;if(t>1)t-=1;if(t<1.0/6.0)return p+(q-p)*6*t;if(t<.5)return q;if(t<2.0/3.0)return p+(q-p)*(2.0/3.0-t)*6;return p;}
 
-    private static void rasterize(BufferedImage image,double[] zBuffer,int[] surfaces,double[] x,double[] y,double[] z,
-                                  int a,int b,int c,int argb,int surface,int width,int height){
+    private static void rasterize(BufferedImage image,double[] zBuffer,int[] surfaces,int[] facets,double[] lighting,
+                                  double[] x,double[] y,double[] z,int a,int b,int c,int argb,int surface,
+                                  int facet,double brightness,int width,int height){
         double area=edge(x[a],y[a],x[b],y[b],x[c],y[c]);if(Math.abs(area)<.00001||(argb>>>24)==0)return;
         int minX=Math.max(0,(int)Math.floor(Math.min(x[a],Math.min(x[b],x[c]))));
         int maxX=Math.min(width-1,(int)Math.ceil(Math.max(x[a],Math.max(x[b],x[c]))));
@@ -316,18 +322,19 @@ public final class StaticRenderer {
             double wb=edge(x[c],y[c],x[a],y[a],sx,sy)/area,wc=1-wa-wb;
             if(wa<-.000001||wb<-.000001||wc<-.000001)continue;
             double pixelDepth=wa*z[a]+wb*z[b]+wc*z[c];int index=py*width+px;
-            if(pixelDepth>zBuffer[index]){zBuffer[index]=pixelDepth;image.setRGB(px,py,argb);surfaces[index]=surface;}
+            if(pixelDepth>zBuffer[index]){zBuffer[index]=pixelDepth;image.setRGB(px,py,argb);surfaces[index]=surface;facets[index]=facet;lighting[index]=brightness;}
         }
     }
-    private static void rasterizeTextured(BufferedImage image,double[] zBuffer,int[] surfaces,double[] x,double[] y,double[] z,
-            int a,int b,int c,double[] uv,TextureMaterial530 material,int modulation,int faceAlpha,int surface,int width,int height){
+    private static void rasterizeTextured(BufferedImage image,double[] zBuffer,int[] surfaces,int[] facets,double[] lighting,
+            double[] x,double[] y,double[] z,int a,int b,int c,double[] uv,TextureMaterial530 material,
+            int modulation,int faceAlpha,int surface,int facet,double brightness,int width,int height){
         double area=edge(x[a],y[a],x[b],y[b],x[c],y[c]);if(Math.abs(area)<.00001||faceAlpha==0)return;
         int minX=Math.max(0,(int)Math.floor(Math.min(x[a],Math.min(x[b],x[c])))),maxX=Math.min(width-1,(int)Math.ceil(Math.max(x[a],Math.max(x[b],x[c]))));
         int minY=Math.max(0,(int)Math.floor(Math.min(y[a],Math.min(y[b],y[c])))),maxY=Math.min(height-1,(int)Math.ceil(Math.max(y[a],Math.max(y[b],y[c]))));
         for(int py=minY;py<=maxY;py++)for(int px=minX;px<=maxX;px++){double sx=px+.5,sy=py+.5,wa=edge(x[b],y[b],x[c],y[c],sx,sy)/area,wb=edge(x[c],y[c],x[a],y[a],sx,sy)/area,wc=1-wa-wb;if(wa<-.000001||wb<-.000001||wc<-.000001)continue;
             double pd=wa*z[a]+wb*z[b]+wc*z[c];int index=py*width+px;if(pd<=zBuffer[index])continue;double u=wa*uv[0]+wb*uv[2]+wc*uv[4],v=wa*uv[1]+wb*uv[3]+wc*uv[5];int tx=Math.floorMod((int)Math.floor(u*material.size),material.size),ty=Math.floorMod((int)Math.floor(v*material.size),material.size);int texel=material.pixels[ty*material.size+tx];if(!material.definition.opaque&&(texel&0xffffff)==0)continue;
             int r=((texel>>>16)&255)*((modulation>>>16)&255)/255,g=((texel>>>8)&255)*((modulation>>>8)&255)/255,bl=(texel&255)*(modulation&255)/255;int src=(faceAlpha<<24)|(r<<16)|(g<<8)|bl;
-            if(faceAlpha==255)image.setRGB(px,py,src);else image.setRGB(px,py,blend(src,image.getRGB(px,py)));zBuffer[index]=pd;surfaces[index]=surface;
+            if(faceAlpha==255)image.setRGB(px,py,src);else image.setRGB(px,py,blend(src,image.getRGB(px,py)));zBuffer[index]=pd;surfaces[index]=surface;facets[index]=facet;lighting[index]=brightness;
         }
     }
     private static int blend(int src,int dst){int a=src>>>24,inv=255-a;int r=(((src>>>16)&255)*a+((dst>>>16)&255)*inv+127)/255,g=(((src>>>8)&255)*a+((dst>>>8)&255)*inv+127)/255,b=((src&255)*a+(dst&255)*inv+127)/255,oa=a+((dst>>>24)*inv+127)/255;return(oa<<24)|(r<<16)|(g<<8)|b;}
@@ -337,6 +344,10 @@ public final class StaticRenderer {
     static final class RasterFrame {
         final BufferedImage image;
         final int[] surfaces;
-        RasterFrame(BufferedImage image,int[] surfaces){this.image=image;this.surfaces=surfaces;}
+        final int[] facets;
+        final double[] lighting;
+        RasterFrame(BufferedImage image,int[] surfaces){this(image,surfaces,surfaces,uniformLighting(surfaces.length));}
+        RasterFrame(BufferedImage image,int[] surfaces,int[] facets,double[] lighting){this.image=image;this.surfaces=surfaces;this.facets=facets;this.lighting=lighting;}
+        private static double[] uniformLighting(int size){double[] values=new double[size];Arrays.fill(values,.72);return values;}
     }
 }

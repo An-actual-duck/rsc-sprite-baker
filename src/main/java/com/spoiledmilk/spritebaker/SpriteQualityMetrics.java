@@ -10,19 +10,20 @@ public final class SpriteQualityMetrics {
 
     public static Metrics measure(BufferedImage image) {
         int visible = 0, black = 0, isolatedDark = 0, transitions = 0;
-        Set<Integer> colors = new LinkedHashSet<>();
+        Set<Integer> colors = new LinkedHashSet<>(), luminanceLevels = new LinkedHashSet<>();
         for (int y = 0; y < image.getHeight(); y++) for (int x = 0; x < image.getWidth(); x++) {
             int pixel = image.getRGB(x, y);
             if ((pixel >>> 24) == 0) continue;
             visible++;
             int rgb = pixel & 0xffffff;
             colors.add(rgb);
+            luminanceLevels.add(MaterialStylizer.luminance(pixel));
             if (rgb == 0) black++;
             if (isolatedDark(image, x, y, pixel)) isolatedDark++;
             if (x + 1 < image.getWidth() && strongTransition(pixel, image.getRGB(x + 1, y))) transitions++;
             if (y + 1 < image.getHeight() && strongTransition(pixel, image.getRGB(x, y + 1))) transitions++;
         }
-        return new Metrics(visible, black, isolatedDark, transitions, colors.size());
+        return new Metrics(visible, black, isolatedDark, transitions, colors.size(), luminanceLevels.size());
     }
 
     public static int alphaMismatches(BufferedImage first, BufferedImage second) {
@@ -62,14 +63,16 @@ public final class SpriteQualityMetrics {
     }
 
     public static final class Metrics {
-        public final int visiblePixels, blackPixels, isolatedDarkPixels, interiorTransitions, distinctRgb;
+        public final int visiblePixels, blackPixels, isolatedDarkPixels, interiorTransitions, distinctRgb,
+            distinctLuminanceLevels;
         Metrics(int visiblePixels, int blackPixels, int isolatedDarkPixels,
-                int interiorTransitions, int distinctRgb) {
+                int interiorTransitions, int distinctRgb, int distinctLuminanceLevels) {
             this.visiblePixels = visiblePixels;
             this.blackPixels = blackPixels;
             this.isolatedDarkPixels = isolatedDarkPixels;
             this.interiorTransitions = interiorTransitions;
             this.distinctRgb = distinctRgb;
+            this.distinctLuminanceLevels = distinctLuminanceLevels;
         }
     }
 }

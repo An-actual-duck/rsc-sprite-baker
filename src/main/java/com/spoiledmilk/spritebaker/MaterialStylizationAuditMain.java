@@ -78,6 +78,7 @@ public final class MaterialStylizationAuditMain {
         return ordered("pngSha256", sha256, "visiblePixels", metrics.visiblePixels,
             "blackPixels", metrics.blackPixels, "isolatedDarkPixels", metrics.isolatedDarkPixels,
             "interiorTransitions", metrics.interiorTransitions, "distinctRgb", metrics.distinctRgb,
+            "distinctLuminanceLevels", metrics.distinctLuminanceLevels,
             "temporalFrameMetrics", temporalFrameMetrics(sheet));
     }
 

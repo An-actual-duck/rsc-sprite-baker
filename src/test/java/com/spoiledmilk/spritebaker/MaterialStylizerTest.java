@@ -44,6 +44,23 @@ class MaterialStylizerTest {
         assertTrue(colors <= 6, "one chroma family should use only the fixed lightness ramp");
     }
 
+    @Test void geometricFaceLightingProducesDistinctShadowAndLightBands() {
+        BufferedImage image = new BufferedImage(6, 3, BufferedImage.TYPE_INT_ARGB);
+        int[] surfaces = new int[18], facets = new int[18];
+        double[] lighting = new double[18];
+        for (int y = 0; y < 3; y++) for (int x = 0; x < 6; x++) {
+            boolean shadow = x < 3;
+            image.setRGB(x, y, shadow ? 0xff633721 : 0xffa25a36);
+            surfaces[y * 6 + x] = 4;
+            facets[y * 6 + x] = shadow ? 1 : 2;
+            lighting[y * 6 + x] = shadow ? .55 : .90;
+        }
+        BufferedImage output = MaterialStylizer.reduce(
+            new StaticRenderer.RasterFrame(image, surfaces, facets, lighting), 2, 1, 3);
+        assertTrue(MaterialStylizer.luminance(output.getRGB(0, 0))
+            < MaterialStylizer.luminance(output.getRGB(1, 0)));
+    }
+
     @Test void originalStyleRemainsTheDefaultReference() {
         VisualSettings settings = new VisualSettings();
         assertEquals(MaterialStylizer.NONE, settings.materialStyle);

@@ -3,6 +3,8 @@ package com.spoiledmilk.spritebaker;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 /** Edge- and material-aware reduction used only by the explicit RSC material preset. */
@@ -25,6 +27,7 @@ public final class MaterialStylizer {
         }
         BufferedImage reduced = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         int[] surfaces = new int[width * height];
+        double[] lighting = new double[width * height];
         int center = factor / 2;
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
@@ -34,13 +37,17 @@ public final class MaterialStylizer {
                 if ((centerPixel >>> 24) == 0) continue;
                 int surface = source.surfaces[centerY * source.image.getWidth() + centerX];
                 surfaces[y * width + x] = surface;
+                lighting[y * width + x] = robustBlockLighting(source, x * factor, y * factor, factor, surface);
                 reduced.setRGB(x, y, robustBlockColor(source, x * factor, y * factor,
                     factor, surface, centerPixel >>> 24));
             }
         }
         BufferedImage cleaned = suppressIsolatedDarkPixels(reduced, surfaces);
         BufferedImage smoothed = medianWithinSurface(medianWithinSurface(cleaned, surfaces), surfaces);
-        return suppressIsolatedDarkPixels(ramp(smoothed, surfaces), surfaces);
+        double[] broadLighting = averageLighting(averageLighting(lighting, surfaces, width, height),
+            surfaces, width, height);
+        Map<Integer,Integer> baseRamps = materialBaseRamps(smoothed, surfaces, broadLighting);
+        return suppressIsolatedDarkPixels(ramp(smoothed, surfaces, broadLighting, baseRamps), surfaces);
     }
 
     private static int robustBlockColor(StaticRenderer.RasterFrame source, int startX, int startY,
@@ -67,6 +74,35 @@ public final class MaterialStylizer {
         Arrays.sort(blue, 0, count);
         int middle = count / 2;
         return (alpha << 24) | (red[middle] << 16) | (green[middle] << 8) | blue[middle];
+    }
+
+    private static double robustBlockLighting(StaticRenderer.RasterFrame source, int startX, int startY,
+                                              int factor, int surface) {
+        double[] values = new double[factor * factor];
+        int count = 0, width = source.image.getWidth();
+        for (int dy = 0; dy < factor; dy++) for (int dx = 0; dx < factor; dx++) {
+            int index = (startY + dy) * width + startX + dx;
+            if (source.surfaces[index] == surface && (source.image.getRGB(startX + dx, startY + dy) >>> 24) != 0) {
+                values[count++] = source.lighting[index];
+            }
+        }
+        if (count == 0) return .72;
+        Arrays.sort(values, 0, count);
+        return values[count / 2];
+    }
+
+    private static double[] averageLighting(double[] source, int[] surfaces, int width, int height) {
+        double[] output = source.clone();
+        for (int y = 3; y < height - 3; y++) for (int x = 3; x < width - 3; x++) {
+            if (surfaces[y * width + x] == 0) continue;
+            int count = 0;double sum=0;
+            for (int dy = -3; dy <= 3; dy++) for (int dx = -3; dx <= 3; dx++) {
+                int index = (y + dy) * width + x + dx;
+                if (surfaces[index] != 0){sum+=source[index];count++;}
+            }
+            if (count >= 7) output[y * width + x] = sum / count;
+        }
+        return output;
     }
 
     private static BufferedImage suppressIsolatedDarkPixels(BufferedImage source, int[] surfaces) {
@@ -98,7 +134,8 @@ public final class MaterialStylizer {
         return output;
     }
 
-    private static BufferedImage ramp(BufferedImage source, int[] surfaces) {
+    private static BufferedImage ramp(BufferedImage source, int[] surfaces, double[] lighting,
+                                      Map<Integer,Integer> baseRamps) {
         int width = source.getWidth(), height = source.getHeight();
         BufferedImage output = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
@@ -107,14 +144,39 @@ public final class MaterialStylizer {
             float[] hsb = Color.RGBtoHSB((pixel >>> 16) & 255, (pixel >>> 8) & 255, pixel & 255, null);
             float hue = Math.round(hsb[0] * 12f) / 12f;
             float saturation = hsb[1] < .16f ? 0f : hsb[1] < .52f ? .42f : .78f;
-            int light = nearestRamp(luminance(pixel));
-            if (isOuterEdge(x, y, width, height, surfaces) && light > LIGHTNESS_RAMP[1]) {
-                light = nearestRamp((int) Math.round(light * .88));
-            }
+            double shade = lighting[y * width + x];
+            int rampIndex = baseRamps.get(surfaces[y * width + x]);
+            rampIndex += shade < .64 ? -1 : shade >= .80 ? 1 : 0;
+            if (isOuterEdge(x, y, width, height, surfaces)) rampIndex--;
+            int light = LIGHTNESS_RAMP[Math.max(0, Math.min(LIGHTNESS_RAMP.length - 1, rampIndex))];
             int rgb = liftMinimumLuminance(Color.HSBtoRGB(hue, saturation, light / 255f) & 0xffffff, 36);
             output.setRGB(x, y, (alpha << 24) | rgb);
         }
         return output;
+    }
+
+    private static Map<Integer,Integer> materialBaseRamps(BufferedImage image, int[] surfaces,
+                                                           double[] lighting) {
+        Map<Integer,int[]> histograms = new HashMap<>();
+        Map<Integer,Integer> counts = new HashMap<>();
+        int width = image.getWidth(), height = image.getHeight();
+        for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
+            int index = y * width + x, surface = surfaces[index], pixel = image.getRGB(x, y);
+            if (surface == 0 || (pixel >>> 24) == 0) continue;
+            int unlit = Math.min(255, (int) Math.round(luminance(pixel) / Math.max(.35, lighting[index])));
+            histograms.computeIfAbsent(surface, ignored -> new int[256])[unlit]++;
+            counts.merge(surface, 1, Integer::sum);
+        }
+        Map<Integer,Integer> ramps = new HashMap<>();
+        for (Map.Entry<Integer,int[]> entry : histograms.entrySet()) {
+            int target = counts.get(entry.getKey()) / 2, accumulated = 0, median = 0;
+            for (; median < 255; median++) {
+                accumulated += entry.getValue()[median];
+                if (accumulated > target) break;
+            }
+            ramps.put(entry.getKey(), nearestRampIndex(median));
+        }
+        return ramps;
     }
 
     private static boolean isOuterEdge(int x, int y, int width, int height, int[] surfaces) {
@@ -153,9 +215,13 @@ public final class MaterialStylizer {
     }
 
     private static int nearestRamp(int value) {
-        int best = LIGHTNESS_RAMP[0];
-        for (int candidate : LIGHTNESS_RAMP) {
-            if (Math.abs(candidate - value) < Math.abs(best - value)) best = candidate;
+        return LIGHTNESS_RAMP[nearestRampIndex(value)];
+    }
+
+    private static int nearestRampIndex(int value) {
+        int best = 0;
+        for (int index = 1; index < LIGHTNESS_RAMP.length; index++) {
+            if (Math.abs(LIGHTNESS_RAMP[index] - value) < Math.abs(LIGHTNESS_RAMP[best] - value)) best = index;
         }
         return best;
     }
