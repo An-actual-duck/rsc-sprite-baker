@@ -159,7 +159,11 @@ public final class StaticRenderer {
             }
             vertexOffset += model.vertexCount;facetOffset+=model.faceCount;
         }
-        return new RasterFrame(image,surfaces,facets,lighting,shading,zBuffer);
+        // RSC-style inner shading follows a stable screen-space studio light so
+        // every directional column reads consistently instead of rotating the
+        // shadowed silhouette edge around the sheet with the model yaw.
+        double lightScreenX=lightDirection[0],lightScreenY=-lightDirection[1];
+        return new RasterFrame(image,surfaces,facets,lighting,shading,zBuffer,lightScreenX,lightScreenY);
     }
 
     private Viewport fitRaw(List<View> views, NpcDefinition530 npc, int width, int height,
@@ -385,10 +389,12 @@ public final class StaticRenderer {
         final double[] lighting;
         final double[] shading;
         final double[] depth;
+        final double lightScreenX,lightScreenY;
         RasterFrame(BufferedImage image,int[] surfaces){this(image,surfaces,surfaces,uniformLighting(surfaces.length),uniformLighting(surfaces.length),new double[surfaces.length]);}
         RasterFrame(BufferedImage image,int[] surfaces,int[] facets,double[] lighting){this(image,surfaces,facets,lighting,lighting,new double[surfaces.length]);}
         RasterFrame(BufferedImage image,int[] surfaces,int[] facets,double[] lighting,double[] depth){this(image,surfaces,facets,lighting,lighting,depth);}
-        RasterFrame(BufferedImage image,int[] surfaces,int[] facets,double[] lighting,double[] shading,double[] depth){this.image=image;this.surfaces=surfaces;this.facets=facets;this.lighting=lighting;this.shading=shading;this.depth=depth;}
+        RasterFrame(BufferedImage image,int[] surfaces,int[] facets,double[] lighting,double[] shading,double[] depth){this(image,surfaces,facets,lighting,shading,depth,0,0);}
+        RasterFrame(BufferedImage image,int[] surfaces,int[] facets,double[] lighting,double[] shading,double[] depth,double lightScreenX,double lightScreenY){this.image=image;this.surfaces=surfaces;this.facets=facets;this.lighting=lighting;this.shading=shading;this.depth=depth;this.lightScreenX=lightScreenX;this.lightScreenY=lightScreenY;}
         private static double[] uniformLighting(int size){double[] values=new double[size];Arrays.fill(values,.72);return values;}
     }
 }

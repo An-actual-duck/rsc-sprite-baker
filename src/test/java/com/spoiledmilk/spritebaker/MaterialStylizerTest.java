@@ -118,11 +118,22 @@ class MaterialStylizerTest {
     }
 
     @Test void illuminationUsesDitherOnlyBetweenSolidShadeBands() {
-        assertEquals(0, MaterialStylizer.illuminationShadow(.04));
-        assertEquals(.25, MaterialStylizer.illuminationShadow(.08), .0001);
+        assertEquals(0, MaterialStylizer.illuminationShadow(.08));
         assertEquals(1, MaterialStylizer.illuminationShadow(.16));
-        assertEquals(1.25, MaterialStylizer.illuminationShadow(.25), .0001);
-        assertEquals(2, MaterialStylizer.illuminationShadow(.34));
+        assertEquals(1, MaterialStylizer.illuminationShadow(.25));
+        assertEquals(2, MaterialStylizer.illuminationShadow(.30));
+    }
+
+    @Test void directionalInnerShadowDarkensOnlyTheLightOpposedSilhouette() {
+        BufferedImage image=new BufferedImage(9,9,BufferedImage.TYPE_INT_ARGB);int[] surfaces=new int[81];
+        for(int y=2;y<=6;y++)for(int x=2;x<=6;x++){image.setRGB(x,y,0xffa08060);surfaces[y*9+x]=4;}
+        double[] shadow=MaterialStylizer.directionalInnerShadows(image,surfaces,9,9,-1,-1);
+        assertEquals(0,shadow[2*9+2]);
+        assertTrue(shadow[6*9+6]>0);
+        assertTrue(shadow[5*9+5]>0);
+        assertTrue(shadow[4*9+4]>0);
+        assertEquals(0,shadow[3*9+3]);
+        assertEquals(0,shadow[7*9+7]);
     }
 
     @Test void transparentSilhouetteEdgeDoesNotReceiveAnOutline() {

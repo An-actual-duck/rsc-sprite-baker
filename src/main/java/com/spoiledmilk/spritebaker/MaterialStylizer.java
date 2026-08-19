@@ -61,6 +61,10 @@ public final class MaterialStylizer {
         double[] broadShading = averageLighting(shading, surfaces, width, height);
         Map<Integer,Integer> baseRamps = materialBaseRamps(smoothed, surfaces, lighting);
         double[] contactShadows = depthOcclusionShadows(surfaces, facets, depth, width, height);
+        double[] edgeShadows = directionalInnerShadows(reduced, surfaces, width, height,
+            source.lightScreenX, source.lightScreenY);
+        for (int index = 0; index < contactShadows.length; index++)
+            contactShadows[index] = Math.max(contactShadows[index], edgeShadows[index]);
         return ramp(smoothed, surfaces, broadShading, baseRamps, contactShadows);
     }
 
@@ -165,7 +169,7 @@ public final class MaterialStylizer {
             int rampIndex = baseRamps.get(surfaces[y * width + x]);
             double reference = lightReferences.get(surfaces[y * width + x]);
             double illuminationShadow = illuminationShadow(reference - shade);
-            double shadow = Math.min(3, illuminationShadow + contactShadows[y * width + x]);
+            double shadow = Math.min(3, Math.max(illuminationShadow, contactShadows[y * width + x]));
             rampIndex -= ditheredShadowSteps(shadow, x, y);
             int light = LIGHTNESS_RAMP[Math.max(0, Math.min(LIGHTNESS_RAMP.length - 1, rampIndex))];
             int rgb = liftMinimumLuminance(Color.HSBtoRGB(hue, saturation, light / 255f) & 0xffffff, 36);
@@ -175,11 +179,48 @@ public final class MaterialStylizer {
     }
 
     static double illuminationShadow(double lightDeficit) {
-        if (lightDeficit <= .06) return 0;
-        if (lightDeficit < .10) return (lightDeficit - .06) / .08;
-        if (lightDeficit <= .22) return 1;
-        if (lightDeficit < .28) return 1 + (lightDeficit - .22) / .12;
-        return 2;
+        if (lightDeficit < .12) return 0;
+        return lightDeficit < .28 ? 1 : 2;
+    }
+
+    static double[] directionalInnerShadows(BufferedImage image, int[] surfaces, int width,
+                                             int height, double lightX, double lightY) {
+        if (image.getWidth() != width || image.getHeight() != height || surfaces.length != width * height)
+            throw new IllegalArgumentException("directional-shadow buffers differ");
+        double length = Math.sqrt(lightX * lightX + lightY * lightY);
+        double[] shadow = new double[surfaces.length];
+        if (length == 0) return shadow;
+        double towardDarkX = -lightX / length;
+        double towardDarkY = -lightY / length;
+        for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
+            int index = y * width + x;
+            if (surfaces[index] == 0 || (image.getRGB(x, y) >>> 24) == 0) continue;
+            for (int dy = -1; dy <= 1 && shadow[index] == 0; dy++) for (int dx = -1; dx <= 1; dx++) {
+                if (dx == 0 && dy == 0) continue;
+                int px = x + dx, py = y + dy;
+                boolean transparent = px < 0 || py < 0 || px >= width || py >= height
+                    || (image.getRGB(px, py) >>> 24) == 0;
+                if (transparent && (dx * towardDarkX + dy * towardDarkY) / Math.sqrt(dx * dx + dy * dy) > .45) {
+                    shadow[index] = 1;
+                    break;
+                }
+            }
+        }
+        double[] previous = shadow;
+        for (int distance = 1; distance <= 2; distance++) {
+            double[] expanded = previous.clone();
+            for (int y = 1; y < height - 1; y++) for (int x = 1; x < width - 1; x++) {
+                int index = y * width + x;
+                if (surfaces[index] == 0 || previous[index] > 0) continue;
+                for (int dy = -1; dy <= 1; dy++) for (int dx = -1; dx <= 1; dx++) {
+                    int neighbor = (y + dy) * width + x + dx;
+                    if (previous[neighbor] > .5 && surfaces[neighbor] == surfaces[index])
+                        expanded[index] = Math.max(expanded[index], previous[neighbor] - .25);
+                }
+            }
+            previous = expanded;
+        }
+        return previous;
     }
 
     private static Map<Integer,Double> materialLightReferences(int[] surfaces, double[] lighting) {

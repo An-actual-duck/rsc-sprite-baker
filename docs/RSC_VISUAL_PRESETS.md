@@ -266,6 +266,40 @@ The external report is
 `33c216dd0441ebda8501dee0475eca93e2e6ca153e8cff9d47a32b0e791f1249`.
 Hands-on review remains required before this appearance is approved.
 
+### Seventh checkpoint: screen-space RSC form shadows
+
+The uncolored RSC demon reference showed that its volume comes from broad
+darker masses on the light-opposed silhouette, beneath overhangs, at joints,
+and behind crossing limbs—not from isolated light-facing polygons. This
+checkpoint therefore treats smooth vertex illumination as a secondary solid
+shadow classifier rather than a dither source. It selects zero, one, or two
+whole darker ramp steps and cannot create pale holes inside those regions.
+
+A new screen-space form pass projects the configured studio light consistently
+across all six directional columns. It preserves the light-facing silhouette
+and creates a one-ramp dark core plus two-pixel dithered inward falloff only on
+the opposed edge. Existing depth-overlap shading supplies the stronger shadow
+behind foreground limbs and other crossing geometry. The two form signals use
+their maximum rather than accumulating, preventing accidental over-darkening.
+Transparent pixels remain untouched and the edge treatment never becomes an
+external outline.
+
+Java 21 `mvn clean verify` passes all 283 tests. Neutral coverage verifies the
+light-facing corner, opposed edge, broad inward falloff, transparent exterior,
+solid illumination bands, depth overlap, and deterministic dither. The
+nine-NPC cache audit records zero alpha mismatches, exact-black pixels, or
+isolated dark speckles. Strong transitions fall further to 91 for Abyssal
+demon, 485 for Dark beast, 2,619 for King Black Dragon, 13 for Big Snake, 4,557
+for Penance Queen, and 13,793 for the large Troll control. Original-colors
+hashes remain exactly
+`3bcfcdaea1411a8e1a51bb1fb2af8ad13d69fff669c92a6c7fd95e1bab7e02c0`
+for Abyssal demon and
+`e54ee8218425c92518f4c46579174991c4b70ecec80d24c18aed309de7d6e9d1`
+for Dark beast. The external report is
+`/tmp/rsc-material-form-shadow.pS2sdd/report.json`, SHA-256
+`4732bb3725e6132547556233f73683d18db9b3d9f4cc741c4a4aa449602dc48d`.
+Hands-on review remains the approval gate.
+
 ## Revision-530 packed-HSL color
 
 Model face colors and NPC recolor targets are packed HSL values, not direct
