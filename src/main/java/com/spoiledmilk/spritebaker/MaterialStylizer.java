@@ -63,6 +63,7 @@ public final class MaterialStylizer {
         // washing limb and body illumination into one universal midtone.
         double[] broadShading = averageLighting(shading, surfaces, width, height);
         Map<Integer,Integer> baseRamps = materialBaseRamps(smoothed, surfaces, lighting);
+        capBrightSurfaceRamps(baseRamps, surfaces);
         double[] contactShadows = depthOcclusionShadows(surfaces, facets, depth, width, height);
         double[] edgeShadows = directionalInnerShadows(reduced, surfaces, width, height,
             source.lightScreenX, source.lightScreenY);
@@ -204,7 +205,7 @@ public final class MaterialStylizer {
             int steps = ditheredShadowSteps(shadow, x, y);
             int baseLight = LIGHTNESS_RAMP[Math.max(0, Math.min(LIGHTNESS_RAMP.length - 1, rampIndex))];
             int light = shadowLight(baseLight, steps);
-            int rgb = liftMinimumLuminance(Color.HSBtoRGB(hue, saturation, light / 255f) & 0xffffff, 34);
+            int rgb = rgbAtLuminance(hue, saturation, Math.max(34, light));
             output.setRGB(x, y, (alpha << 24) | rgb);
         }
         return output;
@@ -214,6 +215,61 @@ public final class MaterialStylizer {
         double light = baseLight;
         for (int step = 0; step < steps; step++) light *= .72;
         return Math.max(16, (int)Math.round(light));
+    }
+
+    static int rgbAtLuminance(float hue,float saturation,int target){
+        int full=Color.HSBtoRGB(hue,saturation,1)&0xffffff;
+        if(luminance(full)<target){
+            double lowMix=0,highMix=1;
+            for(int iteration=0;iteration<12;iteration++){
+                double mix=(lowMix+highMix)/2;int rgb=mix(full,0xffffff,mix);
+                if(luminance(rgb)<target)lowMix=mix;else highMix=mix;
+            }
+            int lowRgb=mix(full,0xffffff,lowMix),highRgb=mix(full,0xffffff,highMix);
+            return Math.abs(luminance(lowRgb)-target)<=Math.abs(luminance(highRgb)-target)?lowRgb:highRgb;
+        }
+        float low=0,high=1;
+        for(int iteration=0;iteration<12;iteration++){
+            float value=(low+high)/2;
+            int rgb=Color.HSBtoRGB(hue,saturation,value)&0xffffff;
+            if(luminance(rgb)<target)low=value;else high=value;
+        }
+        int lowRgb=Color.HSBtoRGB(hue,saturation,low)&0xffffff;
+        int highRgb=Color.HSBtoRGB(hue,saturation,high)&0xffffff;
+        return Math.abs(luminance(lowRgb)-target)<=Math.abs(luminance(highRgb)-target)?lowRgb:highRgb;
+    }
+
+    private static int mix(int first,int second,double amount){
+        int red=(int)Math.round(((first>>>16)&255)*(1-amount)+((second>>>16)&255)*amount);
+        int green=(int)Math.round(((first>>>8)&255)*(1-amount)+((second>>>8)&255)*amount);
+        int blue=(int)Math.round((first&255)*(1-amount)+(second&255)*amount);
+        return(red<<16)|(green<<8)|blue;
+    }
+
+    private static void capBrightSurfaceRamps(Map<Integer,Integer> ramps,int[] surfaces){
+        Map<Integer,int[]> familyHistograms=new HashMap<>();
+        Map<Integer,Integer> familyCounts=new HashMap<>();
+        Map<Integer,Integer> surfaceCounts=new HashMap<>();
+        for(int surface:surfaces)if(surface!=0)surfaceCounts.merge(surface,1,Integer::sum);
+        for(Map.Entry<Integer,Integer> entry:surfaceCounts.entrySet()){
+            int family=surfaceFamily(entry.getKey());
+            familyHistograms.computeIfAbsent(family,ignored->new int[LIGHTNESS_RAMP.length])
+                [ramps.get(entry.getKey())]+=entry.getValue();
+            familyCounts.merge(family,entry.getValue(),Integer::sum);
+        }
+        Map<Integer,Integer> ceilings=new HashMap<>();
+        for(Map.Entry<Integer,int[]> entry:familyHistograms.entrySet()){
+            int target=(familyCounts.get(entry.getKey())*3+3)/4,accumulated=0,index=0;
+            for(;index<entry.getValue().length-1;index++){accumulated+=entry.getValue()[index];if(accumulated>=target)break;}
+            ceilings.put(entry.getKey(),index);
+        }
+        for(Map.Entry<Integer,Integer> entry:ramps.entrySet())
+            entry.setValue(Math.min(entry.getValue(),ceilings.get(surfaceFamily(entry.getKey()))));
+    }
+
+    private static int surfaceFamily(int surface){
+        if(surface>=0x10000&&surface<0x20000)return 0x10000+((surface-0x10000)&0xff80);
+        return surface;
     }
 
     private static double[] supportedDarkDetails(BufferedImage image, int[] surfaces) {
@@ -423,16 +479,6 @@ public final class MaterialStylizer {
 
     static int luminance(int pixel) {
         return (((pixel >>> 16) & 255) * 299 + ((pixel >>> 8) & 255) * 587 + (pixel & 255) * 114) / 1000;
-    }
-
-    private static int liftMinimumLuminance(int rgb, int minimum) {
-        int luminance = luminance(rgb);
-        if (luminance >= minimum) return rgb;
-        int amount = minimum - luminance;
-        int red = Math.min(255, ((rgb >>> 16) & 255) + amount);
-        int green = Math.min(255, ((rgb >>> 8) & 255) + amount);
-        int blue = Math.min(255, (rgb & 255) + amount);
-        return (red << 16) | (green << 8) | blue;
     }
 
     private static BufferedImage copy(BufferedImage source) {

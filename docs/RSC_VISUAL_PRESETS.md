@@ -340,6 +340,41 @@ hashes remain unchanged. The external report is
 Visual inspection must determine whether recovered eyes, part edges, and
 shadows now balance correctly against the flattened material regions.
 
+### Ninth checkpoint: remove unintended highlights
+
+Hands-on review requested an isolated pass on the remaining random light
+fragments. The cause was color-space conversion rather than a positive light
+term: fixed ramp values were used as HSB brightness. Equal HSB brightness can
+have very different perceived luminance, so a yellow, desaturated, or otherwise
+high-luminance texture fragment could appear as a highlight even though the
+style pipeline only selected base or darker shade steps.
+
+RSC material colors are now solved against the renderer's integer perceptual
+luminance equation. A binary value search reaches the requested luminance for
+ordinary hues. If a saturated hue (notably blue) cannot physically reach that
+luminance at maximum value, it is mixed toward white only enough to reach the
+same target instead of allowing other hues to become brighter. Red, yellow,
+green, and blue regressions all land within one luminance point of the requested
+ramp entry.
+
+Untextured packed-HSL faces receive a second highlight guard. Faces sharing
+the same hue/saturation family contribute their pixel-weighted base ramps; any
+brighter variant is capped to that family's upper-quartile base. This removes
+small lightness-only face fragments while preserving all darker variants and
+differently colored accents. Textured materials remain separately keyed and
+retain their color distinctions at controlled luminance.
+
+Java 21 `mvn clean verify` passes all 287 tests. The cache audit again reports
+zero alpha mismatches, exact-black pixels, isolated dark speckles, or temporal
+speckle variation. Distinct luminance levels contract from 12–42 to 5–17 on the
+complex review set while RGB colors remain 14–70, demonstrating that chromatic
+detail remains without uncontrolled brightness variants. Original-colors
+hashes remain unchanged. The external report is
+`/tmp/rsc-material-no-highlights.cU9Yqu/report.json`, SHA-256
+`ca604492369891e89dfab497b42a1d233fa5d67c32b9e7bdcb7e33cfb0212005`.
+This checkpoint intentionally makes no further changes to shadow placement or
+detail detection so visual review can judge highlight removal independently.
+
 ## Revision-530 packed-HSL color
 
 Model face colors and NPC recolor targets are packed HSL values, not direct

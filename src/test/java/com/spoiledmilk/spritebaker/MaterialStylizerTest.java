@@ -33,6 +33,25 @@ class MaterialStylizerTest {
         }
     }
 
+    @Test void rampHuesHaveEqualPerceptualLuminanceInsteadOfYellowHighlights() {
+        for(float hue:new float[]{0f,1f/6f,1f/3f,2f/3f}){
+            int rgb=MaterialStylizer.rgbAtLuminance(hue,.78f,104);
+            assertEquals(104,MaterialStylizer.luminance(rgb),1,
+                "hue must not change the requested shade luminance");
+        }
+    }
+
+    @Test void smallBrightFaceVariantCannotOutshineItsPackedHslFamily() {
+        BufferedImage image=new BufferedImage(10,1,BufferedImage.TYPE_INT_ARGB);int[] surfaces=new int[10];
+        for(int x=0;x<10;x++){
+            boolean highlight=x>=8;image.setRGB(x,0,highlight?0xffeeeeee:0xff777777);
+            surfaces[x]=0x10000+(highlight?120:64);
+        }
+        BufferedImage output=MaterialStylizer.reduce(new StaticRenderer.RasterFrame(image,surfaces),10,1,1);
+        int body=MaterialStylizer.luminance(output.getRGB(0,0));
+        assertTrue(MaterialStylizer.luminance(output.getRGB(9,0))<=body);
+    }
+
     @Test void centerSamplePreservesSilhouetteAndMaterialBoundary() {
         BufferedImage image = new BufferedImage(6, 3, BufferedImage.TYPE_INT_ARGB);
         int[] surfaces = new int[18];
