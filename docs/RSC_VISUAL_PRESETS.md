@@ -375,6 +375,42 @@ hashes remain unchanged. The external report is
 This checkpoint intentionally makes no further changes to shadow placement or
 detail detection so visual review can judge highlight removal independently.
 
+### Tenth checkpoint: Abyssal Demon dark-source ceiling
+
+Live review identified NPC 1615 as the precise failure case: black body regions
+still acquired scattered gray fragments. A terminal comparison of identical
+Original-colors and RSC-material sheet coordinates found 44 styled pixels at
+luminance 54–75; 26 were more than 15 points brighter than Original colors,
+including conversions such as `22→68`, `26→75`, and `47→68`.
+
+The remaining lift had three sources. Same-material supersample medians could
+raise a dark center, final-resolution medians could raise dark structure, and
+the uniform luminance-34 safety floor could raise genuinely black material.
+Both reduction stages are now one-sided: a supported dark value cannot be
+raised, while a lone unsupported texel can still be rejected. A dark
+supersample needs at least two same-surface samples within 12 luminance points
+to qualify. The chosen robust block luminance is carried separately through
+later filtering as the final source ceiling.
+
+Final ramp selection gives sources below luminance 64 no upward tolerance.
+Midtones retain the bounded 12-point allowance needed to map smoothly to the
+controlled ramp. There is no unconditional post-ramp floor; the earlier
+same-surface noise cleanup remains. This preserves authentic black regions
+instead of manufacturing gray. Styled isolated-dark counts do not exceed
+Original colors on eight of nine review NPCs. Troll 72 has 57 styled pixels
+from deliberate dark ramp structure versus 36 in Original colors, bounded to
+seven per frame.
+
+Java 21 `mvn clean verify` passes all 290 tests. NPC 1615 now has zero pixels at
+luminance 54 or above, down from 44; only ten low-luminance boundary pixels
+exceed Original colors by more than 15 points, with a maximum styled luminance
+of 49 among those cases. It has zero exact-black and zero isolated-dark pixels,
+unchanged alpha, 86 RGB colors, and 22 luminance levels. The nine-NPC report is
+`/tmp/rsc-material-original-center-ceiling.56wYck/report.json`, SHA-256
+`5f85001449eb7a2dc13fc6e17c2a1cc10032530c0de5dc693bafbe72b9b4b067`.
+This checkpoint changes no shadow placement and exists for hands-on validation
+of highlight removal on Abyssal Demon 1615.
+
 ## Revision-530 packed-HSL color
 
 Model face colors and NPC recolor targets are packed HSL values, not direct

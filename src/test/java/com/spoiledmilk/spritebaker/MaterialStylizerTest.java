@@ -2,6 +2,7 @@ package com.spoiledmilk.spritebaker;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.image.BufferedImage;
@@ -24,6 +25,14 @@ class MaterialStylizerTest {
         BufferedImage rejected=MaterialStylizer.reduce(speck,1,1,3);
         assertTrue(MaterialStylizer.luminance(preserved.getRGB(0,0))+28
             < MaterialStylizer.luminance(rejected.getRGB(0,0)));
+    }
+
+    @Test void twoSupportedDarkSamplesPreventSupersampleMedianFromBrighteningThem(){
+        BufferedImage image=new BufferedImage(3,3,BufferedImage.TYPE_INT_ARGB);int[] surfaces=new int[9];
+        Arrays.fill(surfaces,7);for(int i=0;i<9;i++)image.setRGB(i%3,i/3,0xff808080);
+        image.setRGB(1,1,0xff202020);image.setRGB(1,0,0xff242424);
+        BufferedImage output=MaterialStylizer.reduce(new StaticRenderer.RasterFrame(image,surfaces),1,1,3);
+        assertTrue(MaterialStylizer.luminance(output.getRGB(0,0))<=44);
     }
 
     @Test void everyBaseToneHasDistinctDarkerShadowSteps() {
@@ -51,6 +60,27 @@ class MaterialStylizerTest {
         int body=MaterialStylizer.luminance(output.getRGB(0,0));
         assertTrue(MaterialStylizer.luminance(output.getRGB(9,0))<=body);
     }
+
+    @Test void styleCannotLiftDarkSourceIntoAHighlight() {
+        BufferedImage image=new BufferedImage(1,1,BufferedImage.TYPE_INT_ARGB);image.setRGB(0,0,0xff302828);
+        BufferedImage output=MaterialStylizer.reduce(
+            new StaticRenderer.RasterFrame(image,new int[]{0x10000+100}),1,1,1);
+        assertTrue(MaterialStylizer.luminance(output.getRGB(0,0))
+            <=MaterialStylizer.luminance(image.getRGB(0,0))+12);
+        assertEquals(107,MaterialStylizer.controlledShadowLight(148,0,119));
+        assertEquals(22,MaterialStylizer.controlledShadowLight(68,0,22));
+    }
+
+    @Test void materialSmoothingCanLowerBrightNoiseButNeverRaiseDarkStructure(){
+        BufferedImage image=new BufferedImage(5,5,BufferedImage.TYPE_INT_ARGB);int[] surfaces=new int[25];
+        Arrays.fill(surfaces,7);for(int y=0;y<5;y++)for(int x=0;x<5;x++)image.setRGB(x,y,0xff606060);
+        image.setRGB(2,2,0xff484848);
+        BufferedImage output=MaterialStylizer.medianWithinSurface(image,surfaces);
+        assertTrue(MaterialStylizer.luminance(output.getRGB(2,2))
+            <=MaterialStylizer.luminance(image.getRGB(2,2)));
+    }
+
+
 
     @Test void centerSamplePreservesSilhouetteAndMaterialBoundary() {
         BufferedImage image = new BufferedImage(6, 3, BufferedImage.TYPE_INT_ARGB);

@@ -34,6 +34,7 @@ public final class MaterialStylizer {
         double[] lighting = new double[width * height];
         double[] shading = new double[width * height];
         double[] depth = new double[width * height];
+        int[] sourceLuminance = new int[width * height];
         int center = factor / 2;
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
@@ -52,8 +53,13 @@ public final class MaterialStylizer {
                     x * factor, y * factor, factor, surface);
                 shading[index] = robustBlockLighting(source, source.shading,
                     x * factor, y * factor, factor, surface);
-                reduced.setRGB(x, y, robustBlockColor(source, x * factor, y * factor,
-                    factor, surface, centerPixel >>> 24));
+                int blockColor=robustBlockColor(source,x*factor,y*factor,factor,surface,centerPixel>>>24);
+                int sampleColor=source.image.getRGB(sampleIndex%source.image.getWidth(),sampleIndex/source.image.getWidth());
+                if(luminance(blockColor)>luminance(sampleColor)
+                    &&supportedDarkBlockSample(source,x*factor,y*factor,factor,surface,sampleColor))
+                    blockColor=(centerPixel&0xff000000)|(sampleColor&0xffffff);
+                sourceLuminance[index]=luminance(blockColor);
+                reduced.setRGB(x,y,blockColor);
             }
         }
         BufferedImage cleaned = suppressIsolatedDarkPixels(reduced, surfaces);
@@ -70,7 +76,8 @@ public final class MaterialStylizer {
         for (int index = 0; index < contactShadows.length; index++)
             contactShadows[index] = Math.max(details[index],
                 Math.max(contactShadows[index], edgeShadows[index]));
-        return ramp(smoothed, surfaces, broadShading, baseRamps, contactShadows);
+        return suppressIsolatedDarkPixels(
+            ramp(smoothed,surfaces,broadShading,baseRamps,contactShadows,sourceLuminance),surfaces);
     }
 
     private static int detailSurfaceSample(StaticRenderer.RasterFrame source, int startX, int startY,
@@ -98,6 +105,17 @@ public final class MaterialStylizer {
             }
         }
         return selected;
+    }
+
+    private static boolean supportedDarkBlockSample(StaticRenderer.RasterFrame source,int startX,int startY,
+                                                     int factor,int surface,int sampleColor){
+        int support=0,width=source.image.getWidth(),limit=luminance(sampleColor)+12;
+        for(int dy=0;dy<factor;dy++)for(int dx=0;dx<factor;dx++){
+            int index=(startY+dy)*width+startX+dx;
+            if(source.surfaces[index]==surface&&luminance(source.image.getRGB(startX+dx,startY+dy))<=limit
+                &&++support>=2)return true;
+        }
+        return false;
     }
 
     private static int robustBlockColor(StaticRenderer.RasterFrame source, int startX, int startY,
@@ -187,10 +205,12 @@ public final class MaterialStylizer {
     }
 
     private static BufferedImage ramp(BufferedImage source, int[] surfaces, double[] lighting,
-                                      Map<Integer,Integer> baseRamps, double[] contactShadows) {
+                                      Map<Integer,Integer> baseRamps, double[] contactShadows,
+                                      int[] sourceLuminance) {
         int width = source.getWidth(), height = source.getHeight();
         BufferedImage output = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Map<Integer,Double> lightReferences = materialLightReferences(surfaces, lighting);
+        Map<Integer,Integer> sourceCeilings = sourceFamilyCeilings(source, surfaces);
         for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
             int pixel = source.getRGB(x, y), alpha = pixel >>> 24;
             if (alpha == 0) continue;
@@ -204,18 +224,31 @@ public final class MaterialStylizer {
             double shadow = Math.min(3, Math.max(illuminationShadow, contactShadows[y * width + x]));
             int steps = ditheredShadowSteps(shadow, x, y);
             int baseLight = LIGHTNESS_RAMP[Math.max(0, Math.min(LIGHTNESS_RAMP.length - 1, rampIndex))];
-            int light = shadowLight(baseLight, steps);
-            int rgb = rgbAtLuminance(hue, saturation, Math.max(34, light));
+            int familyCeiling=sourceCeilings.get(surfaceFamily(surfaces[y * width + x]));
+            int rawCeiling=Math.min(sourceLuminance[y*width+x],Math.min(luminance(pixel),familyCeiling));
+            int sourceCeiling=rawCeiling<64?rawCeiling:
+                Math.max(34,Math.min(255,rawCeiling+12));
+            int rgb = rgbAtLuminance(hue, saturation,
+                controlledShadowLight(baseLight, steps, sourceCeiling));
             output.setRGB(x, y, (alpha << 24) | rgb);
         }
         return output;
     }
+
 
     static int shadowLight(int baseLight, int steps) {
         double light = baseLight;
         for (int step = 0; step < steps; step++) light *= .72;
         return Math.max(16, (int)Math.round(light));
     }
+
+    static int controlledShadowLight(int baseLight,int steps,int sourceCeiling){
+        int minimum=Math.max(1,Math.min(34,sourceCeiling));
+        int light=Math.max(minimum,shadowLight(baseLight,steps));
+        while(light>sourceCeiling&&steps<8)light=Math.max(minimum,shadowLight(baseLight,++steps));
+        return light;
+    }
+
 
     static int rgbAtLuminance(float hue,float saturation,int target){
         int full=Color.HSBtoRGB(hue,saturation,1)&0xffffff;
@@ -265,6 +298,21 @@ public final class MaterialStylizer {
         }
         for(Map.Entry<Integer,Integer> entry:ramps.entrySet())
             entry.setValue(Math.min(entry.getValue(),ceilings.get(surfaceFamily(entry.getKey()))));
+    }
+
+    private static Map<Integer,Integer> sourceFamilyCeilings(BufferedImage image,int[] surfaces){
+        Map<Integer,int[]> histograms=new HashMap<>();Map<Integer,Integer> counts=new HashMap<>();int width=image.getWidth();
+        for(int index=0;index<surfaces.length;index++)if(surfaces[index]!=0){
+            int family=surfaceFamily(surfaces[index]),light=luminance(image.getRGB(index%width,index/width));
+            histograms.computeIfAbsent(family,ignored->new int[256])[light]++;counts.merge(family,1,Integer::sum);
+        }
+        Map<Integer,Integer> ceilings=new HashMap<>();
+        for(Map.Entry<Integer,int[]> entry:histograms.entrySet()){
+            int target=(counts.get(entry.getKey())*3+3)/4,accumulated=0,light=0;
+            for(;light<255;light++){accumulated+=entry.getValue()[light];if(accumulated>=target)break;}
+            ceilings.put(entry.getKey(),light);
+        }
+        return ceilings;
     }
 
     private static int surfaceFamily(int surface){
@@ -426,7 +474,7 @@ public final class MaterialStylizer {
         return ramps;
     }
 
-    private static BufferedImage medianWithinSurface(BufferedImage source, int[] surfaces) {
+    static BufferedImage medianWithinSurface(BufferedImage source, int[] surfaces) {
         int width = source.getWidth(), height = source.getHeight();
         BufferedImage output = copy(source);
         int[] red = new int[9], green = new int[9], blue = new int[9];
@@ -447,8 +495,8 @@ public final class MaterialStylizer {
             Arrays.sort(red, 0, count);
             Arrays.sort(green, 0, count);
             Arrays.sort(blue, 0, count);
-            output.setRGB(x, y, (center & 0xff000000) | (red[count / 2] << 16)
-                | (green[count / 2] << 8) | blue[count / 2]);
+            int replacement=(center&0xff000000)|(red[count/2]<<16)|(green[count/2]<<8)|blue[count/2];
+            if(luminance(replacement)<=luminance(center))output.setRGB(x,y,replacement);
         }
         return output;
     }
