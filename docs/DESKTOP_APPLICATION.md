@@ -208,8 +208,10 @@ The NPC browser uses its own read-only cache session and reports search
 progress. It closes that session with the browser. Closing the editor stops
 queued work before closing the active cache store. When an NPC choice replaces
 an editor, the old editor is explicitly marked as a programmatic replacement;
-its close callback therefore cannot reopen another NPC browser beside the new
-editor. An intentional close of a transient editor still returns to browsing.
+its close callback therefore cannot exit the desktop or reopen another NPC
+browser beside the new editor. Intentionally closing the ordinary transient
+editor disposes all remaining Swing windows and terminates the desktop JVM;
+NPC switching remains available through **NPC → Browse NPCs…**.
 
 Save and export operate on an immutable project snapshot. If editing continues
 while background I/O runs, the completed operation does not incorrectly mark

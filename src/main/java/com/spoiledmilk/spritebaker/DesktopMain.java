@@ -110,10 +110,6 @@ public final class DesktopMain {
         progress.setVisible(true);
     }
 
-    static void editorClosed(boolean transientDesktop) {
-        if (transientDesktop && !exiting && desktop != null) desktop.openBrowser();
-    }
-
     static void exitApplication() {
         if (exiting) return;
         exiting = true;

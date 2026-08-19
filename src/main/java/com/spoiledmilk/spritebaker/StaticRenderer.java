@@ -27,7 +27,7 @@ public final class StaticRenderer {
     public BufferedImage render(List<ModelDefinition> models, NpcDefinition530 npc,
                                 double yawDegrees, Viewport viewport) {
         return renderRaw(models, npc, yawDegrees, PITCH_DEGREES, viewport,
-            WIDTH, HEIGHT, PADDING, 0, LIGHT_DIRECTION, AMBIENT_LIGHT, DIFFUSE_LIGHT, null);
+            WIDTH, HEIGHT, PADDING, 0, LIGHT_DIRECTION, AMBIENT_LIGHT, DIFFUSE_LIGHT, null).image;
     }
 
     /** Phase-3 output path: high-resolution raster followed by exact nearest-neighbor reduction. */
@@ -36,12 +36,14 @@ public final class StaticRenderer {
                                       VisualSettings settings) {
         settings.validate();
         int factor = settings.supersample;
-        BufferedImage highResolution = renderRaw(models, npc,
+        RasterFrame highResolution = renderRaw(models, npc,
             baseYawDegrees + settings.yawOffsetDegrees, settings.pitchDegrees, viewport,
             settings.cellWidth * factor, settings.cellHeight * factor, settings.padding * factor,
             settings.verticalOffsetPixels * factor, settings.lightDirection(),
             settings.ambient, settings.diffuse, null);
-        BufferedImage reduced = nearestNeighbor(highResolution, settings.cellWidth, settings.cellHeight, factor);
+        BufferedImage reduced = MaterialStylizer.RSC_RAMPS.equals(settings.materialStyle)
+            ? MaterialStylizer.reduce(highResolution, settings.cellWidth, settings.cellHeight, factor)
+            : nearestNeighbor(highResolution.image, settings.cellWidth, settings.cellHeight, factor);
         return PaletteReducer.apply(reduced, settings);
     }
 
@@ -50,11 +52,14 @@ public final class StaticRenderer {
                                       double baseYawDegrees,Viewport viewport,VisualSettings settings,
                                       MaterialProvider530 materials) {
         settings.validate();int factor=settings.supersample;
-        BufferedImage highResolution=renderRaw(models,npc,baseYawDegrees+settings.yawOffsetDegrees,
+        RasterFrame highResolution=renderRaw(models,npc,baseYawDegrees+settings.yawOffsetDegrees,
             settings.pitchDegrees,viewport,settings.cellWidth*factor,settings.cellHeight*factor,
             settings.padding*factor,settings.verticalOffsetPixels*factor,settings.lightDirection(),
             settings.ambient,settings.diffuse,materials);
-        return PaletteReducer.apply(nearestNeighbor(highResolution,settings.cellWidth,settings.cellHeight,factor),settings);
+        BufferedImage reduced=MaterialStylizer.RSC_RAMPS.equals(settings.materialStyle)
+            ?MaterialStylizer.reduce(highResolution,settings.cellWidth,settings.cellHeight,factor)
+            :nearestNeighbor(highResolution.image,settings.cellWidth,settings.cellHeight,factor);
+        return PaletteReducer.apply(reduced,settings);
     }
 
     /** Shared orthographic framing for a legacy 256px sheet. */
@@ -71,7 +76,7 @@ public final class StaticRenderer {
             settings.modelScale);
     }
 
-    private BufferedImage renderRaw(List<ModelDefinition> models, NpcDefinition530 npc,
+    private RasterFrame renderRaw(List<ModelDefinition> models, NpcDefinition530 npc,
                                     double yawDegrees, double pitchDegrees, Viewport viewport,
                                     int width, int height, int padding, double verticalOffset,
                                     double[] lightDirection, double ambient, double diffuse,
@@ -113,11 +118,16 @@ public final class StaticRenderer {
             screenY[i] = height - padding - (projectedY[i] - groundY) * scale - verticalOffset;
         }
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        int[] surfaces = new int[width * height];
+        int[] facets = new int[width * height];
+        double[] lighting = new double[width * height];
+        double[] shading = new double[width * height];
         double[] zBuffer = new double[width * height];
         Arrays.fill(zBuffer, Double.NEGATIVE_INFINITY);
-        vertexOffset = 0;
+        vertexOffset = 0;int facetOffset=1;
         for (ModelDefinition model : models) {
             if(materials==null)rejectTextures(model);
+            model.computeNormals();
             for (int face = 0; face < model.faceCount; face++) {
                 // RawModel face render type 2 becomes SoftwareModel triangleInfo -2 and is
                 // excluded from the pinned client's draw list. These are structural marker
@@ -129,21 +139,31 @@ public final class StaticRenderer {
                 int alpha = model.faceTransparencies == null ? 255
                     : 255 - Byte.toUnsignedInt(model.faceTransparencies[face]);
                 int texture=texture(model,face,npc);
+                double brightness=faceBrightness(model,face,npc,lightDirection,ambient,diffuse);
+                double[] styleBrightness=styleVertexBrightnesses(model,face,npc,lightDirection,ambient,diffuse);
                 if(texture==-1){
-                    int rgb = litColor(recolor(model.faceColors[face], npc), model, face, npc,lightDirection, ambient, diffuse);
-                    rasterize(image,zBuffer,screenX,screenY,depth,a,b,c,(alpha<<24)|rgb,width,height);
+                    int packedColor=recolor(model.faceColors[face],npc);
+                    int rgb = litColor(packedColor,brightness);
+                    rasterize(image,zBuffer,surfaces,facets,lighting,shading,screenX,screenY,depth,a,b,c,
+                        (alpha<<24)|rgb,0x10000+packedColor,facetOffset+face,brightness,
+                        styleBrightness,width,height);
                 }else{
                     try{
                         TextureMaterial530 material=materials.material(texture);double[] uv=textureCoordinates(model,face);
-                        double brightness=faceBrightness(model,face,npc,lightDirection,ambient,diffuse);
                         int modulation=texturedModulation(recolor(model.faceColors[face],npc),material.definition,brightness);
-                        rasterizeTextured(image,zBuffer,screenX,screenY,depth,a,b,c,uv,material,modulation,alpha,width,height);
+                        rasterizeTextured(image,zBuffer,surfaces,facets,lighting,shading,screenX,screenY,depth,a,b,c,
+                            uv,material,modulation,alpha,0x20000+texture,facetOffset+face,
+                            brightness,styleBrightness,width,height);
                     }catch(java.io.IOException exception){throw new IllegalArgumentException("cannot load texture "+texture,exception);}
                 }
             }
-            vertexOffset += model.vertexCount;
+            vertexOffset += model.vertexCount;facetOffset+=model.faceCount;
         }
-        return image;
+        // RSC-style inner shading follows a stable screen-space studio light so
+        // every directional column reads consistently instead of rotating the
+        // shadowed silhouette edge around the sheet with the model yaw.
+        double lightScreenX=lightDirection[0],lightScreenY=-lightDirection[1];
+        return new RasterFrame(image,surfaces,facets,lighting,shading,zBuffer,lightScreenX,lightScreenY);
     }
 
     private Viewport fitRaw(List<View> views, NpcDefinition530 npc, int width, int height,
@@ -215,6 +235,9 @@ public final class StaticRenderer {
     private static int litColor(int packedHsl, ModelDefinition model, int face, NpcDefinition530 npc,
                                 double[] lightDirection, double ambient, double diffuse) {
         double brightness=faceBrightness(model,face,npc,lightDirection,ambient,diffuse);
+        return litColor(packedHsl,brightness);
+    }
+    private static int litColor(int packedHsl,double brightness){
         int base=packedHslToRgb(packedHsl);
         int red=(int)Math.round(((base>>>16)&255)*brightness);
         int green=(int)Math.round(((base>>>8)&255)*brightness);
@@ -223,14 +246,45 @@ public final class StaticRenderer {
     }
     private static double faceBrightness(ModelDefinition model,int face,NpcDefinition530 npc,
                                          double[] lightDirection,double ambient,double diffuse){
+        double lambert=Math.abs(faceLightDot(model,face,lightDirection));
+        double adjustment=npc.ambient/512.0+npc.contrast/4096.0;
+        return clamp(ambient+diffuse*lambert+adjustment,0.15,1.0);
+    }
+    static double styleFaceBrightness(ModelDefinition model,int face,NpcDefinition530 npc,
+                                      double[] lightDirection,double ambient,double diffuse){
+        double lambert=Math.max(0,faceLightDot(model,face,lightDirection));
+        return styleBrightness(lambert,npc,ambient,diffuse);
+    }
+    static double[] styleVertexBrightnesses(ModelDefinition model,int face,NpcDefinition530 npc,
+                                            double[] lightDirection,double ambient,double diffuse){
+        if(model.vertexNormals==null)model.computeNormals();
+        int[] vertices={model.faceIndices1[face],model.faceIndices2[face],model.faceIndices3[face]};
+        double fallback=styleFaceBrightness(model,face,npc,lightDirection,ambient,diffuse);
+        double[] values=new double[3];
+        if(model.faceRenderTypes!=null&&model.faceRenderTypes[face]==1){
+            Arrays.fill(values,fallback);
+            return values;
+        }
+        for(int index=0;index<3;index++){
+            net.runelite.cache.models.VertexNormal normal=model.vertexNormals[vertices[index]];
+            double nx=-normal.x,ny=normal.y,nz=-normal.z;
+            double length=Math.sqrt(nx*nx+ny*ny+nz*nz);
+            values[index]=length==0?fallback:styleBrightness(Math.max(0,
+                (nx*lightDirection[0]+ny*lightDirection[1]+nz*lightDirection[2])/length),npc,ambient,diffuse);
+        }
+        return values;
+    }
+    private static double styleBrightness(double lambert,NpcDefinition530 npc,double ambient,double diffuse){
+        double adjustment=npc.ambient/512.0+npc.contrast/4096.0;
+        return clamp(ambient+diffuse*lambert+adjustment,0.15,1.0);
+    }
+    private static double faceLightDot(ModelDefinition model,int face,double[] lightDirection){
         int ia=model.faceIndices1[face],ib=model.faceIndices2[face],ic=model.faceIndices3[face];
         double ax=model.vertexX[ib]-model.vertexX[ia],ay=-(model.vertexY[ib]-model.vertexY[ia]),az=model.vertexZ[ib]-model.vertexZ[ia];
         double bx=model.vertexX[ic]-model.vertexX[ia],by=-(model.vertexY[ic]-model.vertexY[ia]),bz=model.vertexZ[ic]-model.vertexZ[ia];
         double nx=ay*bz-az*by,ny=az*bx-ax*bz,nz=ax*by-ay*bx;
         double length=Math.sqrt(nx*nx+ny*ny+nz*nz);
-        double lambert=length==0?0:Math.abs((nx*lightDirection[0]+ny*lightDirection[1]+nz*lightDirection[2])/length);
-        double adjustment=npc.ambient/512.0+npc.contrast/4096.0;
-        return clamp(ambient+diffuse*lambert+adjustment,0.15,1.0);
+        return length==0?0:(nx*lightDirection[0]+ny*lightDirection[1]+nz*lightDirection[2])/length;
     }
 
     private static int texture(ModelDefinition model,int face,NpcDefinition530 npc){
@@ -295,8 +349,9 @@ public final class StaticRenderer {
     private static int multiplyLightness(int packedHsl,int light){int value=light*(packedHsl&127)>>7;if(value<2)value=2;else if(value>126)value=126;return(packedHsl&0xff80)+value;}
     private static double hueToRgb(double p,double q,double t){if(t<0)t+=1;if(t>1)t-=1;if(t<1.0/6.0)return p+(q-p)*6*t;if(t<.5)return q;if(t<2.0/3.0)return p+(q-p)*(2.0/3.0-t)*6;return p;}
 
-    private static void rasterize(BufferedImage image,double[] zBuffer,double[] x,double[] y,double[] z,
-                                  int a,int b,int c,int argb,int width,int height){
+    private static void rasterize(BufferedImage image,double[] zBuffer,int[] surfaces,int[] facets,double[] lighting,
+                                  double[] shading,double[] x,double[] y,double[] z,int a,int b,int c,int argb,
+                                  int surface,int facet,double brightness,double[] styleBrightness,int width,int height){
         double area=edge(x[a],y[a],x[b],y[b],x[c],y[c]);if(Math.abs(area)<.00001||(argb>>>24)==0)return;
         int minX=Math.max(0,(int)Math.floor(Math.min(x[a],Math.min(x[b],x[c]))));
         int maxX=Math.min(width-1,(int)Math.ceil(Math.max(x[a],Math.max(x[b],x[c]))));
@@ -307,21 +362,39 @@ public final class StaticRenderer {
             double wb=edge(x[c],y[c],x[a],y[a],sx,sy)/area,wc=1-wa-wb;
             if(wa<-.000001||wb<-.000001||wc<-.000001)continue;
             double pixelDepth=wa*z[a]+wb*z[b]+wc*z[c];int index=py*width+px;
-            if(pixelDepth>zBuffer[index]){zBuffer[index]=pixelDepth;image.setRGB(px,py,argb);}
+            if(pixelDepth>zBuffer[index]){zBuffer[index]=pixelDepth;image.setRGB(px,py,argb);surfaces[index]=surface;facets[index]=facet;lighting[index]=brightness;shading[index]=wa*styleBrightness[0]+wb*styleBrightness[1]+wc*styleBrightness[2];}
         }
     }
-    private static void rasterizeTextured(BufferedImage image,double[] zBuffer,double[] x,double[] y,double[] z,
-            int a,int b,int c,double[] uv,TextureMaterial530 material,int modulation,int faceAlpha,int width,int height){
+    private static void rasterizeTextured(BufferedImage image,double[] zBuffer,int[] surfaces,int[] facets,double[] lighting,
+            double[] shading,double[] x,double[] y,double[] z,int a,int b,int c,double[] uv,TextureMaterial530 material,
+            int modulation,int faceAlpha,int surface,int facet,double brightness,
+            double[] styleBrightness,int width,int height){
         double area=edge(x[a],y[a],x[b],y[b],x[c],y[c]);if(Math.abs(area)<.00001||faceAlpha==0)return;
         int minX=Math.max(0,(int)Math.floor(Math.min(x[a],Math.min(x[b],x[c])))),maxX=Math.min(width-1,(int)Math.ceil(Math.max(x[a],Math.max(x[b],x[c]))));
         int minY=Math.max(0,(int)Math.floor(Math.min(y[a],Math.min(y[b],y[c])))),maxY=Math.min(height-1,(int)Math.ceil(Math.max(y[a],Math.max(y[b],y[c]))));
         for(int py=minY;py<=maxY;py++)for(int px=minX;px<=maxX;px++){double sx=px+.5,sy=py+.5,wa=edge(x[b],y[b],x[c],y[c],sx,sy)/area,wb=edge(x[c],y[c],x[a],y[a],sx,sy)/area,wc=1-wa-wb;if(wa<-.000001||wb<-.000001||wc<-.000001)continue;
             double pd=wa*z[a]+wb*z[b]+wc*z[c];int index=py*width+px;if(pd<=zBuffer[index])continue;double u=wa*uv[0]+wb*uv[2]+wc*uv[4],v=wa*uv[1]+wb*uv[3]+wc*uv[5];int tx=Math.floorMod((int)Math.floor(u*material.size),material.size),ty=Math.floorMod((int)Math.floor(v*material.size),material.size);int texel=material.pixels[ty*material.size+tx];if(!material.definition.opaque&&(texel&0xffffff)==0)continue;
             int r=((texel>>>16)&255)*((modulation>>>16)&255)/255,g=((texel>>>8)&255)*((modulation>>>8)&255)/255,bl=(texel&255)*(modulation&255)/255;int src=(faceAlpha<<24)|(r<<16)|(g<<8)|bl;
-            if(faceAlpha==255)image.setRGB(px,py,src);else image.setRGB(px,py,blend(src,image.getRGB(px,py)));zBuffer[index]=pd;
+            if(faceAlpha==255)image.setRGB(px,py,src);else image.setRGB(px,py,blend(src,image.getRGB(px,py)));zBuffer[index]=pd;surfaces[index]=surface;facets[index]=facet;lighting[index]=brightness;shading[index]=wa*styleBrightness[0]+wb*styleBrightness[1]+wc*styleBrightness[2];
         }
     }
     private static int blend(int src,int dst){int a=src>>>24,inv=255-a;int r=(((src>>>16)&255)*a+((dst>>>16)&255)*inv+127)/255,g=(((src>>>8)&255)*a+((dst>>>8)&255)*inv+127)/255,b=((src&255)*a+(dst&255)*inv+127)/255,oa=a+((dst>>>24)*inv+127)/255;return(oa<<24)|(r<<16)|(g<<8)|b;}
     private static double edge(double ax,double ay,double bx,double by,double px,double py){return(px-ax)*(by-ay)-(py-ay)*(bx-ax);}
     private static double clamp(double value,double min,double max){return Math.max(min,Math.min(max,value));}
+
+    static final class RasterFrame {
+        final BufferedImage image;
+        final int[] surfaces;
+        final int[] facets;
+        final double[] lighting;
+        final double[] shading;
+        final double[] depth;
+        final double lightScreenX,lightScreenY;
+        RasterFrame(BufferedImage image,int[] surfaces){this(image,surfaces,surfaces,uniformLighting(surfaces.length),uniformLighting(surfaces.length),new double[surfaces.length]);}
+        RasterFrame(BufferedImage image,int[] surfaces,int[] facets,double[] lighting){this(image,surfaces,facets,lighting,lighting,new double[surfaces.length]);}
+        RasterFrame(BufferedImage image,int[] surfaces,int[] facets,double[] lighting,double[] depth){this(image,surfaces,facets,lighting,lighting,depth);}
+        RasterFrame(BufferedImage image,int[] surfaces,int[] facets,double[] lighting,double[] shading,double[] depth){this(image,surfaces,facets,lighting,shading,depth,0,0);}
+        RasterFrame(BufferedImage image,int[] surfaces,int[] facets,double[] lighting,double[] shading,double[] depth,double lightScreenX,double lightScreenY){this.image=image;this.surfaces=surfaces;this.facets=facets;this.lighting=lighting;this.shading=shading;this.depth=depth;this.lightScreenX=lightScreenX;this.lightScreenY=lightScreenY;}
+        private static double[] uniformLighting(int size){double[] values=new double[size];Arrays.fill(values,.72);return values;}
+    }
 }
