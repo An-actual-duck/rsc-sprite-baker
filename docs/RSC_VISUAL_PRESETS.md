@@ -157,6 +157,30 @@ King Black Dragon is effectively unchanged. The external report SHA-256 is
 `e5cad7972e518de19cce30e3318d37bc6286a0d6a75a2b7145d62aacc9e40361`.
 Visual approval remains the deciding gate for ramp spacing and shading strength.
 
+### Third checkpoint: depth-contact separation
+
+The RSC bear reference exposed a different missing cue from broad illumination:
+foreground legs and other overlapping parts need a narrow dark region on the
+surface behind them. The renderer now carries the final visible depth and stable
+face identity beside ARGB, material, and geometric light. At an internal
+face-to-face boundary, a five-percent model-depth threshold distinguishes a
+real overlap from an ordinary same-depth triangle seam. Only the farther
+surface receives a one-ramp shadow band, expanded inward by one pixel within
+that same face. Transparent neighbors never qualify, so this cannot create a
+silhouette outline. The foreground surface also remains unchanged.
+
+Neutral regressions cover foreground/body overlap, reject transparent-edge
+outlining, and retain the earlier geometric-light, stable supersample,
+material-boundary, palette, and alpha tests. The nine-NPC audit again reports
+zero alpha mismatch, exact black, or isolated dark speckles across all 162
+frames. Strong-transition counts are below Original colors for Dark beast,
+King Black Dragon, Kree'arra, Big Snake, Jelly, and Penance Queen. The external
+report SHA-256 is
+`eef03fcd88d2eaf10b6f3adadd9b6c120d70471554efd7931e71aa356219a750`.
+Java 21 clean verification passes all 276 tests. The unchanged Original-colors
+29-NPC matrix passes all 522 cells, including the established Abyssal demon and
+Dark beast PNG hashes.
+
 ## Revision-530 packed-HSL color
 
 Model face colors and NPC recolor targets are packed HSL values, not direct

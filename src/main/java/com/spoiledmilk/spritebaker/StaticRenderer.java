@@ -154,7 +154,7 @@ public final class StaticRenderer {
             }
             vertexOffset += model.vertexCount;facetOffset+=model.faceCount;
         }
-        return new RasterFrame(image,surfaces,facets,lighting);
+        return new RasterFrame(image,surfaces,facets,lighting,zBuffer);
     }
 
     private Viewport fitRaw(List<View> views, NpcDefinition530 npc, int width, int height,
@@ -346,8 +346,10 @@ public final class StaticRenderer {
         final int[] surfaces;
         final int[] facets;
         final double[] lighting;
-        RasterFrame(BufferedImage image,int[] surfaces){this(image,surfaces,surfaces,uniformLighting(surfaces.length));}
-        RasterFrame(BufferedImage image,int[] surfaces,int[] facets,double[] lighting){this.image=image;this.surfaces=surfaces;this.facets=facets;this.lighting=lighting;}
+        final double[] depth;
+        RasterFrame(BufferedImage image,int[] surfaces){this(image,surfaces,surfaces,uniformLighting(surfaces.length),new double[surfaces.length]);}
+        RasterFrame(BufferedImage image,int[] surfaces,int[] facets,double[] lighting){this(image,surfaces,facets,lighting,new double[surfaces.length]);}
+        RasterFrame(BufferedImage image,int[] surfaces,int[] facets,double[] lighting,double[] depth){this.image=image;this.surfaces=surfaces;this.facets=facets;this.lighting=lighting;this.depth=depth;}
         private static double[] uniformLighting(int size){double[] values=new double[size];Arrays.fill(values,.72);return values;}
     }
 }

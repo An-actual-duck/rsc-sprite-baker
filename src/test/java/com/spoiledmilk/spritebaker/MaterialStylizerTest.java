@@ -61,6 +61,41 @@ class MaterialStylizerTest {
             < MaterialStylizer.luminance(output.getRGB(1, 0)));
     }
 
+    @Test void depthOverlapDarkensOnlyTheFartherInteriorSurface() {
+        BufferedImage image = new BufferedImage(7, 3, BufferedImage.TYPE_INT_ARGB);
+        int[] surfaces = new int[21], facets = new int[21];
+        double[] lighting = new double[21], depth = new double[21];
+        Arrays.fill(surfaces, 4);
+        Arrays.fill(facets, 1);
+        Arrays.fill(lighting, .72);
+        for (int y = 0; y < 3; y++) for (int x = 0; x < 7; x++) image.setRGB(x, y, 0xff8c6048);
+        for (int y = 0; y < 3; y++) {
+            facets[y * 7 + 3] = 2;
+            depth[y * 7 + 3] = 10;
+        }
+        BufferedImage output = MaterialStylizer.reduce(
+            new StaticRenderer.RasterFrame(image, surfaces, facets, lighting, depth), 7, 3, 1);
+        int farBody = MaterialStylizer.luminance(output.getRGB(0, 1));
+        int contactBody = MaterialStylizer.luminance(output.getRGB(2, 1));
+        int foreground = MaterialStylizer.luminance(output.getRGB(3, 1));
+        assertTrue(contactBody < farBody);
+        assertTrue(contactBody < foreground);
+        assertEquals(farBody, MaterialStylizer.luminance(output.getRGB(6, 1)));
+    }
+
+    @Test void transparentSilhouetteEdgeDoesNotReceiveAnOutline() {
+        BufferedImage image = new BufferedImage(5, 5, BufferedImage.TYPE_INT_ARGB);
+        int[] surfaces = new int[25], facets = new int[25];
+        double[] lighting = new double[25], depth = new double[25];
+        for (int y = 1; y < 4; y++) for (int x = 1; x < 4; x++) {
+            int index = y * 5 + x;
+            image.setRGB(x, y, 0xff8c6048);surfaces[index] = 4;facets[index] = 1;lighting[index] = .72;
+        }
+        BufferedImage output = MaterialStylizer.reduce(
+            new StaticRenderer.RasterFrame(image, surfaces, facets, lighting, depth), 5, 5, 1);
+        assertEquals(output.getRGB(1, 2), output.getRGB(2, 2));
+    }
+
     @Test void originalStyleRemainsTheDefaultReference() {
         VisualSettings settings = new VisualSettings();
         assertEquals(MaterialStylizer.NONE, settings.materialStyle);

@@ -27,7 +27,9 @@ public final class MaterialStylizer {
         }
         BufferedImage reduced = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         int[] surfaces = new int[width * height];
+        int[] facets = new int[width * height];
         double[] lighting = new double[width * height];
+        double[] depth = new double[width * height];
         int center = factor / 2;
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
@@ -36,7 +38,10 @@ public final class MaterialStylizer {
                 int centerPixel = source.image.getRGB(centerX, centerY);
                 if ((centerPixel >>> 24) == 0) continue;
                 int surface = source.surfaces[centerY * source.image.getWidth() + centerX];
+                int index = y * width + x;
                 surfaces[y * width + x] = surface;
+                facets[index] = source.facets[centerY * source.image.getWidth() + centerX];
+                depth[index] = source.depth[centerY * source.image.getWidth() + centerX];
                 lighting[y * width + x] = robustBlockLighting(source, x * factor, y * factor, factor, surface);
                 reduced.setRGB(x, y, robustBlockColor(source, x * factor, y * factor,
                     factor, surface, centerPixel >>> 24));
@@ -47,7 +52,8 @@ public final class MaterialStylizer {
         double[] broadLighting = averageLighting(averageLighting(lighting, surfaces, width, height),
             surfaces, width, height);
         Map<Integer,Integer> baseRamps = materialBaseRamps(smoothed, surfaces, broadLighting);
-        return suppressIsolatedDarkPixels(ramp(smoothed, surfaces, broadLighting, baseRamps), surfaces);
+        boolean[] occlusion = depthOcclusionBands(surfaces, facets, depth, width, height);
+        return suppressIsolatedDarkPixels(ramp(smoothed, surfaces, broadLighting, baseRamps, occlusion), surfaces);
     }
 
     private static int robustBlockColor(StaticRenderer.RasterFrame source, int startX, int startY,
@@ -135,7 +141,7 @@ public final class MaterialStylizer {
     }
 
     private static BufferedImage ramp(BufferedImage source, int[] surfaces, double[] lighting,
-                                      Map<Integer,Integer> baseRamps) {
+                                      Map<Integer,Integer> baseRamps, boolean[] occlusion) {
         int width = source.getWidth(), height = source.getHeight();
         BufferedImage output = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
@@ -147,12 +153,53 @@ public final class MaterialStylizer {
             double shade = lighting[y * width + x];
             int rampIndex = baseRamps.get(surfaces[y * width + x]);
             rampIndex += shade < .64 ? -1 : shade >= .80 ? 1 : 0;
-            if (isOuterEdge(x, y, width, height, surfaces)) rampIndex--;
+            if (occlusion[y * width + x]) rampIndex--;
             int light = LIGHTNESS_RAMP[Math.max(0, Math.min(LIGHTNESS_RAMP.length - 1, rampIndex))];
             int rgb = liftMinimumLuminance(Color.HSBtoRGB(hue, saturation, light / 255f) & 0xffffff, 36);
             output.setRGB(x, y, (alpha << 24) | rgb);
         }
         return output;
+    }
+
+    static boolean[] depthOcclusionBands(int[] surfaces, int[] facets, double[] depth,
+                                         int width, int height) {
+        if (surfaces.length != width * height || facets.length != surfaces.length
+            || depth.length != surfaces.length) throw new IllegalArgumentException("occlusion buffers differ");
+        double minimum = Double.POSITIVE_INFINITY, maximum = Double.NEGATIVE_INFINITY;
+        for (int index = 0; index < surfaces.length; index++) if (surfaces[index] != 0) {
+            minimum = Math.min(minimum, depth[index]);
+            maximum = Math.max(maximum, depth[index]);
+        }
+        boolean[] boundary = new boolean[surfaces.length];
+        if (!Double.isFinite(minimum)) return boundary;
+        double threshold = Math.max(.5, (maximum - minimum) * .05);
+        for (int y = 1; y < height - 1; y++) for (int x = 1; x < width - 1; x++) {
+            int index = y * width + x;
+            if (surfaces[index] == 0) continue;
+            for (int dy = -1; dy <= 1 && !boundary[index]; dy++) for (int dx = -1; dx <= 1; dx++) {
+                if (dx == 0 && dy == 0) continue;
+                int neighbor = (y + dy) * width + x + dx;
+                if (surfaces[neighbor] != 0 && facets[neighbor] != facets[index]
+                    && depth[neighbor] > depth[index] + threshold) {
+                    boundary[index] = true;
+                    break;
+                }
+            }
+        }
+        boolean[] band = boundary.clone();
+        for (int y = 1; y < height - 1; y++) for (int x = 1; x < width - 1; x++) {
+            int index = y * width + x;
+            if (boundary[index]) continue;
+            for (int dy = -1; dy <= 1 && !band[index]; dy++) for (int dx = -1; dx <= 1; dx++) {
+                int neighbor = (y + dy) * width + x + dx;
+                if (boundary[neighbor] && facets[neighbor] == facets[index]
+                    && Math.abs(depth[neighbor] - depth[index]) <= threshold) {
+                    band[index] = true;
+                    break;
+                }
+            }
+        }
+        return band;
     }
 
     private static Map<Integer,Integer> materialBaseRamps(BufferedImage image, int[] surfaces,
@@ -177,14 +224,6 @@ public final class MaterialStylizer {
             ramps.put(entry.getKey(), nearestRampIndex(median));
         }
         return ramps;
-    }
-
-    private static boolean isOuterEdge(int x, int y, int width, int height, int[] surfaces) {
-        return x == 0 || y == 0 || x == width - 1 || y == height - 1
-            || surfaces[y * width + x - 1] == 0
-            || surfaces[y * width + x + 1] == 0
-            || surfaces[(y - 1) * width + x] == 0
-            || surfaces[(y + 1) * width + x] == 0;
     }
 
     private static BufferedImage medianWithinSurface(BufferedImage source, int[] surfaces) {
