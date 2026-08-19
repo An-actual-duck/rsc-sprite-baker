@@ -16,8 +16,10 @@ Each sheet export performs the following operations in order:
    output-pixel offset and never changes one cell independently.
 5. Rasterize each cell at `target size × integer supersample` with the shared
    viewport and the configured ambient/directional light.
-6. Reduce to target size by taking the center source sample of each integer
-   pixel block. No smoothing or platform graphics scaling participates.
+6. Reduce to target size. Original styles take the center source sample of
+   each integer pixel block. The explicit RSC material style instead tracks
+   the decoded material or untextured packed-color surface through the depth
+   buffer and chooses a robust median only from that same surface.
 7. Optionally reduce RGB colors to a fixed cube with a deterministic 4×4 Bayer
    threshold. Alpha values are retained exactly.
 
@@ -39,6 +41,7 @@ manifest.
 | --- | --- | --- | --- |
 | Original colors (default) | 12° pitch, 0.90 scale | ambient 0.52, directional 0.40 | original rendered RGB, no dither |
 | Unmodified studio | 15° pitch, 0.92 scale | ambient 0.45, directional 0.55 | original rendered RGB, no dither |
+| RSC material | 12° pitch, 0.90 scale | ambient 0.54, directional 0.36 | material-aware reduction, restrained fixed chroma/light ramps, no blanket dither |
 | RSC crisp | 12° pitch, 0.90 scale | ambient 0.52, directional 0.40 | fixed 5×5×5 RGB cube, no dither |
 | RSC restrained | same as crisp | same as crisp | 5×5×5 cube, 4×4 ordered dither at 0.30 strength |
 | RSC coarse | 10° pitch, 0.88 scale | ambient 0.56, directional 0.34 | 4×4×4 cube, 4×4 ordered dither at 0.40 strength |
@@ -53,6 +56,80 @@ The palette menu also exposes the coarser 3×3×3 cube for deliberate stylized
 experiments. Ordered dithering is spatially fixed to output coordinates, so it
 is reproducible and does not shimmer between frames. Dithering never changes
 transparent pixels.
+
+## RSC material first visual checkpoint
+
+The new **RSC material** preset is separate from **Original colors**, whose
+rendering path and pixels remain unchanged. It addresses the diagnosed noise
+before ordinary palette reduction:
+
+1. Rasterization writes a stable surface identity beside depth and ARGB. A
+   textured surface is keyed by resolved material ID; an untextured surface is
+   keyed by its post-NPC-recolor packed HSL value.
+2. The output pixel's center sample still owns alpha and surface selection, so
+   silhouettes exactly match Original colors. Within that selected surface,
+   the supersample block uses a channel median instead of a single potentially
+   dark procedural texel.
+3. Two bounded 3×3 median passes operate only among pixels with the same
+   decoded surface identity. Strong material boundaries and alpha edges cannot
+   bleed into one another.
+4. Fixed chroma families and six light/mid/shadow levels produce bold regions
+   without a global RGB cube. A restrained one-step silhouette shade supplies
+   edge definition, while a minimum luminance prevents isolated near-black
+   texture values from becoming black outlines.
+5. Isolated dark cleanup runs before and after ramp selection. Blanket ordered
+   dithering is intentionally disabled in this checkpoint: the diagnosis found
+   that it added single-pixel transitions to already textured materials. The
+   treatment will add dithering only if visual review identifies a specific
+   smooth transition where it improves the result without temporal noise.
+
+`MaterialStylizationAuditMain` is a terminal-only, cache-backed comparison for
+Abyssal demon 1615, Dark beast 2783, King Black Dragon 50, Tortoise 3808,
+Kree'arra 6222, Big Snake 3484, Jelly 1637, Penance Queen 5247, and the
+untextured Troll 72 control. It exports Original and RSC-material sheets
+outside Git and records alpha-mask differences, exact black pixels, isolated
+dark speckles, strong interior transitions, palette size, per-frame speckle
+range, and per-frame palette size. Neutral tests additionally move one dark
+texel within a supersample block and require identical output, guarding the
+most direct source of animation shimmer.
+
+Run it after building the shaded JAR:
+
+```bash
+java -cp target/rsc-sprite-baker.jar \
+  com.spoiledmilk.spritebaker.MaterialStylizationAuditMain \
+  --cache /path/to/user-supplied/cache \
+  --output /tmp/rsc-material-audit.json \
+  --exports /tmp/rsc-material-audit-exports
+```
+
+The first checkpoint's pinned-cache run produced zero alpha-mask mismatches,
+zero exact-black pixels, and zero isolated dark speckles in every one of the
+162 styled frames. Strong interior RGB transitions and complete-sheet palette
+sizes changed as follows:
+
+| NPC | Transitions original → styled | RGB colors original → styled |
+| --- | ---: | ---: |
+| 1615 Abyssal demon | 1,220 → 5 | 756 → 11 |
+| 2783 Dark beast | 1,660 → 886 | 873 → 16 |
+| 50 King Black Dragon | 3,340 → 2,663 | 1,201 → 15 |
+| 3808 Tortoise | 11,573 → 6,377 | 5,548 → 27 |
+| 6222 Kree'arra | 10,576 → 5,750 | 1,400 → 13 |
+| 3484 Big Snake | 450 → 1 | 516 → 9 |
+| 1637 Jelly | 346 → 114 | 342 → 20 |
+| 5247 Penance Queen | 18,347 → 3,372 | 8,990 → 24 |
+| 72 Troll, untextured control | 4,077 → 4,021 | 314 → 5 |
+
+The maximum palette used by any individual styled frame is 24 colors. The
+external comparison report SHA-256 is
+`df697dd44938c880346f46b771260e3560927779fe560db5db650837a19e0e74`.
+The complete 29-NPC Original-colors matrix still passes all 522 cells; Abyssal
+demon and Dark beast retain their established Original-colors PNG hashes
+`3bcfcdaea1411a8e1a51bb1fb2af8ad13d69fff669c92a6c7fd95e1bab7e02c0`
+and
+`e54ee8218425c92518f4c46579174991c4b70ecec80d24c18aed309de7d6e9d1`.
+These measurements establish a safe technical checkpoint, not final aesthetic
+approval. The branch remains active for hands-on review and tuning.
 
 ## Revision-530 packed-HSL color
 

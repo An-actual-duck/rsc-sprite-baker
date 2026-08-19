@@ -17,6 +17,7 @@ public final class VisualSettings {
     public String palette = PaletteReducer.UNMODIFIED;
     public String dithering = PaletteReducer.NO_DITHER;
     public double ditherStrength = 0.30;
+    public String materialStyle = MaterialStylizer.NONE;
     public String preset = "Original colors";
 
     public void validate() {
@@ -33,6 +34,7 @@ public final class VisualSettings {
         if (lightElevationDegrees < -90 || lightElevationDegrees > 90) throw new IllegalArgumentException("light elevation must be -90..90 degrees");
         if (ditherStrength < 0 || ditherStrength > 1) throw new IllegalArgumentException("dither strength must be 0..1");
         PaletteReducer.validate(palette, dithering);
+        MaterialStylizer.validate(materialStyle);
     }
 
     public void applyPreset(String name) {
@@ -41,23 +43,28 @@ public final class VisualSettings {
             case "Original colors":
                 pitchDegrees = 12; modelScale = 0.9; verticalOffsetPixels = 0;
                 ambient = 0.52; diffuse = 0.40; lightAzimuthDegrees = -125; lightElevationDegrees = 45;
-                palette = PaletteReducer.UNMODIFIED; dithering = PaletteReducer.NO_DITHER; break;
+                palette = PaletteReducer.UNMODIFIED; dithering = PaletteReducer.NO_DITHER; materialStyle = MaterialStylizer.NONE; break;
             case "Unmodified studio":
                 pitchDegrees = 15; modelScale = 0.92; verticalOffsetPixels = 0;
                 ambient = 0.45; diffuse = 0.55; lightAzimuthDegrees = -117; lightElevationDegrees = 41;
-                palette = PaletteReducer.UNMODIFIED; dithering = PaletteReducer.NO_DITHER; break;
+                palette = PaletteReducer.UNMODIFIED; dithering = PaletteReducer.NO_DITHER; materialStyle = MaterialStylizer.NONE; break;
+            case "RSC material":
+                pitchDegrees = 12; modelScale = 0.9; verticalOffsetPixels = 0;
+                ambient = 0.54; diffuse = 0.36; lightAzimuthDegrees = -125; lightElevationDegrees = 45;
+                palette = PaletteReducer.UNMODIFIED; dithering = PaletteReducer.NO_DITHER; ditherStrength = 0.20;
+                materialStyle = MaterialStylizer.RSC_RAMPS; break;
             case "RSC crisp":
                 pitchDegrees = 12; modelScale = 0.9; verticalOffsetPixels = 0;
                 ambient = 0.52; diffuse = 0.40; lightAzimuthDegrees = -125; lightElevationDegrees = 45;
-                palette = PaletteReducer.RSC_125; dithering = PaletteReducer.NO_DITHER; break;
+                palette = PaletteReducer.RSC_125; dithering = PaletteReducer.NO_DITHER; materialStyle = MaterialStylizer.NONE; break;
             case "RSC restrained":
                 pitchDegrees = 12; modelScale = 0.9; verticalOffsetPixels = 0;
                 ambient = 0.52; diffuse = 0.40; lightAzimuthDegrees = -125; lightElevationDegrees = 45;
-                palette = PaletteReducer.RSC_125; dithering = PaletteReducer.ORDERED_4X4; ditherStrength = 0.30; break;
+                palette = PaletteReducer.RSC_125; dithering = PaletteReducer.ORDERED_4X4; ditherStrength = 0.30; materialStyle = MaterialStylizer.NONE; break;
             case "RSC coarse":
                 pitchDegrees = 10; modelScale = 0.88; verticalOffsetPixels = 0;
                 ambient = 0.56; diffuse = 0.34; lightAzimuthDegrees = -130; lightElevationDegrees = 48;
-                palette = PaletteReducer.RSC_64; dithering = PaletteReducer.ORDERED_4X4; ditherStrength = 0.40; break;
+                palette = PaletteReducer.RSC_64; dithering = PaletteReducer.ORDERED_4X4; ditherStrength = 0.40; materialStyle = MaterialStylizer.NONE; break;
             default: throw new IllegalArgumentException("unknown visual preset: " + name);
         }
     }
