@@ -112,13 +112,16 @@ class MaterialStylizerTest {
             else throw new AssertionError("fractional shadow skipped an adjacent ramp");
         }
         assertEquals(8, lighter);assertEquals(8, darker);
+        for (int y = 0; y < 4; y++) for (int x = 0; x < 4; x++)
+            assertEquals(1, MaterialStylizer.ditheredShadowSteps(.75, x, y),
+                "a mostly dark transition must become solid instead of leaving pale flecks");
     }
 
     @Test void illuminationUsesDitherOnlyBetweenSolidShadeBands() {
         assertEquals(0, MaterialStylizer.illuminationShadow(.04));
-        assertEquals(.5, MaterialStylizer.illuminationShadow(.08), .0001);
+        assertEquals(.25, MaterialStylizer.illuminationShadow(.08), .0001);
         assertEquals(1, MaterialStylizer.illuminationShadow(.16));
-        assertEquals(1.5, MaterialStylizer.illuminationShadow(.25), .0001);
+        assertEquals(1.25, MaterialStylizer.illuminationShadow(.25), .0001);
         assertEquals(2, MaterialStylizer.illuminationShadow(.34));
     }
 

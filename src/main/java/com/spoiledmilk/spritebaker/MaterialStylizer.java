@@ -176,9 +176,9 @@ public final class MaterialStylizer {
 
     static double illuminationShadow(double lightDeficit) {
         if (lightDeficit <= .06) return 0;
-        if (lightDeficit < .10) return (lightDeficit - .06) / .04;
+        if (lightDeficit < .10) return (lightDeficit - .06) / .08;
         if (lightDeficit <= .22) return 1;
-        if (lightDeficit < .28) return 1 + (lightDeficit - .22) / .06;
+        if (lightDeficit < .28) return 1 + (lightDeficit - .22) / .12;
         return 2;
     }
 
@@ -212,7 +212,7 @@ public final class MaterialStylizer {
                 if (surfaces[neighbor] != 0 && facets[neighbor] != facets[index]
                     && depth[neighbor] > depth[index] + threshold) {
                     boundary[index] = true;
-                    shadow[index] = 1.6;
+                    shadow[index] = 2;
                     break;
                 }
             }
@@ -225,9 +225,9 @@ public final class MaterialStylizer {
                 if (surfaces[index] == 0 || shadow[index] > 0) continue;
                 for (int dy = -1; dy <= 1; dy++) for (int dx = -1; dx <= 1; dx++) {
                     int neighbor = (y + dy) * width + x + dx;
-                    if (previous[neighbor] > .4 && facets[neighbor] == facets[index]
+                    if (previous[neighbor] > .5 && facets[neighbor] == facets[index]
                         && Math.abs(depth[neighbor] - depth[index]) <= threshold) {
-                        expanded[index] = Math.max(expanded[index], previous[neighbor] - .4);
+                        expanded[index] = Math.max(expanded[index], previous[neighbor] - .5);
                     }
                 }
             }
@@ -240,6 +240,7 @@ public final class MaterialStylizer {
         if (shadow <= 0) return 0;
         int solid = (int) Math.floor(shadow);
         double fraction = shadow - solid;
+        if (fraction > .5) return solid + 1;
         double threshold = (SHADOW_DITHER[y & 3][x & 3] + .5) / 16.0;
         return solid + (fraction >= threshold ? 1 : 0);
     }

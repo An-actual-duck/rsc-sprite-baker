@@ -19,6 +19,17 @@ class StaticRendererTest {
         assertEquals(.54,underside,1e-12);assertTrue(upward>underside);
     }
 
+    @Test void rscStyleInterpolatesSmoothVertexNormalsButPreservesExplicitFlatFaces(){
+        ModelDefinition fixture=neutralModel();fixture.vertexNormals=new net.runelite.cache.models.VertexNormal[3];
+        fixture.vertexNormals[0]=normal(256,0,0);fixture.vertexNormals[1]=normal(221,128,0);fixture.vertexNormals[2]=normal(0,256,0);
+        NpcDefinition530 npc=new NpcDefinition530(1);
+        double[] smooth=StaticRenderer.styleVertexBrightnesses(fixture,0,npc,new double[]{0,1,0},.54,.36);
+        assertTrue(smooth[0]<smooth[1]);assertTrue(smooth[1]<smooth[2]);
+        fixture.faceRenderTypes=new byte[]{1};
+        double[] flat=StaticRenderer.styleVertexBrightnesses(fixture,0,npc,new double[]{0,1,0},.54,.36);
+        assertEquals(flat[0],flat[1]);assertEquals(flat[1],flat[2]);
+    }
+
     @Test void revision530RenderType2MarkerFaceIsNotRasterized(){
         ModelDefinition fixture=neutralModel();fixture.faceColors=new short[]{(short)65535};fixture.faceRenderTypes=new byte[]{2};
         NpcDefinition530 npc=new NpcDefinition530(1615);VisualSettings settings=new VisualSettings();settings.cellWidth=40;settings.cellHeight=40;settings.supersample=1;settings.padding=4;
@@ -409,4 +420,5 @@ class StaticRendererTest {
         fixture.vertexX=new int[]{-20,20,0};fixture.vertexY=new int[]{0,0,-50};fixture.vertexZ=new int[]{0,0,10};
         fixture.faceCount=1;fixture.faceIndices1=new int[]{0};fixture.faceIndices2=new int[]{1};fixture.faceIndices3=new int[]{2};fixture.faceColors=new short[]{5000};return fixture;
     }
+    private static net.runelite.cache.models.VertexNormal normal(int x,int y,int z){net.runelite.cache.models.VertexNormal normal=new net.runelite.cache.models.VertexNormal();normal.x=x;normal.y=y;normal.z=z;normal.magnitude=1;return normal;}
 }

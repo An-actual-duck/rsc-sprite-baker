@@ -236,6 +236,36 @@ the intentional shadow-boundary pattern and range from 17 for Big Snake to
 Visual review remains the approval gate for shadow placement and pattern
 strength.
 
+### Sixth checkpoint: smooth-normal shadow masses
+
+Visual review found that face-normal shading still exposed disconnected pale
+facets instead of readable dithered shadow masses. The alternate approach in
+this checkpoint computes normals after each animation pose, uses the cache
+model's averaged vertex normals for ordinary smooth faces, and interpolates the
+signed shadow value across the triangle. Faces explicitly marked flat by the
+model remain flat. Original-colors RGB still uses its unchanged pinned
+face-light path; the interpolated signal is exclusive to the RSC material
+preset.
+
+The pattern also cannot leave a sparse lighter color inside a mostly dark
+region. Each transition uses no more than 50 percent of the next darker ramp;
+greater coverage becomes the next solid shadow tone. Contact shadows use a
+solid two-step core followed by 50-percent, solid one-step, and 50-percent
+falloff bands on the farther geometry. This produces dark marks over a lighter
+material region, rather than pale marks inside a shadow.
+
+Java 21 `mvn clean verify` passes all 282 tests. New neutral coverage proves
+smooth vertex interpolation, explicit flat-face preservation, signed
+back-face behavior, and solid promotion instead of pale minority pixels. The
+nine-NPC audit again records zero alpha mismatches, exact-black pixels, and
+isolated dark speckles. Compared with the prior localized-dither checkpoint,
+strong transitions fall from 168 to 107 for Abyssal demon, 7,647 to 6,024 for
+Tortoise, 9,390 to 6,817 for Kree'arra, and 4,892 to 4,808 for Penance Queen.
+The external report is
+`/tmp/rsc-material-smooth-shadow-solid.gMX4dt/report.json`, SHA-256
+`33c216dd0441ebda8501dee0475eca93e2e6ca153e8cff9d47a32b0e791f1249`.
+Hands-on review remains required before this appearance is approved.
+
 ## Revision-530 packed-HSL color
 
 Model face colors and NPC recolor targets are packed HSL values, not direct

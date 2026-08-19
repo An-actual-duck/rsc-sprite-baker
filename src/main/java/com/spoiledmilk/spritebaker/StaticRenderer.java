@@ -127,6 +127,7 @@ public final class StaticRenderer {
         vertexOffset = 0;int facetOffset=1;
         for (ModelDefinition model : models) {
             if(materials==null)rejectTextures(model);
+            model.computeNormals();
             for (int face = 0; face < model.faceCount; face++) {
                 // RawModel face render type 2 becomes SoftwareModel triangleInfo -2 and is
                 // excluded from the pinned client's draw list. These are structural marker
@@ -139,7 +140,7 @@ public final class StaticRenderer {
                     : 255 - Byte.toUnsignedInt(model.faceTransparencies[face]);
                 int texture=texture(model,face,npc);
                 double brightness=faceBrightness(model,face,npc,lightDirection,ambient,diffuse);
-                double styleBrightness=styleFaceBrightness(model,face,npc,lightDirection,ambient,diffuse);
+                double[] styleBrightness=styleVertexBrightnesses(model,face,npc,lightDirection,ambient,diffuse);
                 if(texture==-1){
                     int packedColor=recolor(model.faceColors[face],npc);
                     int rgb = litColor(packedColor,brightness);
@@ -248,6 +249,28 @@ public final class StaticRenderer {
     static double styleFaceBrightness(ModelDefinition model,int face,NpcDefinition530 npc,
                                       double[] lightDirection,double ambient,double diffuse){
         double lambert=Math.max(0,faceLightDot(model,face,lightDirection));
+        return styleBrightness(lambert,npc,ambient,diffuse);
+    }
+    static double[] styleVertexBrightnesses(ModelDefinition model,int face,NpcDefinition530 npc,
+                                            double[] lightDirection,double ambient,double diffuse){
+        if(model.vertexNormals==null)model.computeNormals();
+        int[] vertices={model.faceIndices1[face],model.faceIndices2[face],model.faceIndices3[face]};
+        double fallback=styleFaceBrightness(model,face,npc,lightDirection,ambient,diffuse);
+        double[] values=new double[3];
+        if(model.faceRenderTypes!=null&&model.faceRenderTypes[face]==1){
+            Arrays.fill(values,fallback);
+            return values;
+        }
+        for(int index=0;index<3;index++){
+            net.runelite.cache.models.VertexNormal normal=model.vertexNormals[vertices[index]];
+            double nx=-normal.x,ny=normal.y,nz=-normal.z;
+            double length=Math.sqrt(nx*nx+ny*ny+nz*nz);
+            values[index]=length==0?fallback:styleBrightness(Math.max(0,
+                (nx*lightDirection[0]+ny*lightDirection[1]+nz*lightDirection[2])/length),npc,ambient,diffuse);
+        }
+        return values;
+    }
+    private static double styleBrightness(double lambert,NpcDefinition530 npc,double ambient,double diffuse){
         double adjustment=npc.ambient/512.0+npc.contrast/4096.0;
         return clamp(ambient+diffuse*lambert+adjustment,0.15,1.0);
     }
@@ -324,7 +347,7 @@ public final class StaticRenderer {
 
     private static void rasterize(BufferedImage image,double[] zBuffer,int[] surfaces,int[] facets,double[] lighting,
                                   double[] shading,double[] x,double[] y,double[] z,int a,int b,int c,int argb,
-                                  int surface,int facet,double brightness,double styleBrightness,int width,int height){
+                                  int surface,int facet,double brightness,double[] styleBrightness,int width,int height){
         double area=edge(x[a],y[a],x[b],y[b],x[c],y[c]);if(Math.abs(area)<.00001||(argb>>>24)==0)return;
         int minX=Math.max(0,(int)Math.floor(Math.min(x[a],Math.min(x[b],x[c]))));
         int maxX=Math.min(width-1,(int)Math.ceil(Math.max(x[a],Math.max(x[b],x[c]))));
@@ -335,20 +358,20 @@ public final class StaticRenderer {
             double wb=edge(x[c],y[c],x[a],y[a],sx,sy)/area,wc=1-wa-wb;
             if(wa<-.000001||wb<-.000001||wc<-.000001)continue;
             double pixelDepth=wa*z[a]+wb*z[b]+wc*z[c];int index=py*width+px;
-            if(pixelDepth>zBuffer[index]){zBuffer[index]=pixelDepth;image.setRGB(px,py,argb);surfaces[index]=surface;facets[index]=facet;lighting[index]=brightness;shading[index]=styleBrightness;}
+            if(pixelDepth>zBuffer[index]){zBuffer[index]=pixelDepth;image.setRGB(px,py,argb);surfaces[index]=surface;facets[index]=facet;lighting[index]=brightness;shading[index]=wa*styleBrightness[0]+wb*styleBrightness[1]+wc*styleBrightness[2];}
         }
     }
     private static void rasterizeTextured(BufferedImage image,double[] zBuffer,int[] surfaces,int[] facets,double[] lighting,
             double[] shading,double[] x,double[] y,double[] z,int a,int b,int c,double[] uv,TextureMaterial530 material,
             int modulation,int faceAlpha,int surface,int facet,double brightness,
-            double styleBrightness,int width,int height){
+            double[] styleBrightness,int width,int height){
         double area=edge(x[a],y[a],x[b],y[b],x[c],y[c]);if(Math.abs(area)<.00001||faceAlpha==0)return;
         int minX=Math.max(0,(int)Math.floor(Math.min(x[a],Math.min(x[b],x[c])))),maxX=Math.min(width-1,(int)Math.ceil(Math.max(x[a],Math.max(x[b],x[c]))));
         int minY=Math.max(0,(int)Math.floor(Math.min(y[a],Math.min(y[b],y[c])))),maxY=Math.min(height-1,(int)Math.ceil(Math.max(y[a],Math.max(y[b],y[c]))));
         for(int py=minY;py<=maxY;py++)for(int px=minX;px<=maxX;px++){double sx=px+.5,sy=py+.5,wa=edge(x[b],y[b],x[c],y[c],sx,sy)/area,wb=edge(x[c],y[c],x[a],y[a],sx,sy)/area,wc=1-wa-wb;if(wa<-.000001||wb<-.000001||wc<-.000001)continue;
             double pd=wa*z[a]+wb*z[b]+wc*z[c];int index=py*width+px;if(pd<=zBuffer[index])continue;double u=wa*uv[0]+wb*uv[2]+wc*uv[4],v=wa*uv[1]+wb*uv[3]+wc*uv[5];int tx=Math.floorMod((int)Math.floor(u*material.size),material.size),ty=Math.floorMod((int)Math.floor(v*material.size),material.size);int texel=material.pixels[ty*material.size+tx];if(!material.definition.opaque&&(texel&0xffffff)==0)continue;
             int r=((texel>>>16)&255)*((modulation>>>16)&255)/255,g=((texel>>>8)&255)*((modulation>>>8)&255)/255,bl=(texel&255)*(modulation&255)/255;int src=(faceAlpha<<24)|(r<<16)|(g<<8)|bl;
-            if(faceAlpha==255)image.setRGB(px,py,src);else image.setRGB(px,py,blend(src,image.getRGB(px,py)));zBuffer[index]=pd;surfaces[index]=surface;facets[index]=facet;lighting[index]=brightness;shading[index]=styleBrightness;
+            if(faceAlpha==255)image.setRGB(px,py,src);else image.setRGB(px,py,blend(src,image.getRGB(px,py)));zBuffer[index]=pd;surfaces[index]=surface;facets[index]=facet;lighting[index]=brightness;shading[index]=wa*styleBrightness[0]+wb*styleBrightness[1]+wc*styleBrightness[2];
         }
     }
     private static int blend(int src,int dst){int a=src>>>24,inv=255-a;int r=(((src>>>16)&255)*a+((dst>>>16)&255)*inv+127)/255,g=(((src>>>8)&255)*a+((dst>>>8)&255)*inv+127)/255,b=((src&255)*a+(dst&255)*inv+127)/255,oa=a+((dst>>>24)*inv+127)/255;return(oa<<24)|(r<<16)|(g<<8)|b;}
