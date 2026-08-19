@@ -113,7 +113,11 @@ preview. It shows the actual assigned export-size poses in the
 selected direction: movement directions loop Standing → Left step → Standing
 → Right step, while Combat side loops its three combat cells. Its framing is
 calculated from the complete 18-cell sheet exactly like export. It is the
-editor's only playback control.
+editor's only playback control. Preview speed defaults to 0.5× for inspection,
+with 0.75× and 1× choices; this UI clock does not change source timing or any
+saved/exported data. **Open large inspection view** shows the synchronized
+frame and selected background in a resizable 1×–4× exact integer-pixel view.
+Closing it leaves the editor and playback running normally.
 
 The enlarged playback area always shows original model colors, including
 intentional cache colors, NPC recolors, and accent regions. Textured faces

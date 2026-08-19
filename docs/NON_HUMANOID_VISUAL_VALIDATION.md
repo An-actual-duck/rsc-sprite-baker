@@ -118,6 +118,63 @@ The focused neutral regression also proves the 4015-to-528 recolor remains
 chromatic through preview-only compositing and a transparent PNG round trip.
 No NPC-specific recolor, material, camera, or renderer override was added.
 
+## 2026-08-18 hidden marker-face correction
+
+The white triangles reported on NPC 1615, Abyssal demon, and NPC 2783, Dark
+beast, shared the same decoded face interpretation. Model 5062 face 0 and
+model 26395 face 1010 are untextured, fully opaque faces with packed color
+65535 and raw face render type 2. Their indices and colors decode cleanly;
+neither NPC recolors or retextures that face, and no material or texture
+coordinate is assigned. The artifact therefore did not originate in graph
+decoding, alpha, recoloring, texture mapping, lighting, or palette reduction.
+
+In the pinned revision-530 client, RawModel render type 2 becomes
+`SoftwareModel.triangleInfo == -2`; the draw-list builder excludes exactly
+that sentinel. These faces are structural markers and never enter
+rasterization. Sprite Baker previously ignored the decoded render type and
+drew them as ordinary packed-HSL faces. The renderer now excludes type-2
+faces before either material resolution or rasterization. It does not inspect
+pixel color, and neutral regressions prove an ordinary type-0 color-65535
+triangle remains visible while type-2 white and textured markers remain
+hidden. Malformed and genuinely unsupported visible textures still fail
+closed. Pinned evidence is the revision-530
+[SoftwareModel constructor](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/SoftwareModel.java#L354-L445)
+and [draw-list exclusion](https://github.com/conan513/2009scape-client/blob/a569f0af7754ada96ed7ac76d7582b2c7511b7a0/client/src/main/java/rt4/SoftwareModel.java#L1619-L1621).
+
+A terminal cache-wide component-model audit found 5,791 unique models
+referenced by NPC definitions. Of those, 736 contain 2,026 type-2 marker
+faces: 493 carry color 65535, 1,528 carry color 0, five carry other packed
+colors, and none is textured. They
+affect 2,322 NPC definitions, including 973 definitions with a white marker,
+which establishes a systemic cache convention rather than two NPC-specific
+exceptions. Representative affected matrix entries include Red dragon,
+Tortoise, Giant mosquito, Big Snake, Giant Sea Snake, Penance Queen, Abyssal
+demon, and Dark beast.
+
+The updated 29-definition audit records hidden, white-marker, and
+hidden-textured counts and again passes all 522 cells. Abyssal demon has three
+hidden faces (one white); Dark beast has two (one white). Their corrected PNG
+SHA-256 values are respectively
+`3bcfcdaea1411a8e1a51bb1fb2af8ad13d69fff669c92a6c7fd95e1bab7e02c0`
+and
+`e54ee8218425c92518f4c46579174991c4b70ecec80d24c18aed309de7d6e9d1`.
+The report SHA-256 is
+`556e512ba6d337e162ef22c7cf8f7e008dfb87de2b8b390fafbe05a182600e69`.
+The exhaustive compatibility census remains byte-identical at
+`360ab988150e65c42cadc1dc46f7fbd480e0b7b8413d8595a0c16f4fe0d04e10`:
+6,926 ready, 1,051 missing automatic animations, 612 morph/internal, and one
+intentionally unsupported missing texture-65535 material. All cache-backed
+reports and renders remain outside Git.
+
+Java 21 `mvn clean verify` passes all 267 tests. The licensed-cache
+distribution builder reran the suite and its terminal inspector accepted both
+archives. The shaded JAR is 6,408,032 bytes at SHA-256
+`f4c0dbe961462d61e9dd54b4a116b46fa70b79cbf53481d6fbba8eb5908a5968`;
+the Linux archive is 77,117,682 bytes at SHA-256
+`4ac7c71da458bba4d6e77a67028db318e95fd1977426134f5dcd415059d376e1`,
+and the Windows archive is 77,118,272 bytes at SHA-256
+`9fe416c05277362d7c765c8023b583b1ee22103a44fd33490cb6848dd0ff87f1`.
+
 ## Suggested visual browse list
 
 The complete matrix is source-controlled in `NonHumanoidVisualMatrix`. A
