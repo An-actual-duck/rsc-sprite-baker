@@ -169,10 +169,11 @@ cell's exact assigned frame.
 **Play final RSC loop** is the primary playback action and sits inside the
 final-sheet preview area rather than the bottom action bar. It uses the normal
 poser, full 18-cell export viewport, palette reducer, selected direction, and
-actual configured cell dimensions. Swing recalculates the largest integer
-zoom that fits the preview viewport after every resize and presents those
-pixels with crisp nearest-neighbor scaling without changing export pixels.
-The normal editor has room for at least 2× display. Movement
+actual configured cell dimensions. The default-on **2× preview** toggle uses
+an exact two-pixel display block for every source pixel; disabling it displays
+the exact actual-size 1× image. Both choices use crisp nearest-neighbor scaling
+without changing export pixels. A scrollable viewport preserves the selected
+scale when the image is larger than the available preview area. Movement
 columns loop Standing, Left step, Standing, Right
 step; Combat side loops its three independently assigned combat poses. Each
 pose remains visible for its selected source frame's encoded duration. The

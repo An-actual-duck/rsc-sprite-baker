@@ -7,6 +7,7 @@ import java.awt.image.BufferedImage;
 /** Non-GUI selected-cell preview state and pixel-exact display scaling. */
 public final class FinalPreviewModel {
     public static final int DISPLAY_SCALE=2;
+    public static final boolean DEFAULT_DOUBLED=true;
     private FinalPreviewModel(){ }
 
     public static PoseSelection assignedPose(TargetSheet sheet,DirectionAssignmentSelection selection){
@@ -17,14 +18,7 @@ public final class FinalPreviewModel {
         return sheet.effectiveSourceDirection(selection.destinationRow(),selection.destinationColumn());
     }
     public static BufferedImage displayImage(BufferedImage source,boolean mirror){return scaleNearest(source,DISPLAY_SCALE,mirror);}
-    public static BufferedImage displayImage(BufferedImage source,boolean mirror,int availableWidth,int availableHeight){
-        return scaleNearest(source,largestIntegerScale(source.getWidth(),source.getHeight(),availableWidth,availableHeight),mirror);
-    }
-    public static int largestIntegerScale(int sourceWidth,int sourceHeight,int availableWidth,int availableHeight){
-        if(sourceWidth<1||sourceHeight<1)throw new IllegalArgumentException("source dimensions must be positive");
-        if(availableWidth<sourceWidth||availableHeight<sourceHeight)return 1;
-        return Math.max(1,Math.min(availableWidth/sourceWidth,availableHeight/sourceHeight));
-    }
+    public static BufferedImage displayImage(BufferedImage source,boolean mirror,boolean doubled){return scaleNearest(source,doubled?2:1,mirror);}
     static BufferedImage scaleNearest(BufferedImage source,int scale,boolean mirror){
         if(source==null)throw new NullPointerException("source");if(scale<1)throw new IllegalArgumentException("scale must be positive");
         BufferedImage out=new BufferedImage(source.getWidth()*scale,source.getHeight()*scale,BufferedImage.TYPE_INT_ARGB);Graphics2D graphics=out.createGraphics();
