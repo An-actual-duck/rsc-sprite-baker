@@ -124,7 +124,9 @@ saved/exported data. A default-on **2× larger preview** toggle doubles the
 normal preview display, producing a genuinely larger sprite (4× source pixels
 instead of the normal preview's 2×). The scrollable preview keeps that scale
 even when the image exceeds the available viewport, while the export retains
-its configured native pixels.
+its configured native pixels. Transparent export-cell margins are trimmed only
+from this inspection display so blank alignment space does not push the visible
+character below the viewport.
 
 The enlarged playback area always shows original model colors, including
 intentional cache colors, NPC recolors, and accent regions. Textured faces

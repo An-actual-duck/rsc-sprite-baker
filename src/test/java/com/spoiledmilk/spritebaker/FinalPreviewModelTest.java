@@ -32,6 +32,13 @@ class FinalPreviewModelTest {
         assertEquals(3,source.getWidth());assertEquals(2,source.getHeight());
     }
 
+    @Test void selectedSpritePreviewRemovesTransparentCellMarginsBeforeScaling(){
+        BufferedImage source=new BufferedImage(8,9,BufferedImage.TYPE_INT_ARGB);source.setRGB(2,4,0xff123456);source.setRGB(4,6,0xffabcdef);
+        BufferedImage normal=FinalPreviewModel.displaySprite(source,false,false);BufferedImage enlarged=FinalPreviewModel.displaySprite(source,false,true);
+        assertEquals(6,normal.getWidth());assertEquals(6,normal.getHeight());assertEquals(12,enlarged.getWidth());assertEquals(12,enlarged.getHeight());
+        assertEquals(0xff123456,enlarged.getRGB(0,0));assertEquals(0xffabcdef,enlarged.getRGB(11,11));assertEquals(8,source.getWidth());assertEquals(9,source.getHeight());assertEquals(0,source.getRGB(0,0));
+    }
+
     private static PoseSelection pose(int sequence,int frame,long millis){PoseSelection pose=new PoseSelection();pose.sequenceId=sequence;pose.frameIndex=frame;pose.timeMillis=millis;return pose;}
     private static void assertPose(PoseSelection pose,int sequence,int frame,long millis){assertEquals(sequence,pose.sequenceId);assertEquals(frame,pose.frameIndex);assertEquals(millis,pose.timeMillis);}
 }
