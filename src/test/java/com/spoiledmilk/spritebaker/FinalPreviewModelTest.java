@@ -23,13 +23,20 @@ class FinalPreviewModelTest {
         BufferedImage mirrored=FinalPreviewModel.displayImage(source,true);assertEquals(source.getRGB(1,0),mirrored.getRGB(0,0));assertEquals(source.getRGB(0,0),mirrored.getRGB(3,0));
     }
 
-    @Test void explicitScaleChoiceIsExactlyOneOrTwoTimesAndLeavesSourcePixelsUntouched(){
+    @Test void enabledChoiceDoublesTheExistingPreviewAndLeavesSourcePixelsUntouched(){
         int[] pixels={0xff111100,0xff221100,0xff331100,0xff112200,0xff222200,0xff332200};BufferedImage source=new BufferedImage(3,2,BufferedImage.TYPE_INT_ARGB);source.setRGB(0,0,3,2,pixels,0,3);
-        BufferedImage actualSize=FinalPreviewModel.displayImage(source,false,false);BufferedImage doubled=FinalPreviewModel.displayImage(source,false,true);
+        BufferedImage normal=FinalPreviewModel.displayImage(source,false,false);BufferedImage doubled=FinalPreviewModel.displayImage(source,false,true);
         assertTrue(FinalPreviewModel.DEFAULT_DOUBLED);
-        assertEquals(3,actualSize.getWidth());assertEquals(2,actualSize.getHeight());assertEquals(6,doubled.getWidth());assertEquals(4,doubled.getHeight());
-        for(int y=0;y<2;y++)for(int x=0;x<3;x++){int expected=pixels[y*3+x];assertEquals(expected,source.getRGB(x,y));assertEquals(expected,actualSize.getRGB(x,y));for(int dy=0;dy<2;dy++)for(int dx=0;dx<2;dx++)assertEquals(expected,doubled.getRGB(x*2+dx,y*2+dy));}
+        assertEquals(6,normal.getWidth());assertEquals(4,normal.getHeight());assertEquals(12,doubled.getWidth());assertEquals(8,doubled.getHeight());
+        for(int y=0;y<2;y++)for(int x=0;x<3;x++){int expected=pixels[y*3+x];assertEquals(expected,source.getRGB(x,y));for(int dy=0;dy<2;dy++)for(int dx=0;dx<2;dx++)assertEquals(expected,normal.getRGB(x*2+dx,y*2+dy));for(int dy=0;dy<4;dy++)for(int dx=0;dx<4;dx++)assertEquals(expected,doubled.getRGB(x*4+dx,y*4+dy));}
         assertEquals(3,source.getWidth());assertEquals(2,source.getHeight());
+    }
+
+    @Test void selectedSpritePreviewRemovesTransparentCellMarginsBeforeScaling(){
+        BufferedImage source=new BufferedImage(8,9,BufferedImage.TYPE_INT_ARGB);source.setRGB(2,4,0xff123456);source.setRGB(4,6,0xffabcdef);
+        BufferedImage normal=FinalPreviewModel.displaySprite(source,false,false);BufferedImage enlarged=FinalPreviewModel.displaySprite(source,false,true);
+        assertEquals(6,normal.getWidth());assertEquals(6,normal.getHeight());assertEquals(12,enlarged.getWidth());assertEquals(12,enlarged.getHeight());
+        assertEquals(0xff123456,enlarged.getRGB(0,0));assertEquals(0xffabcdef,enlarged.getRGB(11,11));assertEquals(8,source.getWidth());assertEquals(9,source.getHeight());assertEquals(0,source.getRGB(0,0));
     }
 
     private static PoseSelection pose(int sequence,int frame,long millis){PoseSelection pose=new PoseSelection();pose.sequenceId=sequence;pose.frameIndex=frame;pose.timeMillis=millis;return pose;}

@@ -169,11 +169,15 @@ cell's exact assigned frame.
 **Play final RSC loop** is the primary playback action and sits inside the
 final-sheet preview area rather than the bottom action bar. It uses the normal
 poser, full 18-cell export viewport, palette reducer, selected direction, and
-actual configured cell dimensions. The default-on **2× preview** toggle uses
-an exact two-pixel display block for every source pixel; disabling it displays
-the exact actual-size 1× image. Both choices use crisp nearest-neighbor scaling
-without changing export pixels. A scrollable viewport preserves the selected
-scale when the image is larger than the available preview area. Movement
+actual configured cell dimensions. The default-on **2× larger preview**
+toggle doubles the existing normal preview: enabled uses a 4× source-pixel
+display and disabled retains the normal 2× source-pixel display. Both choices
+use crisp nearest-neighbor scaling without changing export pixels. A
+scrollable viewport preserves the selected scale when the image is larger
+than the available preview area. The inspection image trims transparent cell
+margins before display so export alignment padding cannot create a blank
+scroll region above the character; the exported cell itself is never cropped.
+Movement
 columns loop Standing, Left step, Standing, Right
 step; Combat side loops its three independently assigned combat poses. Each
 pose remains visible for its selected source frame's encoded duration. The
