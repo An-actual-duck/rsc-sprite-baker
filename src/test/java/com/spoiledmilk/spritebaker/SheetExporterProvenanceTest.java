@@ -15,4 +15,10 @@ class SheetExporterProvenanceTest {
         assertEquals(1,trace.get("sourceDirection"));assertEquals("Facing diagonal",trace.get("sourceDirectionLabel"));
         assertEquals(true,trace.get("directionOverride"));assertEquals(45.0,trace.get("yawDegrees"));
     }
+
+    @Test void manifestOrientationRecordsThePixelsAppliedToPreviewPlaybackAndExport(){
+        Map<String,Object> enabled=SheetExporter.orientationTrace(true),disabled=SheetExporter.orientationTrace(false);
+        assertEquals(true,enabled.get("horizontalInversion"));assertEquals("right",enabled.get("defaultFacing"));assertEquals("preview, playback, and exported PNG",enabled.get("appliesTo"));
+        assertEquals(false,disabled.get("horizontalInversion"));assertEquals("renderer-native",disabled.get("defaultFacing"));
+    }
 }

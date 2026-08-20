@@ -186,6 +186,12 @@ to the inspection-friendly 0.5× rate. It scales only the playback clock;
 encoded source durations, pose choices, projects, exports, and provenance are
 unchanged.
 
+**Horizontal inversion (face right)** is enabled for new projects and projects
+whose older JSON has no saved orientation choice. An explicitly stored `false`
+remains disabled. This single setting controls sheet thumbnails, selected-cell
+preview, final-loop playback, exported PNG pixels, and manifest orientation
+provenance; it does not change cell dimensions or placement.
+
 There is no source-only playback control. The final assembled loop supports
 pause/resume and stops on NPC changes, editor closure, or invalidated project
 state.
