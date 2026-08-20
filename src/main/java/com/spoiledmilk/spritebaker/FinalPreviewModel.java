@@ -17,6 +17,14 @@ public final class FinalPreviewModel {
         return sheet.effectiveSourceDirection(selection.destinationRow(),selection.destinationColumn());
     }
     public static BufferedImage displayImage(BufferedImage source,boolean mirror){return scaleNearest(source,DISPLAY_SCALE,mirror);}
+    public static BufferedImage displayImage(BufferedImage source,boolean mirror,int availableWidth,int availableHeight){
+        return scaleNearest(source,largestIntegerScale(source.getWidth(),source.getHeight(),availableWidth,availableHeight),mirror);
+    }
+    public static int largestIntegerScale(int sourceWidth,int sourceHeight,int availableWidth,int availableHeight){
+        if(sourceWidth<1||sourceHeight<1)throw new IllegalArgumentException("source dimensions must be positive");
+        if(availableWidth<sourceWidth||availableHeight<sourceHeight)return 1;
+        return Math.max(1,Math.min(availableWidth/sourceWidth,availableHeight/sourceHeight));
+    }
     static BufferedImage scaleNearest(BufferedImage source,int scale,boolean mirror){
         if(source==null)throw new NullPointerException("source");if(scale<1)throw new IllegalArgumentException("scale must be positive");
         BufferedImage out=new BufferedImage(source.getWidth()*scale,source.getHeight()*scale,BufferedImage.TYPE_INT_ARGB);Graphics2D graphics=out.createGraphics();

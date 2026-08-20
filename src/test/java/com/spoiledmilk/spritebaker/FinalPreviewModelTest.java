@@ -23,6 +23,22 @@ class FinalPreviewModelTest {
         BufferedImage mirrored=FinalPreviewModel.displayImage(source,true);assertEquals(source.getRGB(1,0),mirrored.getRGB(0,0));assertEquals(source.getRGB(0,0),mirrored.getRGB(3,0));
     }
 
+    @Test void responsiveDisplayUsesLargestIntegerScaleThatFitsViewport(){
+        assertEquals(2,FinalPreviewModel.largestIntegerScale(128,128,620,300));
+        assertEquals(4,FinalPreviewModel.largestIntegerScale(128,128,900,520));
+        assertEquals(3,FinalPreviewModel.largestIntegerScale(64,128,350,390));
+        assertEquals(1,FinalPreviewModel.largestIntegerScale(128,128,100,100));
+        assertThrows(IllegalArgumentException.class,()->FinalPreviewModel.largestIntegerScale(0,128,500,500));
+    }
+
+    @Test void responsiveNearestNeighborScalingRemainsCrispAndLeavesSourceUntouched(){
+        BufferedImage source=new BufferedImage(2,1,BufferedImage.TYPE_INT_ARGB);source.setRGB(0,0,0xff102030);source.setRGB(1,0,0xffa0b0c0);
+        BufferedImage display=FinalPreviewModel.displayImage(source,false,7,4);
+        assertEquals(6,display.getWidth());assertEquals(3,display.getHeight());
+        for(int y=0;y<3;y++)for(int x=0;x<6;x++)assertEquals(source.getRGB(x/3,0),display.getRGB(x,y));
+        assertEquals(2,source.getWidth());assertEquals(1,source.getHeight());assertEquals(0xff102030,source.getRGB(0,0));assertEquals(0xffa0b0c0,source.getRGB(1,0));
+    }
+
     private static PoseSelection pose(int sequence,int frame,long millis){PoseSelection pose=new PoseSelection();pose.sequenceId=sequence;pose.frameIndex=frame;pose.timeMillis=millis;return pose;}
     private static void assertPose(PoseSelection pose,int sequence,int frame,long millis){assertEquals(sequence,pose.sequenceId);assertEquals(frame,pose.frameIndex);assertEquals(millis,pose.timeMillis);}
 }
