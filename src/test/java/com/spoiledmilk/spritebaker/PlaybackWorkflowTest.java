@@ -21,6 +21,12 @@ class PlaybackWorkflowTest {
         assertArrayEquals(new int[]{0,1,2},plan.steps.stream().mapToInt(s->s.row).toArray());assertEquals(60,plan.totalMillis);
     }
 
+    @Test void finalPlaybackCarriesEachCellsEffectiveSourceDirection(){
+        TargetSheet sheet=sheet();sheet.override(1,2,sheet.cells[1][2].pose,4);
+        AssembledPlayback.Plan plan=AssembledPlayback.plan(sheet,2,p->20);
+        assertArrayEquals(new int[]{2,4,2,2},plan.steps.stream().mapToInt(s->s.sourceDirection).toArray());
+    }
+
     @Test void directionsAreCanonicalAndMissingCellsFailClosed(){
         assertEquals("Diagonal away",SheetDirection.label(3));assertEquals(135,SheetDirection.yawDegrees(3));
         TargetSheet sheet=sheet();sheet.cells[1][4].pose=null;assertThrows(IllegalStateException.class,()->AssembledPlayback.plan(sheet,4,p->20));assertThrows(IllegalArgumentException.class,()->AssembledPlayback.plan(sheet,0,p->0));assertThrows(IllegalArgumentException.class,()->SheetDirection.yawDegrees(6));

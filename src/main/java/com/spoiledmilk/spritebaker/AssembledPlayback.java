@@ -17,7 +17,7 @@ public final class AssembledPlayback {
             if(pose==null)throw new IllegalStateException("unassigned "+TargetSheet.ROW_LABELS[row]+" / "+SheetDirection.label(column)+" cell");
             long duration=durationMillis.applyAsLong(pose);
             if(duration<=0)throw new IllegalArgumentException("non-positive playback duration");
-            steps.add(new Step(row,pose.copy(),duration));total+=duration;
+            steps.add(new Step(row,pose.copy(),sheet.effectiveSourceDirection(row,column),duration));total+=duration;
         }
         return new Plan(List.copyOf(steps),total);
     }
@@ -25,8 +25,9 @@ public final class AssembledPlayback {
     public static final class Step {
         public final int row;
         public final PoseSelection pose;
+        public final int sourceDirection;
         public final long durationMillis;
-        Step(int row,PoseSelection pose,long durationMillis){this.row=row;this.pose=pose;this.durationMillis=durationMillis;}
+        Step(int row,PoseSelection pose,int sourceDirection,long durationMillis){this.row=row;this.pose=pose;this.sourceDirection=sourceDirection;this.durationMillis=durationMillis;}
     }
 
     public static final class Plan {

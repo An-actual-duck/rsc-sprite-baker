@@ -12,13 +12,13 @@ public final class TargetSheet {
     public void assignShared(int row, PoseSelection selection) {
         sharedRows[row]=selection.copy(); sharedRows[row].source="user-row";
         for(int col=0;col<5;col++) if(!cells[row][col].locked && !cells[row][col].override) {
-            cells[row][col].pose=selection.copy(); cells[row][col].pose.source="row-shared";
+            cells[row][col].pose=selection.copy(); cells[row][col].pose.source="row-shared"; cells[row][col].sourceDirection=null;
         }
     }
     public boolean suggest(int row,int col,PoseSelection selection) {
         Cell cell=cells[row][col];
         if(cell.pose!=null || cell.locked) return false;
-        cell.pose=selection.copy(); cell.pose.source="suggestion"; return true;
+        cell.pose=selection.copy(); cell.pose.source="suggestion"; cell.sourceDirection=null; return true;
     }
     /** Replaces every unlocked cell with the current recommendations. */
     public int autoPopulate(PoseSelection[] movement,PoseSelection[] combat){
@@ -32,8 +32,8 @@ public final class TargetSheet {
                 Cell cell=cells[row][column];if(cell.locked)continue;
                 PoseSelection recommended=column<5?movementPose:combat==null?movementPose:combat[row];
                 if(recommended==null)continue;
-                if(cell.override||!samePose(cell.pose,recommended)||!"auto-populate".equals(cell.pose.source))changed++;
-                cell.pose=recommended.copy();cell.pose.source="auto-populate";cell.override=false;
+                if(cell.override||cell.sourceDirection!=null||!samePose(cell.pose,recommended)||!"auto-populate".equals(cell.pose.source))changed++;
+                cell.pose=recommended.copy();cell.pose.source="auto-populate";cell.override=false;cell.sourceDirection=null;
             }
         }
         return changed;
@@ -43,8 +43,8 @@ public final class TargetSheet {
         int changed=0;
         for(int row=0;row<ROWS;row++){
             Cell cell=cells[row][COLUMNS-1];if(cell.locked||combat[row]==null)continue;
-            if(cell.override||!samePose(cell.pose,combat[row])||!"auto-populate".equals(cell.pose.source))changed++;
-            cell.pose=combat[row].copy();cell.pose.source="auto-populate";cell.override=false;
+            if(cell.override||cell.sourceDirection!=null||!samePose(cell.pose,combat[row])||!"auto-populate".equals(cell.pose.source))changed++;
+            cell.pose=combat[row].copy();cell.pose.source="auto-populate";cell.override=false;cell.sourceDirection=null;
         }
         return changed;
     }
@@ -55,22 +55,41 @@ public final class TargetSheet {
         for(int row=0;row<ROWS;row++){
             Cell cell=cells[row][COLUMNS-1];if(cell.locked||cell.override||combat[row]==null)continue;
             if(!samePose(cell.pose,combat[row])||!"combat-detection".equals(cell.pose.source))changed++;
-            cell.pose=combat[row].copy();cell.pose.source="combat-detection";
+            cell.pose=combat[row].copy();cell.pose.source="combat-detection";cell.sourceDirection=null;
         }
         return changed;
     }
     private static boolean samePose(PoseSelection left,PoseSelection right){return left!=null&&left.sequenceId==right.sequenceId&&left.frameIndex==right.frameIndex&&left.cycleOffset==right.cycleOffset&&left.timeMillis==right.timeMillis;}
     public void override(int row,int col,PoseSelection selection) {
+        override(row,col,selection,col);
+    }
+    public void override(int row,int col,PoseSelection selection,int sourceDirection) {
         Cell cell=cells[row][col]; if(cell.locked) return;
         cell.pose=selection.copy(); cell.pose.source="user-cell"; cell.override=true;
+        cell.sourceDirection=SheetDirection.checked(sourceDirection)==col?null:sourceDirection;
     }
     public void clearOverride(int row,int col) {
-        Cell cell=cells[row][col]; if(cell.locked) return; cell.override=false;
+        Cell cell=cells[row][col]; if(cell.locked) return; cell.override=false; cell.sourceDirection=null;
         cell.pose=col<5 && sharedRows[row]!=null?sharedRows[row].copy():null;
         if(cell.pose!=null)cell.pose.source="row-shared";
+    }
+    public boolean resetSourceDirection(int row,int col) {
+        Cell cell=cells[row][col];if(cell.locked||cell.sourceDirection==null)return false;
+        cell.sourceDirection=null;return true;
+    }
+    public int effectiveSourceDirection(int row,int col){return effectiveSourceDirection(cells[row][col],col);}
+    public static int effectiveSourceDirection(Cell cell,int destinationColumn){
+        SheetDirection.checked(destinationColumn);
+        return cell.sourceDirection==null?destinationColumn:SheetDirection.checked(cell.sourceDirection);
     }
     public void suggestCombatStandingFromSide() {
         if(cells[0][2].pose!=null)suggest(0,5,cells[0][2].pose);
     }
-    public static final class Cell { public PoseSelection pose; public boolean locked; public boolean override; }
+    public static final class Cell {
+        public PoseSelection pose;
+        public boolean locked;
+        public boolean override;
+        /** Null means the canonical destination-column view (and preserves legacy project behavior). */
+        public Integer sourceDirection;
+    }
 }
