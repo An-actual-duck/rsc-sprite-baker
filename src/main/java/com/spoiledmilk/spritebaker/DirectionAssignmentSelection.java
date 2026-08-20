@@ -21,6 +21,7 @@ public final class DirectionAssignmentSelection {
 
     public String sourceLabel(){return "Browsing source: "+SheetDirection.label(sourceDirection);}
     public String destinationLabel(){return "Destination: "+TargetSheet.ROW_LABELS[destinationRow]+" / "+SheetDirection.label(destinationColumn);}
+    /** Direction for source-browser imagery; the final preview uses {@link FinalPreviewModel}. */
     public int previewDirection(TargetSheet sheet,boolean sourceAlternative){
         if(sheet==null)throw new NullPointerException("sheet");
         return sourceAlternative?sourceDirection:sheet.effectiveSourceDirection(destinationRow,destinationColumn);

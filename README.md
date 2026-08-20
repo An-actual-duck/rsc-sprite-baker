@@ -83,8 +83,9 @@ mvn exec:java -Dexec.mainClass=com.spoiledmilk.spritebaker.SelectorMain \
 The final RSC sheet occupies most of the editor. Choose one of its six
 directions—**Facing camera**, **Facing diagonal**, **Side**, **Diagonal away**,
 **Away**, or **Combat side**—then select the Standing, Left step, or Right step
-cell to complete. Clicking a sheet cell and choosing a direction update one
-another. There is no ordinary animation-role selector.
+cell to complete. Clicking a sheet cell initially browses its matching source
+view, but later source browsing never moves the orange destination selection.
+There is no ordinary animation-role selector.
 
 For each movement direction, the alternative-pose browser automatically
 combines the discovered standing and walking animations. Combat side shows the
@@ -104,8 +105,10 @@ ranks sequences with a distinct wind-up, peak deviation, and recovery. Its
 three suggestions are separate encoded frames even when one frame has an
 unusually long duration. Raw source roles, candidate choices, and sequence IDs
 are confined to **Advanced > Manual animation sources** for exceptional NPCs.
-**Auto populate** recalculates recommended poses across the entire 18-cell
-sheet in one action, replacing unlocked cells while preserving locks.
+**Repopulate** advances every unlocked cell to its next viable alternative
+within the Standing, Left-step, Right-step, or combat phase appropriate to
+that cell. It preserves locks and persisted source-direction overrides and
+reports cells for which no different alternative exists.
 Individual cells can then be replaced from the direction browser.
 
 The prominent **Play final RSC loop** control lives beside the final-sheet
@@ -113,24 +116,24 @@ preview. It shows the actual assigned export-size poses in the
 selected direction: movement directions loop Standing → Left step → Standing
 → Right step, while Combat side loops its three combat cells. Its framing is
 calculated from the complete 18-cell sheet exactly like export. It is the
-editor's only playback control. Preview speed defaults to 0.5× for inspection,
-with 0.75× and 1× choices; this UI clock does not change source timing or any
-saved/exported data. **Open large inspection view** shows the synchronized
-frame and selected background in a resizable 1×–4× exact integer-pixel view.
-Closing it leaves the editor and playback running normally.
+editor's only playback control. When playback is paused, the enlarged final
+preview returns to the exact pose assigned to the orange-selected cell rather
+than the first source-animation frame. Preview speed defaults to 0.5×, with
+0.75× and 1× choices; this UI clock does not change source timing or any
+saved/exported data. The display uses crisp 2× nearest-neighbor scaling while
+the export retains its configured native pixels.
 
 The enlarged playback area always shows original model colors, including
 intentional cache colors, NPC recolors, and accent regions. Textured faces
 retain the pinned client face-color and material-metadata modulation instead
-of displaying the procedural texture as uncolored gray. Black, white, neutral
-gray, grass green, and custom preview backgrounds make transparent edges easy
-to review. Background choice is not stored and cannot affect sprite pixels,
+of displaying the procedural texture as uncolored gray. Display scaling and
+mirroring remain preview-only and cannot affect sprite pixels,
 alpha, PNG output, hashes, batch output, or provenance. Final playback renders
 away from Swing's event thread and stops when the NPC changes or editor closes.
 
-Double-click a timeline pose or target cell to assign it. `Enter` replaces the
-selected cell and `L` toggles its lock. Purple, blue, green, and red cell
-frames identify automatic, overridden, assigned, and locked states.
+Double-click a timeline pose to assign it. `Enter` replaces the selected cell
+and `L` toggles its lock. Purple, blue, green, gold, and red cell frames
+identify automatic, overridden, assigned, direction-overridden, and locked states.
 
 The default export uses 128×128 cells and creates a transparent 768×384 PNG;
 cell width and height are configurable. Every cell shares scale, ground anchor,
