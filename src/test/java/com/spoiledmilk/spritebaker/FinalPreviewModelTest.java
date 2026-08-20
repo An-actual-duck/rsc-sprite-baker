@@ -23,20 +23,13 @@ class FinalPreviewModelTest {
         BufferedImage mirrored=FinalPreviewModel.displayImage(source,true);assertEquals(source.getRGB(1,0),mirrored.getRGB(0,0));assertEquals(source.getRGB(0,0),mirrored.getRGB(3,0));
     }
 
-    @Test void responsiveDisplayUsesLargestIntegerScaleThatFitsViewport(){
-        assertEquals(2,FinalPreviewModel.largestIntegerScale(128,128,620,300));
-        assertEquals(4,FinalPreviewModel.largestIntegerScale(128,128,900,520));
-        assertEquals(3,FinalPreviewModel.largestIntegerScale(64,128,350,390));
-        assertEquals(1,FinalPreviewModel.largestIntegerScale(128,128,100,100));
-        assertThrows(IllegalArgumentException.class,()->FinalPreviewModel.largestIntegerScale(0,128,500,500));
-    }
-
-    @Test void responsiveNearestNeighborScalingRemainsCrispAndLeavesSourceUntouched(){
-        BufferedImage source=new BufferedImage(2,1,BufferedImage.TYPE_INT_ARGB);source.setRGB(0,0,0xff102030);source.setRGB(1,0,0xffa0b0c0);
-        BufferedImage display=FinalPreviewModel.displayImage(source,false,7,4);
-        assertEquals(6,display.getWidth());assertEquals(3,display.getHeight());
-        for(int y=0;y<3;y++)for(int x=0;x<6;x++)assertEquals(source.getRGB(x/3,0),display.getRGB(x,y));
-        assertEquals(2,source.getWidth());assertEquals(1,source.getHeight());assertEquals(0xff102030,source.getRGB(0,0));assertEquals(0xffa0b0c0,source.getRGB(1,0));
+    @Test void explicitScaleChoiceIsExactlyOneOrTwoTimesAndLeavesSourcePixelsUntouched(){
+        int[] pixels={0xff111100,0xff221100,0xff331100,0xff112200,0xff222200,0xff332200};BufferedImage source=new BufferedImage(3,2,BufferedImage.TYPE_INT_ARGB);source.setRGB(0,0,3,2,pixels,0,3);
+        BufferedImage actualSize=FinalPreviewModel.displayImage(source,false,false);BufferedImage doubled=FinalPreviewModel.displayImage(source,false,true);
+        assertTrue(FinalPreviewModel.DEFAULT_DOUBLED);
+        assertEquals(3,actualSize.getWidth());assertEquals(2,actualSize.getHeight());assertEquals(6,doubled.getWidth());assertEquals(4,doubled.getHeight());
+        for(int y=0;y<2;y++)for(int x=0;x<3;x++){int expected=pixels[y*3+x];assertEquals(expected,source.getRGB(x,y));assertEquals(expected,actualSize.getRGB(x,y));for(int dy=0;dy<2;dy++)for(int dx=0;dx<2;dx++)assertEquals(expected,doubled.getRGB(x*2+dx,y*2+dy));}
+        assertEquals(3,source.getWidth());assertEquals(2,source.getHeight());
     }
 
     private static PoseSelection pose(int sequence,int frame,long millis){PoseSelection pose=new PoseSelection();pose.sequenceId=sequence;pose.frameIndex=frame;pose.timeMillis=millis;return pose;}
