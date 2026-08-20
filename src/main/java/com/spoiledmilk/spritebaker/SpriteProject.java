@@ -9,7 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class SpriteProject {
-    public int schemaVersion=2;
+    public int schemaVersion=3;
     public int npcId;
     public int standingSequenceId=-1, walkingSequenceId=-1, combatSequenceId=-1;
     public boolean tweening=true;
@@ -22,7 +22,7 @@ public final class SpriteProject {
             SpriteProject project=gson().fromJson(reader,SpriteProject.class);
             if(project.visual==null)project.visual=new VisualSettings();
             if(project.sheet==null)project.sheet=new TargetSheet();
-            project.schemaVersion=2;
+            project.schemaVersion=3;
             return project;
         }
     }
