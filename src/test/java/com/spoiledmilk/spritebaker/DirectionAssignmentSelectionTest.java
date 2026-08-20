@@ -15,12 +15,10 @@ class DirectionAssignmentSelectionTest {
         assertEquals("Destination: Right step / Diagonal away",selection.destinationLabel());
     }
 
-    @Test void previewUsesBrowsingDirectionForAlternativeAndPersistedDirectionForCell(){
-        TargetSheet sheet=new TargetSheet();sheet.override(0,0,pose(),4);
+    @Test void sourceBrowserDirectionRemainsAvailableWithoutControllingFinalPreview(){
+        TargetSheet sheet=new TargetSheet();PoseSelection pose=new PoseSelection();pose.sequenceId=1;sheet.override(0,0,pose,4);
         DirectionAssignmentSelection selection=new DirectionAssignmentSelection();selection.selectDestination(0,0);selection.browseSource(2);
-        assertEquals(2,selection.previewDirection(sheet,true));
-        assertEquals(4,selection.previewDirection(sheet,false));
+        assertEquals(2,selection.previewDirection(sheet,true));assertEquals(4,FinalPreviewModel.assignedDirection(sheet,selection));
     }
 
-    private static PoseSelection pose(){PoseSelection pose=new PoseSelection();pose.sequenceId=1;return pose;}
 }

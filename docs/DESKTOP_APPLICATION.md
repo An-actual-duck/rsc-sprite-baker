@@ -109,17 +109,18 @@ when detection refreshes recommendations.
 
 The editing path is deliberately linear:
 
-1. Choose a direction or click a cell in that direction's sheet column.
-2. Select the Standing, Left step, or Right step cell to replace.
+1. Browse a source direction or click a destination cell to begin from its view.
+2. Select the Standing, Left step, or Right step destination cell to replace;
+   later source browsing leaves that orange selection in place.
 3. Choose one of that direction's complete 20 ms alternative poses or scrub
    within its source animation.
 4. Replace the selected cell.
 
 The six primary choices are **Facing camera**, **Facing diagonal**, **Side**,
-**Diagonal away**, **Away**, and **Combat side**. Direction choice and sheet
-column selection stay synchronized in both directions. The ordinary editor
-does not ask the user to select or assign Standing, Walking, or Combat
-animation sources.
+**Diagonal away**, **Away**, and **Combat side**. Selecting a cell initially
+synchronizes the browser as a convenience, while the source direction and
+destination column remain independent afterward. The ordinary editor does not
+ask the user to select or assign Standing, Walking, or Combat animation sources.
 
 The final sheet and its animation preview receive roughly three quarters of
 the normal 1700×980 editor. The narrower source panel uses larger pose cards,
@@ -127,11 +128,13 @@ two per row at its default width, with comfortable spacing and vertical
 scrolling. The 3×6 placement grid is centered at a bounded compact size with
 smaller thumbnails. Its compact direction header is laid out separately from
 the three equal-height pose rows, so Standing, Left step, and Right step remain
-visible instead of losing a full sprite row to header spacing. The former
-row-setting button stack is replaced by one
-prominent **Auto populate** action. It recomputes all 18 recommended cells,
-replaces unlocked cells, preserves locks, and uses the movement recommendation
-as the existing bounded fallback when no combat animation can be discovered.
+visible instead of losing a full sprite row to header spacing. The compact
+right-side controls contain final playback, preview speed, **Repopulate**, and
+selected-cell replacement. Repopulate cycles each unlocked cell through
+role-appropriate alternatives, preserves locks and effective source
+directions, and names every cell that has no different viable choice. It uses
+movement-role alternatives as the existing bounded fallback when no combat
+animation can be discovered.
 When cache metadata supplies walking but no separate standing animation, cycle
 zero of that walking animation supplies the visible Standing row without
 inventing or persisting a standing sequence ID. Definitions missing both
@@ -154,18 +157,20 @@ All poses use one stable direction-specific viewport, and every sample passes
 its own frame/cycle identity to the poser; multi-frame animations do not reuse
 frame zero.
 
-The source status identifies the selected direction and destination sheet row
+The source status identifies the independently browsed direction and destination sheet row
 first, followed by the alternative's source, frame, cycle, time, and secondary
 sequence ID. Changing direction, manual source, or keyframe mode invalidates
 the old result before loading its replacement; stale asynchronous results
-cannot repopulate another direction. Selecting an alternative also updates the
-final 1:1 preview before assignment without mutating the sheet.
+cannot populate another direction. Selecting an alternative changes only the
+pending replacement; the stopped final preview continues showing the selected
+cell's exact assigned frame.
 
 **Play final RSC loop** is the primary playback action and sits inside the
 final-sheet preview area rather than the bottom action bar. It uses the normal
 poser, full 18-cell export viewport, palette reducer, selected direction, and
-actual configured cell dimensions. Swing presents those pixels 1:1 with no
-smooth scaling. Movement columns loop Standing, Left step, Standing, Right
+actual configured cell dimensions. Swing presents those pixels at a crisp 2×
+nearest-neighbor display scale without changing export pixels. Movement
+columns loop Standing, Left step, Standing, Right
 step; Combat side loops its three independently assigned combat poses. Each
 pose remains visible for its selected source frame's encoded duration. The
 adjacent **Preview speed** control offers 0.5×, 0.75×, and 1× and defaults
@@ -177,21 +182,11 @@ There is no source-only playback control. The final assembled loop supports
 pause/resume and stops on NPC changes, editor closure, or invalidated project
 state.
 
-The final playback/preview area is wider and taller. It always uses original
-model colors and offers black, white, neutral-gray, grass-green, and custom
-background choices plus an obvious current-color swatch. `PreviewCompositor`
-preserves sprite RGB and alpha, then creates a separate opaque
-background-composited image. Background choice is ephemeral UI state: it is
-absent from the project schema, exporter, batch processor, manifest, and
+The final playback/preview area is wider and taller and always uses original
+model colors. Background-selection and auxiliary inspection-window controls
+are intentionally absent. Integer display scaling is ephemeral UI state: it
+is absent from the project schema, exporter, batch processor, manifest, and
 hashing paths, and the transparent export render is never mutated.
-
-**Open large inspection view** opens the same current final frame in a
-modeless, resizable window. It stays synchronized with playback and direction
-changes, carries over the selected preview background and mirror setting, and
-offers exact 1× through 4× integer zoom. Pixel replication is used instead of
-smooth interpolation. Closing this auxiliary view does not close, pause, or
-otherwise alter the editor; its zoom is ephemeral and never enters project or
-export state.
 
 ## Responsiveness and feedback
 
