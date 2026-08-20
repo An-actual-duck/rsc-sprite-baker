@@ -131,10 +131,14 @@ character below the viewport.
 The enlarged playback area always shows original model colors, including
 intentional cache colors, NPC recolors, and accent regions. Textured faces
 retain the pinned client face-color and material-metadata modulation instead
-of displaying the procedural texture as uncolored gray. Display scaling and
-mirroring remain preview-only and cannot affect sprite pixels,
-alpha, PNG output, hashes, batch output, or provenance. Final playback renders
-away from Swing's event thread and stops when the NPC changes or editor closes.
+of displaying the procedural texture as uncolored gray. Display scaling remains
+preview-only and cannot affect sprite pixels. New projects, and older projects
+without an explicit orientation choice, enable **Horizontal inversion (face
+right)** by default to match established RSC sprite orientation. The control
+can disable inversion, and an explicitly saved choice is preserved. Sheet
+thumbnails, final playback, exported PNG pixels, hashes, and provenance all use
+the same orientation. Final playback renders away from Swing's event thread and
+stops when the NPC changes or editor closes.
 
 Double-click a timeline pose to assign it. `Enter` replaces the selected cell
 and `L` toggles its lock. Purple, blue, green, gold, and red cell frames
@@ -142,9 +146,9 @@ identify automatic, overridden, assigned, direction-overridden, and locked state
 
 The default export uses 128×128 cells and creates a transparent 768×384 PNG;
 cell width and height are configurable. Every cell shares scale, ground anchor,
-framing policy, camera settings, and target canvas. The mirrored-direction
-control is preview-only. The diagnostic JSON records the complete visual
-configuration and one source trace per cell.
+framing policy, camera settings, and target canvas. The diagnostic JSON records
+the applied horizontal orientation, complete visual configuration, and one
+source trace per cell.
 
 ## Local collaboration
 
