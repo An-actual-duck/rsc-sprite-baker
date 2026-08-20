@@ -120,8 +120,10 @@ editor's only playback control. When playback is paused, the enlarged final
 preview returns to the exact pose assigned to the orange-selected cell rather
 than the first source-animation frame. Preview speed defaults to 0.5×, with
 0.75× and 1× choices; this UI clock does not change source timing or any
-saved/exported data. The display uses crisp 2× nearest-neighbor scaling while
-the export retains its configured native pixels.
+saved/exported data. The display recalculates the largest integer zoom that
+fits the live preview viewport (normally at least 2×) and uses crisp
+nearest-neighbor scaling, while the export retains its configured native
+pixels.
 
 The enlarged playback area always shows original model colors, including
 intentional cache colors, NPC recolors, and accent regions. Textured faces

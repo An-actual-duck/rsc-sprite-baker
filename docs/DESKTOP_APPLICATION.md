@@ -125,12 +125,13 @@ ask the user to select or assign Standing, Walking, or Combat animation sources.
 The final sheet and its animation preview receive roughly three quarters of
 the normal 1700×980 editor. The narrower source panel uses larger pose cards,
 two per row at its default width, with comfortable spacing and vertical
-scrolling. The 3×6 placement grid is centered at a bounded compact size with
-smaller thumbnails. Its compact direction header is laid out separately from
-the three equal-height pose rows, so Standing, Left step, and Right step remain
-visible instead of losing a full sprite row to header spacing. The compact
-right-side controls contain final playback, preview speed, **Repopulate**, and
-selected-cell replacement. Repopulate cycles each unlocked cell through
+scrolling. The 3×6 placement grid reserves its full three-row height and uses
+the complete sheet-panel width, giving each cell more room for its state and
+frame labels. Its compact direction header is laid out separately from the
+three equal-height pose rows, so Standing, Left step, and Right step remain
+fully visible. The right-side controls pair final playback, preview speed,
+**Repopulate**, selected-cell replacement, and canonical-direction reset in
+three short rows. Repopulate cycles each unlocked cell through
 role-appropriate alternatives, preserves locks and effective source
 directions, and names every cell that has no different viable choice. It uses
 movement-role alternatives as the existing bounded fallback when no combat
@@ -168,8 +169,10 @@ cell's exact assigned frame.
 **Play final RSC loop** is the primary playback action and sits inside the
 final-sheet preview area rather than the bottom action bar. It uses the normal
 poser, full 18-cell export viewport, palette reducer, selected direction, and
-actual configured cell dimensions. Swing presents those pixels at a crisp 2×
-nearest-neighbor display scale without changing export pixels. Movement
+actual configured cell dimensions. Swing recalculates the largest integer
+zoom that fits the preview viewport after every resize and presents those
+pixels with crisp nearest-neighbor scaling without changing export pixels.
+The normal editor has room for at least 2× display. Movement
 columns loop Standing, Left step, Standing, Right
 step; Combat side loops its three independently assigned combat poses. Each
 pose remains visible for its selected source frame's encoded duration. The
