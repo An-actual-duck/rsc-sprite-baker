@@ -18,7 +18,7 @@ public final class FinalPreviewModel {
         return sheet.effectiveSourceDirection(selection.destinationRow(),selection.destinationColumn());
     }
     public static BufferedImage displayImage(BufferedImage source,boolean mirror){return scaleNearest(source,DISPLAY_SCALE,mirror);}
-    public static BufferedImage displayImage(BufferedImage source,boolean mirror,boolean doubled){return scaleNearest(source,doubled?2:1,mirror);}
+    public static BufferedImage displayImage(BufferedImage source,boolean mirror,boolean doubled){return scaleNearest(source,DISPLAY_SCALE*(doubled?2:1),mirror);}
     static BufferedImage scaleNearest(BufferedImage source,int scale,boolean mirror){
         if(source==null)throw new NullPointerException("source");if(scale<1)throw new IllegalArgumentException("scale must be positive");
         BufferedImage out=new BufferedImage(source.getWidth()*scale,source.getHeight()*scale,BufferedImage.TYPE_INT_ARGB);Graphics2D graphics=out.createGraphics();
