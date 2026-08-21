@@ -11,6 +11,6 @@ class SliderSpinnerTest {
     }
 
     @Test void dynamicIntegerMaximumClampsBothRepresentations()throws Exception{
-        SwingUtilities.invokeAndWait(()->{SliderSpinner control=SliderSpinner.integer(40,0,100,1);control.setMaximum(25);assertEquals(25,control.value().intValue());assertEquals(25,control.slider().getMaximum());assertEquals(25,control.slider().getValue());});
+        SwingUtilities.invokeAndWait(()->{SliderSpinner control=SliderSpinner.integer(40,0,100,1);assertInstanceOf(Integer.class,control.value());control.slider().setValue(30);assertInstanceOf(Integer.class,control.value());control.setValue(35L);assertInstanceOf(Integer.class,control.value());control.setMaximum(25);assertEquals(25,control.value().intValue());assertEquals(25,control.slider().getMaximum());assertEquals(25,control.slider().getValue());});
     }
 }

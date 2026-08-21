@@ -27,12 +27,12 @@ public final class SliderSpinner extends JPanel {
         slider=new JSlider(toSlider(minimum.doubleValue()),toSlider(maximum.doubleValue()),toSlider(value.doubleValue()));
         spinner=integral?new JSpinner(new SpinnerNumberModel(value.intValue(),minimum.intValue(),maximum.intValue(),spinnerStep.intValue())):new JSpinner(new SpinnerNumberModel(value.doubleValue(),minimum.doubleValue(),maximum.doubleValue(),spinnerStep.doubleValue()));
         Dimension preferred=spinner.getPreferredSize();spinner.setPreferredSize(new Dimension(58,preferred.height));add(slider,BorderLayout.CENTER);add(spinner,BorderLayout.EAST);
-        slider.addChangeListener(event->{if(syncing)return;syncing=true;spinner.setValue(integral?slider.getValue():slider.getValue()/(double)scale);syncing=false;fireChanged();});
+        slider.addChangeListener(event->{if(syncing)return;syncing=true;if(integral)spinner.setValue(Integer.valueOf(slider.getValue()));else spinner.setValue(Double.valueOf(slider.getValue()/(double)scale));syncing=false;fireChanged();});
         spinner.addChangeListener(event->{if(syncing)return;syncing=true;slider.setValue(toSlider(((Number)spinner.getValue()).doubleValue()));syncing=false;fireChanged();});
     }
 
     public Number value(){return (Number)spinner.getValue();}
-    public void setValue(Number value){spinner.setValue(integral?value.intValue():value.doubleValue());}
+    public void setValue(Number value){if(integral)spinner.setValue(Integer.valueOf(value.intValue()));else spinner.setValue(Double.valueOf(value.doubleValue()));}
     public void setMaximum(int maximum){if(!integral)throw new IllegalStateException("integer maximum required");slider.setMaximum(maximum);((SpinnerNumberModel)spinner.getModel()).setMaximum(maximum);if(value().intValue()>maximum)setValue(maximum);}
     public void addChangeListener(ChangeListener listener){listeners.add(listener);}
     JSlider slider(){return slider;}
