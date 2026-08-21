@@ -21,4 +21,11 @@ class SheetExporterProvenanceTest {
         assertEquals(true,enabled.get("horizontalInversion"));assertEquals("right",enabled.get("defaultFacing"));assertEquals("preview, playback, and exported PNG",enabled.get("appliesTo"));
         assertEquals(false,disabled.get("horizontalInversion"));assertEquals("renderer-native",disabled.get("defaultFacing"));
     }
+
+    @Test void swappedCellProvenanceKeepsSourceButRecordsMappedExportYaw(){
+        TargetSheet sheet=new TargetSheet();PoseSelection pose=new PoseSelection();pose.sequenceId=10;pose.frameIndex=0;pose.source="test";sheet.override(0,4,pose,1);Sequence530 sequence=new Sequence530(10);sequence.frameIds=new int[]{123};sequence.durations=new int[]{2};Framemap530 framemap=new Framemap530(77,new int[0],new boolean[0],new int[0],new int[0][]);Frame530 frame=new Frame530(123,framemap,new int[0],new int[0],new int[0],new int[0],new int[0],new int[0]);
+        Map<String,Object> trace=SheetExporter.cellTrace(sheet,0,4,sequence,frame,true),orientation=SheetExporter.orientationTrace(true,true);
+        assertEquals(1,trace.get("sourceDirection"));assertEquals("Facing diagonal",trace.get("sourceDirectionLabel"));assertEquals(3,trace.get("renderDirection"));assertEquals("Diagonal away",trace.get("renderDirectionLabel"));assertEquals(135.0,trace.get("yawDegrees"));assertEquals(true,orientation.get("swapFacingAway"));
+        @SuppressWarnings("unchecked") Map<String,Object> mapping=(Map<String,Object>)orientation.get("directionMapping");assertEquals("Away",mapping.get("facingCamera"));assertEquals("Facing camera",mapping.get("away"));assertEquals("Side",mapping.get("side"));assertEquals("Combat side",mapping.get("combatSide"));
+    }
 }

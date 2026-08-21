@@ -27,8 +27,15 @@ class PlaybackWorkflowTest {
         assertArrayEquals(new int[]{2,4,2,2},plan.steps.stream().mapToInt(s->s.sourceDirection).toArray());
     }
 
+    @Test void finalPlaybackSwapsFacingViewsButLeavesSideAndCombatUnchanged(){
+        TargetSheet sheet=sheet();sheet.override(1,0,sheet.cells[1][0].pose,1);
+        AssembledPlayback.Plan facing=AssembledPlayback.plan(sheet,0,true,p->20),side=AssembledPlayback.plan(sheet,2,true,p->20),combat=AssembledPlayback.plan(sheet,5,true,p->20);
+        assertArrayEquals(new int[]{0,1,0,0},facing.steps.stream().mapToInt(s->s.sourceDirection).toArray());assertArrayEquals(new int[]{4,3,4,4},facing.steps.stream().mapToInt(s->s.renderDirection).toArray());
+        assertTrue(side.steps.stream().allMatch(step->step.renderDirection==2));assertTrue(combat.steps.stream().allMatch(step->step.renderDirection==5));
+    }
+
     @Test void directionsAreCanonicalAndMissingCellsFailClosed(){
-        assertEquals("Diagonal away",SheetDirection.label(3));assertEquals(135,SheetDirection.yawDegrees(3));
+        assertEquals("Diagonal away",SheetDirection.label(3));assertEquals(135,SheetDirection.yawDegrees(3));assertArrayEquals(new int[]{4,3,2,1,0,5},java.util.stream.IntStream.range(0,6).map(direction->SheetDirection.rendered(direction,true)).toArray());
         TargetSheet sheet=sheet();sheet.cells[1][4].pose=null;assertThrows(IllegalStateException.class,()->AssembledPlayback.plan(sheet,4,p->20));assertThrows(IllegalArgumentException.class,()->AssembledPlayback.plan(sheet,0,p->0));assertThrows(IllegalArgumentException.class,()->SheetDirection.yawDegrees(6));
     }
 

@@ -10,6 +10,7 @@ class FinalPreviewModelTest {
         sheet.override(0,0,pose(10,0,0),4);sheet.override(1,0,pose(20,3,60));sheet.override(2,0,pose(20,7,140));
         selection.selectDestination(0,0);selection.browseSource(2);
         assertPose(FinalPreviewModel.assignedPose(sheet,selection),10,0,0);assertEquals(4,FinalPreviewModel.assignedDirection(sheet,selection));
+        assertEquals(0,FinalPreviewModel.renderedDirection(sheet,selection,true));
         selection.selectDestination(1,0);assertPose(FinalPreviewModel.assignedPose(sheet,selection),20,3,60);
         selection.selectDestination(2,0);assertPose(FinalPreviewModel.assignedPose(sheet,selection),20,7,140);
     }

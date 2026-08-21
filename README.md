@@ -140,6 +140,13 @@ thumbnails, final playback, exported PNG pixels, hashes, and provenance all use
 the same orientation. Final playback renders away from Swing's event thread and
 stops when the NPC changes or editor closes.
 
+The adjacent, default-off **Swap facing and away** setting maps Facing camera
+to Away, Facing diagonal to Diagonal away, and vice versa. Side and Combat
+side remain unchanged. It preserves the fixed sheet positions while applying
+the mapped view consistently to sheet cells, selected preview, final playback,
+export, saved projects, and provenance. Older projects default to no swap, and
+explicitly saved choices are retained.
+
 Double-click a timeline pose to assign it. `Enter` replaces the selected cell
 and `L` toggles its lock. Purple, blue, green, gold, and red cell frames
 identify automatic, overridden, assigned, direction-overridden, and locked states.
@@ -147,8 +154,8 @@ identify automatic, overridden, assigned, direction-overridden, and locked state
 The default export uses 128×128 cells and creates a transparent 768×384 PNG;
 cell width and height are configurable. Every cell shares scale, ground anchor,
 framing policy, camera settings, and target canvas. The diagnostic JSON records
-the applied horizontal orientation, complete visual configuration, and one
-source trace per cell.
+the applied horizontal orientation and facing/away mapping, complete visual
+configuration, and both source and rendered direction traces per cell.
 
 ## Local collaboration
 
