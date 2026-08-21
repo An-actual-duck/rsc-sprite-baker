@@ -166,6 +166,16 @@ cannot populate another direction. Selecting an alternative changes only the
 pending replacement; the stopped final preview continues showing the selected
 cell's exact assigned frame.
 
+The visual toolbar keeps **Original** and **Material** as the normal starting
+looks, followed by **Custom**. A legacy preset is added to that list only while
+editing a saved project that names it; its implementation remains supported and
+its persisted name is not rewritten. Tuning labels describe visible results,
+and their tooltips explain scope. **Edge margin** exposes the renderer's existing
+bounded transparent padding. **Dithering** is an enable/disable checkbox for the
+only supported deterministic 4×4 pattern; **Dither amount** is shown only when
+that pattern and a reduced color limit are both active. Preview and export still
+consume the same `VisualSettings` snapshot.
+
 **Play final RSC loop** is the primary playback action and sits inside the
 final-sheet preview area rather than the bottom action bar. It uses the normal
 poser, full 18-cell export viewport, palette reducer, selected direction, and

@@ -33,9 +33,12 @@ the project. All 18 output cells always have the same dimensions and viewport.
 
 ## Presets
 
-Presets are starting points. Editing an individual control marks the project
-as `Custom`; the resulting exact values remain persisted and appear in the
-manifest.
+Presets are starting points. The normal editor menu intentionally offers only
+**Original** and **Material**, plus `Custom`. Editing an individual control
+marks the project as `Custom`; the resulting exact values remain persisted and
+appear in the manifest. The older presets below remain implemented for saved
+project compatibility. A legacy name appears in the editor only when the open
+project already references it, and loading does not rewrite it.
 
 | Preset | Camera/scale | Light | Color |
 | --- | --- | --- | --- |
@@ -52,10 +55,12 @@ two-sided Lambertian face shading plus the decoded NPC ambient/contrast
 adjustments. `Unmodified color` means no post-render palette conversion; it
 does not bypass source HSL conversion or lighting.
 
-The palette menu also exposes the coarser 3×3×3 cube for deliberate stylized
-experiments. Ordered dithering is spatially fixed to output coordinates, so it
-is reproducible and does not shimmer between frames. Dithering never changes
-transparent pixels.
+The Color limit menu also exposes the coarser 3×3×3 cube for deliberate
+stylized experiments. Dithering uses one clear enable/disable checkbox because
+the renderer has only one meaningful pattern. Its amount control appears only
+when dithering and a reduced color limit are active. The ordered 4×4 pattern is
+spatially fixed to output coordinates, so it is reproducible and does not
+shimmer between frames. Dithering never changes transparent pixels.
 
 ## RSC material first visual checkpoint
 

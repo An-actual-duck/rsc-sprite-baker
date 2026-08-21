@@ -111,6 +111,16 @@ that cell. It preserves locks and persisted source-direction overrides and
 reports cells for which no different alternative exists.
 Individual cells can then be replaced from the direction browser.
 
+The visual toolbar presents **Original** and **Material** as its primary looks;
+older preset names remain loadable for projects that already reference them but
+are no longer advertised for new tuning. Controls use visible-effect names such
+as Sprite size, Camera tilt, Base brightness, and Light direction, with concise
+tooltips. The renderer's persisted padding is exposed as **Edge margin**. A
+single **Dithering** checkbox replaces the implementation-name dropdown, and
+its amount control appears only when dithering is enabled with a reduced color
+limit. These controls drive the same shared preview/export settings and manifest
+fields as before.
+
 The prominent **Play final RSC loop** control lives beside the final-sheet
 preview. It shows the actual assigned export-size poses in the
 selected direction: movement directions loop Standing → Left step → Standing
