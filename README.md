@@ -136,15 +136,17 @@ preview-only and cannot affect sprite pixels. New projects, and older projects
 without an explicit orientation choice, enable **Horizontal inversion (face
 right)** by default to match established RSC sprite orientation. The control
 can disable inversion, and an explicitly saved choice is preserved. Sheet
-thumbnails, final playback, exported PNG pixels, hashes, and provenance all use
-the same orientation. Final playback renders away from Swing's event thread and
+source-frame selection cards, sheet thumbnails, final playback, exported PNG
+pixels, hashes, and provenance all use the same orientation. Final playback renders away from Swing's event thread and
 stops when the NPC changes or editor closes.
 
 The adjacent, default-off **Swap facing and away** setting maps Facing camera
 to Away, Facing diagonal to Diagonal away, and vice versa. Side and Combat
 side remain unchanged. It preserves the fixed sheet positions while applying
-the mapped view consistently to sheet cells, selected preview, final playback,
-export, saved projects, and provenance. Older projects default to no swap, and
+the mapped view consistently to source-frame selection cards, sheet cells,
+selected preview, final playback, export, saved projects, and provenance. The
+selection cards refresh immediately when either orientation control changes.
+Older projects default to no swap, and
 explicitly saved choices are retained.
 
 Double-click a timeline pose to assign it. `Enter` replaces the selected cell
