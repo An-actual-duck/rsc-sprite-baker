@@ -2,11 +2,12 @@ package com.spoiledmilk.spritebaker;
 
 import static org.junit.jupiter.api.Assertions.*;
 import javax.swing.SwingUtilities;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 class SliderSpinnerTest {
     @Test void sliderAndEditableValueStaySynchronizedWithoutOpeningAWindow()throws Exception{
-        SwingUtilities.invokeAndWait(()->{SliderSpinner control=SliderSpinner.decimal(.55,0,1,.05);assertEquals(.55,control.value().doubleValue());control.slider().setValue(20);assertEquals(.20,control.value().doubleValue());control.spinner().setValue(.333);assertEquals(.333,control.value().doubleValue());assertEquals(33,control.slider().getValue());});
+        SwingUtilities.invokeAndWait(()->{SliderSpinner control=SliderSpinner.decimal(.55,0,1,.05);AtomicInteger changes=new AtomicInteger();control.addChangeListener(event->changes.incrementAndGet());assertEquals(.55,control.value().doubleValue());control.slider().setValue(20);assertEquals(.20,control.value().doubleValue());control.spinner().setValue(.333);assertEquals(.333,control.value().doubleValue());assertEquals(33,control.slider().getValue());assertEquals(2,changes.get());});
     }
 
     @Test void dynamicIntegerMaximumClampsBothRepresentations()throws Exception{

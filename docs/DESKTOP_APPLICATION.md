@@ -174,8 +174,9 @@ and their tooltips explain scope. Every numeric control pairs a slider with an
 editable bounded value while retaining the two-row toolbar allocation. **Edge
 margin** exposes the renderer's existing transparent padding. The four
 default-100% controls are **Color variation**, **Texture detail**, **Color
-intensity**, and Material-only **Shadow depth**. Slider changes are briefly
-debounced before rebuilding source cards, sheet cells, and the selected preview.
+intensity**, and Material-only **Shadow depth**. Slider changes immediately
+submit a latest-only sheet and selected-preview rebuild; only the more expensive
+source-card rebuild is briefly debounced while a slider is moving.
 Fixed palette reduction and deterministic 4×4 dithering remain persisted and
 are editable through **Advanced > Legacy palette reduction**. Preview and export
 consume the same `VisualSettings` snapshot.
