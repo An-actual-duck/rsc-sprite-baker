@@ -188,17 +188,19 @@ unchanged.
 
 **Horizontal inversion (face right)** is enabled for new projects and projects
 whose older JSON has no saved orientation choice. An explicitly stored `false`
-remains disabled. This single setting controls sheet thumbnails, selected-cell
-preview, final-loop playback, exported PNG pixels, and manifest orientation
-provenance; it does not change cell dimensions or placement.
+remains disabled. This single setting controls source-frame selection cards,
+sheet thumbnails, selected-cell preview, final-loop playback, exported PNG
+pixels, and manifest orientation provenance; it does not change cell dimensions
+or placement.
 
 The default-off **Swap facing and away** control beside inversion maps Facing
 camera ↔ Away and Facing diagonal ↔ Diagonal away. Side and Combat side are
-identity mappings. The saved project choice drives the sheet-cell render,
-selected preview, final-loop playback, PNG export, batch report, and manifest;
-missing fields in older projects remain disabled. Destination columns do not
-move, and cell-level source-direction overrides are resolved before this global
-render mapping.
+identity mappings. The saved project choice drives source-frame selection cards,
+the sheet-cell render, selected preview, final-loop playback, PNG export, batch
+report, and manifest; missing fields in older projects remain disabled. Either
+orientation toggle immediately rebuilds the selection cards. Destination columns
+do not move, and cell-level source-direction overrides are resolved before this
+global render mapping.
 
 There is no source-only playback control. The final assembled loop supports
 pause/resume and stops on NPC changes, editor closure, or invalidated project
