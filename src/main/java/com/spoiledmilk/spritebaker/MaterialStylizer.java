@@ -25,6 +25,10 @@ public final class MaterialStylizer {
     }
 
     static BufferedImage reduce(StaticRenderer.RasterFrame source, int width, int height, int factor) {
+        return reduce(source,width,height,factor,1);
+    }
+
+    static BufferedImage reduce(StaticRenderer.RasterFrame source, int width, int height, int factor,double shadowDepth) {
         if (source.image.getWidth() != width * factor || source.image.getHeight() != height * factor) {
             throw new IllegalArgumentException("source dimensions do not match integer reduction factor");
         }
@@ -77,7 +81,7 @@ public final class MaterialStylizer {
             contactShadows[index] = Math.max(details[index],
                 Math.max(contactShadows[index], edgeShadows[index]));
         return suppressIsolatedDarkPixels(
-            ramp(smoothed,surfaces,broadShading,baseRamps,contactShadows,sourceLuminance),surfaces);
+            ramp(smoothed,surfaces,broadShading,baseRamps,contactShadows,sourceLuminance,shadowDepth),surfaces);
     }
 
     private static int detailSurfaceSample(StaticRenderer.RasterFrame source, int startX, int startY,
@@ -206,7 +210,7 @@ public final class MaterialStylizer {
 
     private static BufferedImage ramp(BufferedImage source, int[] surfaces, double[] lighting,
                                       Map<Integer,Integer> baseRamps, double[] contactShadows,
-                                      int[] sourceLuminance) {
+                                      int[] sourceLuminance,double shadowDepth) {
         int width = source.getWidth(), height = source.getHeight();
         BufferedImage output = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Map<Integer,Double> lightReferences = materialLightReferences(surfaces, lighting);
@@ -222,7 +226,7 @@ public final class MaterialStylizer {
             double reference = lightReferences.get(surfaces[y * width + x]);
             double illuminationShadow = illuminationShadow(reference - shade);
             double shadow = Math.min(3, Math.max(illuminationShadow, contactShadows[y * width + x]));
-            int steps = ditheredShadowSteps(shadow, x, y);
+            int steps = scaledShadowSteps(shadow,shadowDepth,x,y);
             int baseLight = LIGHTNESS_RAMP[Math.max(0, Math.min(LIGHTNESS_RAMP.length - 1, rampIndex))];
             int familyCeiling=sourceCeilings.get(surfaceFamily(surfaces[y * width + x]));
             int rawCeiling=Math.min(sourceLuminance[y*width+x],Math.min(luminance(pixel),familyCeiling));
@@ -241,6 +245,8 @@ public final class MaterialStylizer {
         for (int step = 0; step < steps; step++) light *= .72;
         return Math.max(16, (int)Math.round(light));
     }
+
+    static int scaledShadowSteps(double shadow,double depth,int x,int y){return ditheredShadowSteps(Math.min(3,shadow*depth),x,y);}
 
     static int controlledShadowLight(int baseLight,int steps,int sourceCeiling){
         int minimum=Math.max(1,Math.min(34,sourceCeiling));

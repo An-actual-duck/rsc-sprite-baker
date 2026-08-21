@@ -11,6 +11,7 @@ import net.runelite.cache.definitions.ModelDefinition;
 import org.junit.jupiter.api.Test;
 
 class StaticRendererTest {
+    @Test void textureDetailDefaultsExactAndCanFlattenTowardLitFaceColor(){assertEquals(37,StaticRenderer.textureChannel(37,1));assertEquals(255,StaticRenderer.textureChannel(37,0));assertEquals(146,StaticRenderer.textureChannel(37,.5));}
     @Test void rscStyleUsesSignedNormalsSoUndersidesCannotBecomeHighlights(){
         ModelDefinition fixture=neutralModel();NpcDefinition530 npc=new NpcDefinition530(1);
         double underside=StaticRenderer.styleFaceBrightness(fixture,0,npc,new double[]{0,1,0},.54,.36);

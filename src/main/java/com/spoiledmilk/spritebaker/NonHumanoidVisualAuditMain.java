@@ -49,6 +49,10 @@ public final class NonHumanoidVisualAuditMain {
             "directionYawDegrees", SheetDirection.YAW_DEGREES,
             "timelineUnitMillis", 20,
             "tweening", true,
+            "colorVariation", defaults.colorVariation,
+            "textureDetail", defaults.textureDetail,
+            "colorIntensity", defaults.colorIntensity,
+            "shadowDepth", defaults.shadowDepth,
             "palette", defaults.palette,
             "dithering", defaults.dithering,
             "packedHslBrightnessExponent", StaticRenderer.PINNED_DEFAULT_BRIGHTNESS));

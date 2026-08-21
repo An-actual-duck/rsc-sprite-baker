@@ -33,9 +33,12 @@ the project. All 18 output cells always have the same dimensions and viewport.
 
 ## Presets
 
-Presets are starting points. Editing an individual control marks the project
-as `Custom`; the resulting exact values remain persisted and appear in the
-manifest.
+Presets are starting points. The normal editor menu intentionally offers only
+**Original** and **Material**, plus `Custom`. Editing an individual control
+marks the project as `Custom`; the resulting exact values remain persisted and
+appear in the manifest. The older presets below remain implemented for saved
+project compatibility. A legacy name appears in the editor only when the open
+project already references it, and loading does not rewrite it.
 
 | Preset | Camera/scale | Light | Color |
 | --- | --- | --- | --- |
@@ -52,10 +55,21 @@ two-sided Lambertian face shading plus the decoded NPC ambient/contrast
 adjustments. `Unmodified color` means no post-render palette conversion; it
 does not bypass source HSL conversion or lighting.
 
-The palette menu also exposes the coarser 3×3×3 cube for deliberate stylized
-experiments. Ordered dithering is spatially fixed to output coordinates, so it
-is reproducible and does not shimmer between frames. Dithering never changes
-transparent pixels.
+All numeric editor controls pair sliders with editable fields. Four bounded
+percentage controls add independent tuning while preserving exact prior output
+at their 100% defaults:
+
+- **Color variation** scales deviation from a local same-surface, same-facet
+  median. It cannot smear separate triangles or the transparent silhouette.
+- **Texture detail** blends decoded texels toward the lit face color; alpha-test
+  holes remain transparent.
+- **Color intensity** scales saturation without changing alpha or geometry.
+- **Shadow depth** scales only the Material look's inner and contact shadows.
+
+Fixed palette cubes and ordered dithering have moved to **Advanced > Legacy
+palette reduction**. They remain fully persisted for existing projects. The
+ordered 4×4 pattern is spatially fixed to output coordinates, so it is
+reproducible and does not shimmer between frames or change transparent pixels.
 
 ## RSC material first visual checkpoint
 
