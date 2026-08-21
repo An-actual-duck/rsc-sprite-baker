@@ -14,6 +14,7 @@ public final class SpriteProject {
     public int standingSequenceId=-1, walkingSequenceId=-1, combatSequenceId=-1;
     public boolean tweening=true;
     public boolean mirroredPreview=true;
+    public boolean swapFacingAway;
     public VisualSettings visual=new VisualSettings();
     public TargetSheet sheet=new TargetSheet();
 

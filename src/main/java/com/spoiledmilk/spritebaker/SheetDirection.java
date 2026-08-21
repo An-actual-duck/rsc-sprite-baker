@@ -13,4 +13,8 @@ public final class SheetDirection {
 
     public static double yawDegrees(int column){return YAW_DEGREES[checked(column)];}
     public static String label(int column){return TargetSheet.COLUMN_LABELS[checked(column)];}
+    public static int rendered(int sourceDirection,boolean swapFacingAway){
+        int direction=checked(sourceDirection);if(!swapFacingAway)return direction;
+        switch(direction){case 0:return 4;case 1:return 3;case 3:return 1;case 4:return 0;default:return direction;}
+    }
 }

@@ -18,6 +18,7 @@ public final class FinalPreviewModel {
     public static int assignedDirection(TargetSheet sheet,DirectionAssignmentSelection selection){
         return sheet.effectiveSourceDirection(selection.destinationRow(),selection.destinationColumn());
     }
+    public static int renderedDirection(TargetSheet sheet,DirectionAssignmentSelection selection,boolean swapFacingAway){return SheetDirection.rendered(assignedDirection(sheet,selection),swapFacingAway);}
     public static BufferedImage displayImage(BufferedImage source,boolean mirror){return scaleNearest(source,DISPLAY_SCALE,mirror);}
     public static BufferedImage displayImage(BufferedImage source,boolean mirror,boolean doubled){return scaleNearest(source,DISPLAY_SCALE*(doubled?2:1),mirror);}
     public static BufferedImage displaySprite(BufferedImage source,boolean mirror,boolean doubled){

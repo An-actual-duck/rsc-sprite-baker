@@ -9,6 +9,9 @@ public final class AssembledPlayback {
     private AssembledPlayback(){ }
 
     public static Plan plan(TargetSheet sheet,int directionColumn,ToLongFunction<PoseSelection> durationMillis){
+        return plan(sheet,directionColumn,false,durationMillis);
+    }
+    public static Plan plan(TargetSheet sheet,int directionColumn,boolean swapFacingAway,ToLongFunction<PoseSelection> durationMillis){
         int column=SheetDirection.checked(directionColumn);
         int[] rows=column==5?new int[]{0,1,2}:new int[]{0,1,0,2};
         List<Step> steps=new ArrayList<>();long total=0;
@@ -17,7 +20,7 @@ public final class AssembledPlayback {
             if(pose==null)throw new IllegalStateException("unassigned "+TargetSheet.ROW_LABELS[row]+" / "+SheetDirection.label(column)+" cell");
             long duration=durationMillis.applyAsLong(pose);
             if(duration<=0)throw new IllegalArgumentException("non-positive playback duration");
-            steps.add(new Step(row,pose.copy(),sheet.effectiveSourceDirection(row,column),duration));total+=duration;
+            int sourceDirection=sheet.effectiveSourceDirection(row,column);steps.add(new Step(row,pose.copy(),sourceDirection,SheetDirection.rendered(sourceDirection,swapFacingAway),duration));total+=duration;
         }
         return new Plan(List.copyOf(steps),total);
     }
@@ -26,8 +29,9 @@ public final class AssembledPlayback {
         public final int row;
         public final PoseSelection pose;
         public final int sourceDirection;
+        public final int renderDirection;
         public final long durationMillis;
-        Step(int row,PoseSelection pose,int sourceDirection,long durationMillis){this.row=row;this.pose=pose;this.sourceDirection=sourceDirection;this.durationMillis=durationMillis;}
+        Step(int row,PoseSelection pose,int sourceDirection,int renderDirection,long durationMillis){this.row=row;this.pose=pose;this.sourceDirection=sourceDirection;this.renderDirection=renderDirection;this.durationMillis=durationMillis;}
     }
 
     public static final class Plan {
