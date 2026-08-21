@@ -27,7 +27,7 @@ public final class StaticRenderer {
     public BufferedImage render(List<ModelDefinition> models, NpcDefinition530 npc,
                                 double yawDegrees, Viewport viewport) {
         return renderRaw(models, npc, yawDegrees, PITCH_DEGREES, viewport,
-            WIDTH, HEIGHT, PADDING, 0, LIGHT_DIRECTION, AMBIENT_LIGHT, DIFFUSE_LIGHT, null).image;
+            WIDTH, HEIGHT, PADDING, 0, LIGHT_DIRECTION, AMBIENT_LIGHT, DIFFUSE_LIGHT, null,1).image;
     }
 
     /** Phase-3 output path: high-resolution raster followed by exact nearest-neighbor reduction. */
@@ -40,10 +40,12 @@ public final class StaticRenderer {
             baseYawDegrees + settings.yawOffsetDegrees, settings.pitchDegrees, viewport,
             settings.cellWidth * factor, settings.cellHeight * factor, settings.padding * factor,
             settings.verticalOffsetPixels * factor, settings.lightDirection(),
-            settings.ambient, settings.diffuse, null);
+            settings.ambient, settings.diffuse, null,settings.textureDetail);
         BufferedImage reduced = MaterialStylizer.RSC_RAMPS.equals(settings.materialStyle)
-            ? MaterialStylizer.reduce(highResolution, settings.cellWidth, settings.cellHeight, factor)
+            ? MaterialStylizer.reduce(highResolution, settings.cellWidth, settings.cellHeight, factor,settings.shadowDepth)
             : nearestNeighbor(highResolution.image, settings.cellWidth, settings.cellHeight, factor);
+        int[] surfaces=nearestMetadata(highResolution.surfaces,highResolution.image.getWidth(),settings.cellWidth,settings.cellHeight,factor),facets=nearestMetadata(highResolution.facets,highResolution.image.getWidth(),settings.cellWidth,settings.cellHeight,factor);
+        reduced=VisualTuning.colorVariation(reduced,surfaces,facets,settings.colorVariation);reduced=VisualTuning.colorIntensity(reduced,settings.colorIntensity);
         return PaletteReducer.apply(reduced, settings);
     }
 
@@ -55,10 +57,12 @@ public final class StaticRenderer {
         RasterFrame highResolution=renderRaw(models,npc,baseYawDegrees+settings.yawOffsetDegrees,
             settings.pitchDegrees,viewport,settings.cellWidth*factor,settings.cellHeight*factor,
             settings.padding*factor,settings.verticalOffsetPixels*factor,settings.lightDirection(),
-            settings.ambient,settings.diffuse,materials);
+            settings.ambient,settings.diffuse,materials,settings.textureDetail);
         BufferedImage reduced=MaterialStylizer.RSC_RAMPS.equals(settings.materialStyle)
-            ?MaterialStylizer.reduce(highResolution,settings.cellWidth,settings.cellHeight,factor)
+            ?MaterialStylizer.reduce(highResolution,settings.cellWidth,settings.cellHeight,factor,settings.shadowDepth)
             :nearestNeighbor(highResolution.image,settings.cellWidth,settings.cellHeight,factor);
+        int[] surfaces=nearestMetadata(highResolution.surfaces,highResolution.image.getWidth(),settings.cellWidth,settings.cellHeight,factor),facets=nearestMetadata(highResolution.facets,highResolution.image.getWidth(),settings.cellWidth,settings.cellHeight,factor);
+        reduced=VisualTuning.colorVariation(reduced,surfaces,facets,settings.colorVariation);reduced=VisualTuning.colorIntensity(reduced,settings.colorIntensity);
         return PaletteReducer.apply(reduced,settings);
     }
 
@@ -80,7 +84,7 @@ public final class StaticRenderer {
                                     double yawDegrees, double pitchDegrees, Viewport viewport,
                                     int width, int height, int padding, double verticalOffset,
                                     double[] lightDirection, double ambient, double diffuse,
-                                    MaterialProvider530 materials) {
+                                    MaterialProvider530 materials,double textureDetail) {
         if (models.isEmpty()) throw new IllegalArgumentException("at least one model is required");
         int totalVertices = models.stream().mapToInt(model -> model.vertexCount).sum();
         double[] projectedX = new double[totalVertices];
@@ -153,7 +157,7 @@ public final class StaticRenderer {
                         int modulation=texturedModulation(recolor(model.faceColors[face],npc),material.definition,brightness);
                         rasterizeTextured(image,zBuffer,surfaces,facets,lighting,shading,screenX,screenY,depth,a,b,c,
                             uv,material,modulation,alpha,0x20000+texture,facetOffset+face,
-                            brightness,styleBrightness,width,height);
+                            brightness,styleBrightness,width,height,textureDetail);
                     }catch(java.io.IOException exception){throw new IllegalArgumentException("cannot load texture "+texture,exception);}
                 }
             }
@@ -202,6 +206,11 @@ public final class StaticRenderer {
         for (int y=0;y<height;y++) for(int x=0;x<width;x++)
             output.setRGB(x,y,source.getRGB(x*factor+offset,y*factor+offset));
         return output;
+    }
+
+    static int[] nearestMetadata(int[] source,int sourceWidth,int width,int height,int factor){
+        if(source.length!=sourceWidth*height*factor||sourceWidth!=width*factor)throw new IllegalArgumentException("source metadata dimensions do not match reduction factor");
+        int[] output=new int[width*height];int offset=factor/2;for(int y=0;y<height;y++)for(int x=0;x<width;x++)output[y*width+x]=source[(y*factor+offset)*sourceWidth+x*factor+offset];return output;
     }
 
     public static final class View {
@@ -368,16 +377,17 @@ public final class StaticRenderer {
     private static void rasterizeTextured(BufferedImage image,double[] zBuffer,int[] surfaces,int[] facets,double[] lighting,
             double[] shading,double[] x,double[] y,double[] z,int a,int b,int c,double[] uv,TextureMaterial530 material,
             int modulation,int faceAlpha,int surface,int facet,double brightness,
-            double[] styleBrightness,int width,int height){
+            double[] styleBrightness,int width,int height,double textureDetail){
         double area=edge(x[a],y[a],x[b],y[b],x[c],y[c]);if(Math.abs(area)<.00001||faceAlpha==0)return;
         int minX=Math.max(0,(int)Math.floor(Math.min(x[a],Math.min(x[b],x[c])))),maxX=Math.min(width-1,(int)Math.ceil(Math.max(x[a],Math.max(x[b],x[c]))));
         int minY=Math.max(0,(int)Math.floor(Math.min(y[a],Math.min(y[b],y[c])))),maxY=Math.min(height-1,(int)Math.ceil(Math.max(y[a],Math.max(y[b],y[c]))));
         for(int py=minY;py<=maxY;py++)for(int px=minX;px<=maxX;px++){double sx=px+.5,sy=py+.5,wa=edge(x[b],y[b],x[c],y[c],sx,sy)/area,wb=edge(x[c],y[c],x[a],y[a],sx,sy)/area,wc=1-wa-wb;if(wa<-.000001||wb<-.000001||wc<-.000001)continue;
             double pd=wa*z[a]+wb*z[b]+wc*z[c];int index=py*width+px;if(pd<=zBuffer[index])continue;double u=wa*uv[0]+wb*uv[2]+wc*uv[4],v=wa*uv[1]+wb*uv[3]+wc*uv[5];int tx=Math.floorMod((int)Math.floor(u*material.size),material.size),ty=Math.floorMod((int)Math.floor(v*material.size),material.size);int texel=material.pixels[ty*material.size+tx];if(!material.definition.opaque&&(texel&0xffffff)==0)continue;
-            int r=((texel>>>16)&255)*((modulation>>>16)&255)/255,g=((texel>>>8)&255)*((modulation>>>8)&255)/255,bl=(texel&255)*(modulation&255)/255;int src=(faceAlpha<<24)|(r<<16)|(g<<8)|bl;
+            int tr=textureChannel((texel>>>16)&255,textureDetail),tg=textureChannel((texel>>>8)&255,textureDetail),tb=textureChannel(texel&255,textureDetail);int r=tr*((modulation>>>16)&255)/255,g=tg*((modulation>>>8)&255)/255,bl=tb*(modulation&255)/255;int src=(faceAlpha<<24)|(r<<16)|(g<<8)|bl;
             if(faceAlpha==255)image.setRGB(px,py,src);else image.setRGB(px,py,blend(src,image.getRGB(px,py)));zBuffer[index]=pd;surfaces[index]=surface;facets[index]=facet;lighting[index]=brightness;shading[index]=wa*styleBrightness[0]+wb*styleBrightness[1]+wc*styleBrightness[2];
         }
     }
+    static int textureChannel(int channel,double detail){return Math.max(0,Math.min(255,(int)Math.round(255+(channel-255)*detail)));}
     private static int blend(int src,int dst){int a=src>>>24,inv=255-a;int r=(((src>>>16)&255)*a+((dst>>>16)&255)*inv+127)/255,g=(((src>>>8)&255)*a+((dst>>>8)&255)*inv+127)/255,b=((src&255)*a+(dst&255)*inv+127)/255,oa=a+((dst>>>24)*inv+127)/255;return(oa<<24)|(r<<16)|(g<<8)|b;}
     private static double edge(double ax,double ay,double bx,double by,double px,double py){return(px-ax)*(by-ay)-(py-ay)*(bx-ax);}
     private static double clamp(double value,double min,double max){return Math.max(min,Math.min(max,value));}

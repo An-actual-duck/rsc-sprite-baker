@@ -188,6 +188,10 @@ class MaterialStylizerTest {
         assertEquals(2, MaterialStylizer.illuminationShadow(.30));
     }
 
+    @Test void shadowDepthDefaultsExactAndCanRemoveOrEmphasizeMaterialShadows(){
+        for(int y=0;y<4;y++)for(int x=0;x<4;x++){assertEquals(MaterialStylizer.ditheredShadowSteps(1,x,y),MaterialStylizer.scaledShadowSteps(1,1,x,y));assertEquals(0,MaterialStylizer.scaledShadowSteps(2,0,x,y));assertTrue(MaterialStylizer.scaledShadowSteps(1,1.5,x,y)>=MaterialStylizer.scaledShadowSteps(1,1,x,y));}
+    }
+
     @Test void directionalInnerShadowDarkensOnlyTheLightOpposedSilhouette() {
         BufferedImage image=new BufferedImage(9,9,BufferedImage.TYPE_INT_ARGB);int[] surfaces=new int[81];
         for(int y=2;y<=6;y++)for(int x=2;x<=6;x++){image.setRGB(x,y,0xffa08060);surfaces[y*9+x]=4;}

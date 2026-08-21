@@ -55,12 +55,21 @@ two-sided Lambertian face shading plus the decoded NPC ambient/contrast
 adjustments. `Unmodified color` means no post-render palette conversion; it
 does not bypass source HSL conversion or lighting.
 
-The Color limit menu also exposes the coarser 3×3×3 cube for deliberate
-stylized experiments. Dithering uses one clear enable/disable checkbox because
-the renderer has only one meaningful pattern. Its amount control appears only
-when dithering and a reduced color limit are active. The ordered 4×4 pattern is
-spatially fixed to output coordinates, so it is reproducible and does not
-shimmer between frames. Dithering never changes transparent pixels.
+All numeric editor controls pair sliders with editable fields. Four bounded
+percentage controls add independent tuning while preserving exact prior output
+at their 100% defaults:
+
+- **Color variation** scales deviation from a local same-surface, same-facet
+  median. It cannot smear separate triangles or the transparent silhouette.
+- **Texture detail** blends decoded texels toward the lit face color; alpha-test
+  holes remain transparent.
+- **Color intensity** scales saturation without changing alpha or geometry.
+- **Shadow depth** scales only the Material look's inner and contact shadows.
+
+Fixed palette cubes and ordered dithering have moved to **Advanced > Legacy
+palette reduction**. They remain fully persisted for existing projects. The
+ordered 4×4 pattern is spatially fixed to output coordinates, so it is
+reproducible and does not shimmer between frames or change transparent pixels.
 
 ## RSC material first visual checkpoint
 

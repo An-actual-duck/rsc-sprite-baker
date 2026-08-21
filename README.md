@@ -115,11 +115,14 @@ The visual toolbar presents **Original** and **Material** as its primary looks;
 older preset names remain loadable for projects that already reference them but
 are no longer advertised for new tuning. Controls use visible-effect names such
 as Sprite size, Camera tilt, Base brightness, and Light direction, with concise
-tooltips. The renderer's persisted padding is exposed as **Edge margin**. A
-single **Dithering** checkbox replaces the implementation-name dropdown, and
-its amount control appears only when dithering is enabled with a reduced color
-limit. These controls drive the same shared preview/export settings and manifest
-fields as before.
+tooltips. Every numeric tuning control combines a physical slider with an
+editable value field. The renderer's persisted padding is exposed as **Edge
+margin**. **Color variation**, **Texture detail**, **Color intensity**, and
+Material-only **Shadow depth** default to 100%, which preserves prior pixels.
+The toolbar remains two rows high. Fixed-cube color limiting and ordered
+dithering remain available under **Advanced > Legacy palette reduction** for
+saved-project compatibility rather than occupying normal tuning space. These
+controls drive the same shared preview/export settings and manifest fields.
 
 The prominent **Play final RSC loop** control lives beside the final-sheet
 preview. It shows the actual assigned export-size poses in the

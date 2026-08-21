@@ -170,10 +170,14 @@ The visual toolbar keeps **Original** and **Material** as the normal starting
 looks, followed by **Custom**. A legacy preset is added to that list only while
 editing a saved project that names it; its implementation remains supported and
 its persisted name is not rewritten. Tuning labels describe visible results,
-and their tooltips explain scope. **Edge margin** exposes the renderer's existing
-bounded transparent padding. **Dithering** is an enable/disable checkbox for the
-only supported deterministic 4×4 pattern; **Dither amount** is shown only when
-that pattern and a reduced color limit are both active. Preview and export still
+and their tooltips explain scope. Every numeric control pairs a slider with an
+editable bounded value while retaining the two-row toolbar allocation. **Edge
+margin** exposes the renderer's existing transparent padding. The four
+default-100% controls are **Color variation**, **Texture detail**, **Color
+intensity**, and Material-only **Shadow depth**. Slider changes are briefly
+debounced before rebuilding source cards, sheet cells, and the selected preview.
+Fixed palette reduction and deterministic 4×4 dithering remain persisted and
+are editable through **Advanced > Legacy palette reduction**. Preview and export
 consume the same `VisualSettings` snapshot.
 
 **Play final RSC loop** is the primary playback action and sits inside the

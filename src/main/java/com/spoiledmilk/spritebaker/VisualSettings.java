@@ -14,6 +14,10 @@ public final class VisualSettings {
     public double diffuse = 0.40;
     public double lightAzimuthDegrees = -125.0;
     public double lightElevationDegrees = 45.0;
+    public double colorVariation = 1.0;
+    public double textureDetail = 1.0;
+    public double colorIntensity = 1.0;
+    public double shadowDepth = 1.0;
     public String palette = PaletteReducer.UNMODIFIED;
     public String dithering = PaletteReducer.NO_DITHER;
     public double ditherStrength = 0.30;
@@ -32,13 +36,17 @@ public final class VisualSettings {
         if (verticalOffsetPixels < -512 || verticalOffsetPixels > 512) throw new IllegalArgumentException("vertical offset must be -512..512 pixels");
         if (ambient < 0 || ambient > 1 || diffuse < 0 || diffuse > 1) throw new IllegalArgumentException("lighting must be 0..1");
         if (lightElevationDegrees < -90 || lightElevationDegrees > 90) throw new IllegalArgumentException("light elevation must be -90..90 degrees");
+        if (colorVariation < 0 || colorVariation > 1.5) throw new IllegalArgumentException("color variation must be 0..1.5");
+        if (textureDetail < 0 || textureDetail > 1) throw new IllegalArgumentException("texture detail must be 0..1");
+        if (colorIntensity < 0 || colorIntensity > 1.5) throw new IllegalArgumentException("color intensity must be 0..1.5");
+        if (shadowDepth < 0 || shadowDepth > 1.5) throw new IllegalArgumentException("shadow depth must be 0..1.5");
         if (ditherStrength < 0 || ditherStrength > 1) throw new IllegalArgumentException("dither strength must be 0..1");
         PaletteReducer.validate(palette, dithering);
         MaterialStylizer.validate(materialStyle);
     }
 
     public void applyPreset(String name) {
-        preset = name;
+        preset = name;colorVariation=1;textureDetail=1;colorIntensity=1;shadowDepth=1;
         switch (name) {
             case "Original colors":
                 pitchDegrees = 12; modelScale = 0.9; verticalOffsetPixels = 0;
