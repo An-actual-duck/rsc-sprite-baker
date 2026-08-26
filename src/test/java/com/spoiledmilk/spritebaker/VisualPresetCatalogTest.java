@@ -15,4 +15,10 @@ class VisualPresetCatalogTest {
         assertArrayEquals(new String[]{VisualPresetCatalog.ORIGINAL,VisualPresetCatalog.MATERIAL,"Future preset",VisualPresetCatalog.CUSTOM},VisualPresetCatalog.editorChoices("Future preset"));
         assertFalse(VisualPresetCatalog.isApplicable("Future preset"));
     }
+
+    @Test void userProfilesAppearBetweenBuiltInsAndCustomWithoutChangingBuiltIns(){
+        assertArrayEquals(new String[]{VisualPresetCatalog.ORIGINAL,VisualPresetCatalog.MATERIAL,"Warm outline","Soft material",VisualPresetCatalog.CUSTOM},VisualPresetCatalog.editorChoices(VisualPresetCatalog.CUSTOM,java.util.List.of("Warm outline","Soft material")));
+        assertEquals("Warm outline",VisualPresetCatalog.displayName("Warm outline",java.util.List.of("Warm outline")));
+        assertEquals("Future preset (legacy project preset)",VisualPresetCatalog.displayName("Future preset",java.util.List.of("Warm outline")));
+    }
 }

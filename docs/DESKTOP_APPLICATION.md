@@ -167,9 +167,15 @@ pending replacement; the stopped final preview continues showing the selected
 cell's exact assigned frame.
 
 The visual toolbar keeps **Original** and **Material** as the normal starting
-looks, followed by **Custom**. A legacy preset is added to that list only while
-editing a saved project that names it; its implementation remains supported and
-its persisted name is not rewritten. Tuning labels describe visible results,
+looks, followed by user-saved profiles and **Custom**. **Save settings** sits
+directly below **Shadow depth** and prompts for a unique profile name. Profiles
+capture every visual control, including **Surface colors**, and are stored in
+the per-user `~/.rsc-sprite-baker/look-profiles.json` settings file rather than
+portable project data. Selecting a profile restores its values immediately.
+Blank, duplicate, and built-in names are rejected without replacing data. A
+legacy preset is added to the list only while editing a saved project that names
+it; its implementation remains supported and its persisted name is not
+rewritten. Tuning labels describe visible results,
 and their tooltips explain scope. Every numeric control pairs a slider with an
 editable bounded value while retaining the two-row toolbar allocation. **Edge
 margin** exposes the renderer's existing transparent padding. The four
