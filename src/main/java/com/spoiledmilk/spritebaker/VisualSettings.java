@@ -24,6 +24,20 @@ public final class VisualSettings {
     public String materialStyle = MaterialStylizer.NONE;
     public String preset = VisualPresetCatalog.ORIGINAL;
 
+    public VisualSettings copy() {
+        VisualSettings copy = new VisualSettings();
+        copy.copyFrom(this);
+        return copy;
+    }
+
+    public void copyFrom(VisualSettings source) {
+        cellWidth=source.cellWidth;cellHeight=source.cellHeight;supersample=source.supersample;padding=source.padding;
+        modelScale=source.modelScale;pitchDegrees=source.pitchDegrees;yawOffsetDegrees=source.yawOffsetDegrees;verticalOffsetPixels=source.verticalOffsetPixels;
+        ambient=source.ambient;diffuse=source.diffuse;lightAzimuthDegrees=source.lightAzimuthDegrees;lightElevationDegrees=source.lightElevationDegrees;
+        colorVariation=source.colorVariation;textureDetail=source.textureDetail;colorIntensity=source.colorIntensity;shadowDepth=source.shadowDepth;
+        palette=source.palette;dithering=source.dithering;ditherStrength=source.ditherStrength;materialStyle=source.materialStyle;preset=source.preset;
+    }
+
     public void validate() {
         if (cellWidth < 16 || cellWidth > 512 || cellHeight < 16 || cellHeight > 512) {
             throw new IllegalArgumentException("cell dimensions must be between 16 and 512 pixels");
