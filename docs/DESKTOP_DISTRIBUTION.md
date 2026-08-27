@@ -123,9 +123,9 @@ archives, rejected non-minimal source fields, confirmed no full
 Inspected review archives:
 
 - Linux tar.gz SHA-256:
-  `c180180e28ac02935cd0fdffcb9d7029ef52a936be423ee6a0d9f947d047994e`
+  `1e867c6ead521da00b5c951994642f25f990bab0a12ce2987a86a30819b049fe`
 - Windows zip SHA-256:
-  `574d8c48a2f5b48ee057d66c345c735f99585a8007f4f633488dc3c708e5a3b9`
+  `1d37f8f9fb660cdb91cbe1d6b1893a08052a7b5f60b7feed8c18efa4bd192fb8`
 
 ## 2026-08-14 terminal evidence
 
