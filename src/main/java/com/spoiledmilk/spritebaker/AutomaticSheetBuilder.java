@@ -19,8 +19,8 @@ public final class AutomaticSheetBuilder {
         }
 
         List<CombatCandidate> candidates = AnimationDiscovery.combatCandidates(workspace);
-        if (!candidates.isEmpty()) {
-            CombatCandidate selected = candidates.get(0);
+        CombatCandidate selected = AnimationDiscovery.chooseAutomatic(candidates);
+        if (selected != null) {
             project.combatSequenceId = selected.sequenceId;
             PoseSelection[] combat = selected.suggestions();
             for (int row = 0; row < TargetSheet.ROWS; row++) {

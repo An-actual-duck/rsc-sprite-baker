@@ -25,17 +25,25 @@ public final class CombatPoseDetector {
     static Detection detect(AnimationWorkspace workspace,Baseline baseline,Sequence530 sequence,int metadataScore)throws IOException{
         if(sequence.frameIds.length<3)throw new IllegalArgumentException("combat sequence needs at least three encoded frames");
         if(sequence.frameIds.length>24)throw new IllegalArgumentException("combat sequence exceeds bounded frame count");
+        Analysis analysis=analyze(workspace,baseline,sequence);double[] novelty=analysis.novelty;List<Signature> signatures=analysis.signatures;
+        int distinct=analysis.distinctPoses;int peak=analysis.peakFrame;
+        double endpoint=Math.max(novelty[0],novelty[novelty.length-1]),excursion=novelty[peak]-endpoint;
+        if(distinct<3||!isExcursion(novelty))throw new IllegalArgumentException("sequence does not contain three distinct side-view poses that depart from and return to locomotion");
+        PoseSelection[] poses=selectDistinct(sequence,novelty,signatures,baseline.scale);int score=motionScore(metadataScore,novelty[peak],excursion/novelty[peak]);
+        return new Detection(poses,score,novelty[peak],distinct);
+    }
+
+    static Analysis analyze(AnimationWorkspace workspace,Baseline baseline,Sequence530 sequence)throws IOException{
+        if(sequence.frameIds.length<2)throw new IllegalArgumentException("combat browsing needs at least two encoded frames");
+        if(sequence.frameIds.length>64)throw new IllegalArgumentException("sequence exceeds bounded 64-frame compatibility analysis");
         double[] novelty=new double[sequence.frameIds.length];List<Signature> signatures=new ArrayList<>();
         for(int frame=0;frame<sequence.frameIds.length;frame++){
             FrameSample sample=AnimationTimeline.sample(sequence,AnimationTimeline.frameStartMillis(sequence,frame));
             Signature value=signature(workspace.pose(new PoseSelection(sample,"combat-analysis"),false),workspace.npc);signatures.add(value);
             novelty[frame]=distance(value,baseline.signatures)/baseline.scale;
         }
-        int distinct=distinct(signatures,baseline.scale);int peak=maximum(novelty);
-        double endpoint=Math.max(novelty[0],novelty[novelty.length-1]),excursion=novelty[peak]-endpoint;
-        if(distinct<3||!isExcursion(novelty))throw new IllegalArgumentException("sequence does not contain three distinct side-view poses that depart from and return to locomotion");
-        PoseSelection[] poses=selectDistinct(sequence,novelty,signatures,baseline.scale);int score=motionScore(metadataScore,novelty[peak],excursion/novelty[peak]);
-        return new Detection(poses,score,novelty[peak],distinct);
+        int peak=maximum(novelty),distinct=distinct(signatures,baseline.scale);double recovery=peak==novelty.length-1?0:(novelty[peak]-novelty[novelty.length-1])/Math.max(novelty[peak],1.0e-12);
+        return new Analysis(novelty,List.copyOf(signatures),peak,distinct,recovery);
     }
 
     public static PoseSelection[] suggest(AnimationWorkspace workspace,int standingId,int walkingId,int combatId)throws IOException{
@@ -89,5 +97,10 @@ public final class CombatPoseDetector {
         final PoseSelection[] poses;final int score;final double peakNovelty;final int distinctPoses;
         Detection(PoseSelection[] poses,int score,double peakNovelty,int distinctPoses){this.poses=poses;this.score=score;this.peakNovelty=peakNovelty;this.distinctPoses=distinctPoses;}
         PoseSelection[] poses(){return new PoseSelection[]{poses[0].copy(),poses[1].copy(),poses[2].copy()};}
+    }
+    static final class Analysis{
+        final double[] novelty;final List<Signature> signatures;final int peakFrame,distinctPoses;final double recoveryRatio;
+        Analysis(double[] novelty,List<Signature> signatures,int peakFrame,int distinctPoses,double recoveryRatio){this.novelty=novelty;this.signatures=signatures;this.peakFrame=peakFrame;this.distinctPoses=distinctPoses;this.recoveryRatio=recoveryRatio;}
+        boolean credibleDeparture(){return distinctPoses>=3&&peakFrame>0&&peakFrame<novelty.length-1&&novelty[peakFrame]>=5.0e-5&&recoveryRatio>=.05;}
     }
 }

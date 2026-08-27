@@ -19,6 +19,12 @@ class DirectionFrameBrowserTest {
         assertTrue(browser.combatDirection());assertEquals(List.of(DirectionFrameBrowser.Source.COMBAT),browser.visibleSources());assertEquals(List.of(30),browser.visibleSequenceIds());
     }
 
+    @Test void browsingOneOfMultipleCombatSequencesPreservesEveryDiscovery(){
+        SpriteProject project=new SpriteProject();project.combatSequenceId=30;DirectionFrameBrowser browser=new DirectionFrameBrowser(project);browser.direction(5);
+        browser.combatSequenceIds(List.of(30,44,31,44));assertEquals(List.of(30,44,31),browser.combatSequenceIds());assertEquals(List.of(30),browser.visibleSequenceIds());
+        assertTrue(browser.browseCombatSequence(44));assertEquals(List.of(44),browser.visibleSequenceIds());assertEquals(List.of(30,44,31),browser.combatSequenceIds());assertEquals(30,project.combatSequenceId);
+    }
+
     @Test void completeMovementAlternativesCarryExactSmartSelectionMarkers(){
         Sequence530 standing=sequence(10,new int[]{2,1});Sequence530 walking=sequence(20,new int[]{2,3,1});
         List<DirectionFrameBrowser.Alternative> alternatives=DirectionFrameBrowser.alternatives(0,standing,walking,null,false);
