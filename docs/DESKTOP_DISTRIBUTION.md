@@ -46,10 +46,15 @@ Build both archives from the Sprite Baker checkout with:
 ./scripts/build-distributions.sh 0.1.0
 ```
 
-The build reads only `Server/data/cache` in the sibling 2009Scape source
-checkout. It refuses to package an incomplete cache, tracked or staged cache
+The build reads `Server/data/cache` and
+`Server/data/configs/npc_configs.json` in the sibling 2009Scape source
+checkout. The config is reduced during assembly to an asset-free combat-role
+manifest containing only NPC IDs and positive melee, magic, and ranged sequence
+IDs; the full config is never packaged or copied into this repository. The
+build refuses to package an incomplete cache, tracked or staged cache/config
 changes, files whose hydrated bytes do not match the exact revision's Git LFS
-object ID and size, differing repository/server license copies, or an
+object ID and size, config bytes that differ from the exact Git revision,
+differing repository/server license copies, or an
 unrecognized source layout. It never copies a cache or generated asset into
 this Git repository; archives are build output under `target/distributions`.
 
@@ -57,10 +62,12 @@ Each archive contains:
 
 - the dependency-bundled Sprite Baker JAR and one platform launcher;
 - all 31 read-only JS5 files (`dat2`, `idx0` through `idx28`, and `idx255`);
+- `metadata/combat-roles-v1.json`, with schema, source revision/hash, canonical
+  entry hash, and deterministically sorted minimal role records;
 - an initially empty writable `exports` directory;
 - the complete 2009Scape AGPL-3.0 license text;
-- the cache asset notice, exact source revision/remotes, and cache SHA-256
-  inventory; and
+- the cache/metadata notice, exact source revision/remotes, cache and metadata
+  SHA-256 inventories, and a combat-metadata source record; and
 - Sprite Baker's Java dependency notices.
 
 The cache notice records the distribution's reviewed AGPL-3.0 conveyance
@@ -82,8 +89,11 @@ archives in a private temporary directory, and calls:
 
 Inspection rejects unsafe, duplicate, case-colliding, or symbolic-link archive
 paths; checks the exact platform launchers, empty exports folder, cache count,
-license/provenance files, cache checksums, and required desktop/advanced JAR
-classes; and verifies that the Linux cache is not writable. The build prints
+license/provenance files, cache/metadata checksums, and required desktop/advanced
+JAR classes; validates identical minimal manifests in both platforms; runs
+packaged-layout discovery for far/multiple attacks; and verifies that the Linux
+cache is not writable. The build also re-hashes every source input after
+inspection. It prints
 final SHA-256 hashes and sizes only after inspection passes.
 
 The archives intentionally do not bundle a Java runtime. No cache, archive,

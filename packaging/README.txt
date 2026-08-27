@@ -25,5 +25,6 @@ the documented command-line entry points in the source repository. They are
 not required for ordinary desktop use:
 https://github.com/An-actual-duck/rsc-sprite-baker
 
-Licensing and source information for the bundled cache is in `licenses`.
+Licensing and source information for the bundled cache and minimal derived
+combat-role metadata is in `licenses`.
 Third-party Java dependency notices are in `THIRD_PARTY_NOTICES.md`.

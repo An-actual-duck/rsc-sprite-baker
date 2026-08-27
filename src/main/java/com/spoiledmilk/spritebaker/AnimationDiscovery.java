@@ -26,12 +26,12 @@ public final class AnimationDiscovery {
         if(framemaps.isEmpty())return new CombatDiscovery(List.of(),List.copyOf(rejected),0,"no usable standing/walking framemap baseline");
         CombatPoseDetector.Baseline baseline=CombatPoseDetector.baseline(workspace,standing,walking);
 
-        List<CombatMetadata530.Entry> metadata;
-        try{metadata=CombatMetadata530.load(workspace.cachePath,workspace.npc.id);}catch(Exception e){metadata=List.of();rejected.add("adjacent NPC combat metadata: "+failure(e));}
+        List<CombatMetadata530.Entry> metadata;String metadataProvenance;
+        try{CombatMetadata530.LoadResult loaded=CombatMetadata530.loadWithDiagnostics(workspace.cachePath,workspace.npc.id);metadata=loaded.entries;metadataProvenance=loaded.provenance;rejected.addAll(loaded.diagnostics);}catch(Exception e){metadata=List.of();metadataProvenance="combat-role metadata unavailable";rejected.add("combat-role metadata: "+failure(e));}
         Map<Integer,CombatMetadata530.Entry> explicit=new LinkedHashMap<>();for(CombatMetadata530.Entry entry:metadata)explicit.put(entry.sequenceId,entry);
         LinkedHashSet<Integer> ids=new LinkedHashSet<>(explicit.keySet());boolean compatibilityFallback=metadata.isEmpty();if(compatibilityFallback)ids.addAll(workspace.cache.relatedSequenceIds(standing,walking));
         Map<String,Integer> fingerprints=new LinkedHashMap<>();List<CombatCandidate> out=new ArrayList<>();int scanned=0;
-        for(int id:ids){if(id<0||id==standing||id==walking)continue;CombatMetadata530.Entry relationship=explicit.get(id);if(relationship==null&&nearestDistance(id,standing,walking)>32)continue;scanned++;String source=relationship==null?"bounded ±32 cache compatibility":"adjacent "+relationship.provenance();
+        for(int id:ids){if(id<0||id==standing||id==walking)continue;CombatMetadata530.Entry relationship=explicit.get(id);if(relationship==null&&nearestDistance(id,standing,walking)>32)continue;scanned++;String source=relationship==null?"bounded ±32 cache compatibility":relationship.provenance();
             try{
                 Sequence530 sequence=workspace.cache.loadSequence(id);
                 if(sequence.frameIds.length<2){rejected.add("sequence "+id+" ["+source+"]: fewer than two encoded frames");continue;}
@@ -54,7 +54,7 @@ public final class AnimationDiscovery {
             }catch(Exception e){rejected.add("sequence "+id+" ["+source+"]: "+failure(e));}
         }
         out.sort(Comparator.comparingInt((CombatCandidate c)->explicit.containsKey(c.sequenceId)?0:1).thenComparing((CombatCandidate c)->c.automaticRecommendation()?0:1).thenComparing(Comparator.comparingInt((CombatCandidate c)->c.score).reversed()).thenComparingInt(c->c.sequenceId));
-        return new CombatDiscovery(List.copyOf(out),List.copyOf(rejected),scanned,compatibilityFallback?"bounded ±32 cache compatibility fallback":"adjacent NPC combat metadata");
+        return new CombatDiscovery(List.copyOf(out),List.copyOf(rejected),scanned,compatibilityFallback?metadataProvenance+"; bounded ±32 cache compatibility fallback":metadataProvenance);
     }
 
     static CombatCandidate chooseAutomatic(List<CombatCandidate> candidates){for(CombatCandidate candidate:candidates)if(candidate.automaticRecommendation())return candidate;return null;}

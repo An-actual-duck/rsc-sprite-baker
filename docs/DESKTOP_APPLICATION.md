@@ -92,9 +92,11 @@ remains read-only and closes with the browser.
 
 Known standing and walking sequences come from BAS metadata when present, with
 NPC-definition animation IDs as the fallback. Combat discovery has separate
-browse and automatic contracts. If a compatible cache has adjacent per-NPC
-combat-role metadata, every distinct melee, magic, and ranged relationship is
-validated and exposed with role provenance. When that metadata is absent, the
+browse and automatic contracts. Runtime discovery first validates the packaged
+`metadata/combat-roles-v1.json` manifest, then checks adjacent per-NPC source
+configuration for development. Every distinct melee, magic, and ranged
+relationship is exposed with role provenance. When both sources are absent or
+invalid, the
 detector examines only the related sequence archives and a ±32 ID window,
 requires exact locomotion framemap compatibility, and retains a candidate only
 for a visible departure with at least partial recovery. The scan analyzes at

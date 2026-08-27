@@ -13,6 +13,12 @@ Source mirror used for this build: https://github.com/An-actual-duck/open-rsc2-f
 The cache files are copied without modification from the read-only source
 checkout. `CACHE-SOURCE.txt` records the exact source revision and URLs used by
 the packaging build. `CACHE-SHA256SUMS.txt` records every conveyed cache file.
+The asset-free `metadata/combat-roles-v1.json` file is deterministically derived
+from the same revision's `Server/data/configs/npc_configs.json` and contains only
+NPC IDs plus positive melee, magic, and ranged sequence IDs.
+`COMBAT-METADATA-SOURCE.txt` records its exact source path, revision, source
+hash, canonical-entry hash, and schema; `METADATA-SHA256SUMS.txt` covers the
+packaged file.
 The complete, verbatim AGPL-3.0 text from that source checkout is included as
 `2009scape-AGPL-3.0.txt`.
 

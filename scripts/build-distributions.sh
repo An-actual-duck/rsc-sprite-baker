@@ -5,6 +5,7 @@ repo=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 version=${1:-0.1.0}
 source_root=${RSC_SPRITE_BAKER_CACHE_SOURCE_ROOT:-"$repo/../2009scape"}
 cache_source=${RSC_SPRITE_BAKER_CACHE:-"$source_root/Server/data/cache"}
+combat_config_source="$source_root/Server/data/configs/npc_configs.json"
 output=${RSC_SPRITE_BAKER_DISTRIBUTIONS:-"$repo/target/distributions"}
 epoch=${SOURCE_DATE_EPOCH:-$(git -C "$repo" log -1 --format=%ct)}
 
@@ -19,11 +20,17 @@ mapfile -d '' cache_files < <(find "$cache_source" -maxdepth 1 -type f -name 'ma
 test "${#cache_files[@]}" -eq 31 || { echo "Expected exactly 31 cache files (dat2, idx0..idx28, idx255); found ${#cache_files[@]}." >&2; exit 2; }
 test -f "$source_root/LICENSE" || { echo "Missing source license: $source_root/LICENSE" >&2; exit 2; }
 test -f "$source_root/Server/License" || { echo "Missing server license: $source_root/Server/License" >&2; exit 2; }
+test -f "$combat_config_source" || { echo "Missing combat metadata source: $combat_config_source" >&2; exit 2; }
 cmp -s "$source_root/LICENSE" "$source_root/Server/License" || { echo "Source license copies differ; review before packaging." >&2; exit 2; }
 git -C "$source_root" diff --quiet -- Server/data/cache || { echo "Cache working files differ from the recorded source revision." >&2; exit 2; }
 git -C "$source_root" diff --cached --quiet -- Server/data/cache || { echo "Staged cache changes prevent a provenance-accurate build." >&2; exit 2; }
+git -C "$source_root" diff --quiet -- Server/data/configs/npc_configs.json || { echo "Combat metadata source differs from the recorded source revision." >&2; exit 2; }
+git -C "$source_root" diff --cached --quiet -- Server/data/configs/npc_configs.json || { echo "Staged combat metadata changes prevent a provenance-accurate build." >&2; exit 2; }
 
 source_commit=$(git -C "$source_root" rev-parse HEAD)
+combat_config_sha256=$(sha256sum "$combat_config_source" | awk '{print $1}')
+recorded_combat_config_sha256=$(git -C "$source_root" show "$source_commit:Server/data/configs/npc_configs.json" | sha256sum | awk '{print $1}')
+test "$combat_config_sha256" = "$recorded_combat_config_sha256" || { echo "Combat metadata source bytes do not match $source_commit." >&2; exit 2; }
 for file in "${cache_files[@]}"; do
   relative=${file#"$source_root/"}
   pointer_oid=$(git -C "$source_root" show "$source_commit:$relative" | sed -n 's/^oid sha256://p') || { echo "Cache file is not tracked at $source_commit: $relative" >&2; exit 2; }
@@ -46,20 +53,28 @@ stage=$(mktemp -d "${TMPDIR:-/tmp}/rsc-sprite-baker-distribution.XXXXXX")
 cleanup(){ chmod -R u+w "$stage" 2>/dev/null || true; rm -rf -- "$stage"; }
 trap cleanup EXIT
 
+derived_manifest="$stage/combat-roles-v1.json"
+"$JAVA_HOME/bin/java" -cp "$repo/target/rsc-sprite-baker.jar" com.spoiledmilk.spritebaker.CombatRoleManifestMain --source "$combat_config_source" --revision "$source_commit" --output "$derived_manifest"
+"$JAVA_HOME/bin/java" -cp "$repo/target/rsc-sprite-baker.jar" com.spoiledmilk.spritebaker.CombatRoleManifestMain --validate "$derived_manifest"
+entries_sha256=$(sed -n 's/.*"entriesSha256": "\([0-9a-f]*\)".*/\1/p' "$derived_manifest")
+test -n "$entries_sha256" || { echo "Generated combat-role manifest has no entriesSha256." >&2; exit 2; }
+
 source_origin=$(git -C "$source_root" remote get-url origin 2>/dev/null || true)
 source_upstream=$(git -C "$source_root" remote get-url upstream 2>/dev/null || true)
 
 assemble(){
   platform=$1
   root="$stage/$platform/RSC Sprite Baker"
-  mkdir -p "$root/cache" "$root/exports" "$root/licenses"
+  mkdir -p "$root/cache" "$root/exports" "$root/licenses" "$root/metadata"
   install -m 0644 "$repo/target/rsc-sprite-baker.jar" "$root/rsc-sprite-baker.jar"
   install -m 0644 "$repo/packaging/README.txt" "$root/README.txt"
   install -m 0644 "$repo/THIRD_PARTY_NOTICES.md" "$root/THIRD_PARTY_NOTICES.md"
   install -m 0644 "$repo/packaging/CACHE-ASSET-NOTICE.txt" "$root/licenses/CACHE-ASSET-NOTICE.txt"
   install -m 0444 "$source_root/LICENSE" "$root/licenses/2009scape-AGPL-3.0.txt"
+  install -m 0444 "$derived_manifest" "$root/metadata/combat-roles-v1.json"
   for file in "${cache_files[@]}"; do install -m 0444 "$file" "$root/cache/$(basename "$file")"; done
   (cd "$root/cache" && sha256sum main_file_cache.* | LC_ALL=C sort -k2) > "$root/licenses/CACHE-SHA256SUMS.txt"
+  (cd "$root" && sha256sum metadata/combat-roles-v1.json) > "$root/licenses/METADATA-SHA256SUMS.txt"
   {
     printf '2009Scape cache source record\n'
     printf '=============================\n\n'
@@ -72,6 +87,19 @@ assemble(){
     printf 'Cache modification status: no tracked or staged cache changes at packaging time\n'
     printf '\nObtain corresponding source and Git LFS objects by cloning the source mirror,\nchecking out the exact revision above, and fetching Git LFS content.\n'
   } > "$root/licenses/CACHE-SOURCE.txt"
+  {
+    printf '2009Scape combat-role metadata source record\n'
+    printf '============================================\n\n'
+    printf 'Packaged path: metadata/combat-roles-v1.json\n'
+    printf 'Schema version: 1\n'
+    printf 'Source revision: %s\n' "$source_commit"
+    printf 'Source path: Server/data/configs/npc_configs.json\n'
+    printf 'Source SHA-256: %s\n' "$combat_config_sha256"
+    printf 'Canonical entries SHA-256: %s\n' "$entries_sha256"
+    printf 'License: AGPL-3.0 (licenses/2009scape-AGPL-3.0.txt)\n'
+    printf 'Contents: NPC ID and positive melee, magic, and ranged sequence IDs only\n'
+    printf 'Source modification status: no tracked or staged changes at packaging time\n'
+  } > "$root/licenses/COMBAT-METADATA-SOURCE.txt"
   if [ "$platform" = linux ]; then
     install -m 0755 "$repo/packaging/Start RSC Sprite Baker.sh" "$root/Start RSC Sprite Baker.sh"
   else
@@ -94,6 +122,8 @@ TZ=UTC tar --sort=name --mtime="@$epoch" --owner=0 --group=0 --numeric-owner -C 
 (cd "$stage/windows" && TZ=UTC find "RSC Sprite Baker" -print | LC_ALL=C sort | zip -X -q "$windows_candidate" -@)
 
 "$repo/scripts/inspect-distributions.sh" "$linux_candidate" "$windows_candidate"
+test "$combat_config_sha256" = "$(sha256sum "$combat_config_source" | awk '{print $1}')" || { echo "Combat metadata source changed during packaging." >&2; exit 2; }
+for file in "${cache_files[@]}"; do relative=${file#"$source_root/"}; expected=$(git -C "$source_root" show "$source_commit:$relative" | sed -n 's/^oid sha256://p'); test "$expected" = "$(sha256sum "$file" | awk '{print $1}')" || { echo "Cache source changed during packaging: $relative" >&2; exit 2; }; done
 install -m 0644 "$linux_candidate" "$linux_archive"
 install -m 0644 "$windows_candidate" "$windows_archive"
 sha256sum "$linux_archive" "$windows_archive"

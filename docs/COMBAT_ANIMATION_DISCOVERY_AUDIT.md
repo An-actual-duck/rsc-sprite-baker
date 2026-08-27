@@ -40,7 +40,15 @@ sequence replaced rather than supplemented the Combat timeline.
 | 1183 Elf warrior | 119 | 813 / 819 | 428 melee; 426 ranged | Both authoritative relationships are hundreds of IDs from locomotion and were unreachable by proximity discovery. |
 | 13 Wizard | 4 | 808 / 819 | 711 range/magic | Sequence 711 passes strict analysis but is 97 IDs from standing; the incompatible melee relationship 2791 is rejected with a framemap reason. |
 
-These relationships come from the adjacent 2009scape NPC combat configuration
-and are validated against the selected revision-530 cache. They are optional:
-a standalone cache without adjacent metadata uses the bounded related-group
-compatibility fallback and does not depend on the 2009scape source tree.
+These relationships come from the 2009scape NPC combat configuration and are
+validated against the selected revision-530 cache. Licensed distribution
+assembly derives `metadata/combat-roles-v1.json`, which contains only NPC IDs
+and positive melee, magic, and ranged sequence IDs. For source revision
+`b39b75e959bc68d54bf99392c22e85ef71273b84`, the source-config SHA-256 is
+`f2990eaec3c0506ab8f93611f0929d39a5f90129a63c7e31226be289a9b56226`
+and the canonical 2,211-NPC entry SHA-256 is
+`21ade1000f14ce9e51c95c1ff404db508bc929e6bfb454546fd8dae88acce912`.
+Runtime discovery prefers that validated packaged manifest, then the adjacent
+full source config for development. A missing or malformed manifest fails safe
+to the adjacent source config when present or to bounded cache compatibility;
+it never turns malformed records into candidates.

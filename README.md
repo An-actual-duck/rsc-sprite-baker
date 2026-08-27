@@ -29,6 +29,10 @@ of the ordinary workflow. The browser begins with an empty instruction; a
 name search or one exact numeric ID runs only after Search or Enter. See
 [`docs/DESKTOP_DISTRIBUTION.md`](docs/DESKTOP_DISTRIBUTION.md) for the build,
 license/provenance, and terminal inspection contract.
+Released archives include a deterministic minimal combat-role manifest derived
+during licensed assembly. It contains only NPC IDs and positive melee, magic,
+and ranged sequence IDs; the full source configuration is neither packaged nor
+committed.
 
 Phase 6 also retains deterministic single-project and manifest-driven
 headless export, validation-only/dry-run modes, atomic package publication,

@@ -9,6 +9,8 @@ for archive in "$linux_archive" "$windows_archive"; do test -f "$archive" || { e
 work=$(mktemp -d "${TMPDIR:-/tmp}/rsc-sprite-baker-inspection.XXXXXX")
 cleanup(){ chmod -R u+w "$work" 2>/dev/null || true; rm -rf -- "$work"; }
 trap cleanup EXIT
+java_cmd=${JAVA_HOME:+$JAVA_HOME/bin/}java
+command -v "$java_cmd" >/dev/null 2>&1 || { echo "Java is required for combat-role manifest inspection" >&2; exit 2; }
 
 inspect_names(){
   list=$1
@@ -37,13 +39,25 @@ for platform in linux windows; do
   test -f "$root/licenses/CACHE-ASSET-NOTICE.txt"
   test -f "$root/licenses/CACHE-SOURCE.txt"
   test -f "$root/licenses/CACHE-SHA256SUMS.txt"
+  test -f "$root/licenses/METADATA-SHA256SUMS.txt"
+  test -f "$root/licenses/COMBAT-METADATA-SOURCE.txt"
+  test -f "$root/metadata/combat-roles-v1.json"
   test -f "$root/THIRD_PARTY_NOTICES.md"
   test -d "$root/exports"
   test -z "$(find "$root/exports" -mindepth 1 -print -quit)"
   test "$(find "$root/cache" -maxdepth 1 -type f -name 'main_file_cache.*' | wc -l)" -eq 31
   test -z "$(find "$root" -type l -print -quit)"
   (cd "$root/cache" && sha256sum -c "$root/licenses/CACHE-SHA256SUMS.txt" >/dev/null)
+  (cd "$root" && sha256sum -c "$root/licenses/METADATA-SHA256SUMS.txt" >/dev/null)
+  test "$(find "$root/metadata" -maxdepth 1 -type f | wc -l)" -eq 1
+  test ! -e "$root/metadata/npc_configs.json"
+  ! grep -Eq '"(name|examine|death_animation|defence_animation)"' "$root/metadata/combat-roles-v1.json" || { echo "$platform combat manifest contains non-minimal source fields" >&2; exit 1; }
+  grep -Fq 'Server/data/configs/npc_configs.json' "$root/licenses/COMBAT-METADATA-SOURCE.txt"
+  grep -Fq 'AGPL-3.0' "$root/licenses/COMBAT-METADATA-SOURCE.txt"
   jar="$root/rsc-sprite-baker.jar"
+  "$java_cmd" -cp "$jar" com.spoiledmilk.spritebaker.CombatRoleManifestMain --validate "$root/metadata/combat-roles-v1.json"
+  "$java_cmd" -cp "$jar" com.spoiledmilk.spritebaker.CombatDiscoveryCheckMain --cache "$root/cache" --npc 8349 --require 10922,10918,10919
+  "$java_cmd" -cp "$jar" com.spoiledmilk.spritebaker.CombatDiscoveryCheckMain --cache "$root/cache" --npc 6605 --require 7449,7499,7513
   unzip -Z1 "$jar" > "$work/$platform.jar.list"
   inspect_names "$work/$platform.jar.list" "$platform application JAR"
   for required in \
@@ -52,10 +66,14 @@ for platform in linux windows; do
     com/spoiledmilk/spritebaker/HeadlessMain.class \
     com/spoiledmilk/spritebaker/CompatibilityCensusMain.class \
     com/spoiledmilk/spritebaker/MaterialOpcode255AuditMain.class \
+    com/spoiledmilk/spritebaker/CombatRoleManifestMain.class \
+    com/spoiledmilk/spritebaker/CombatDiscoveryCheckMain.class \
     META-INF/THIRD_PARTY_NOTICES.md; do
     grep -Fxq "$required" "$work/$platform.jar.list" || { echo "$platform JAR is missing $required" >&2; exit 1; }
   done
 done
+
+cmp -s "$work/linux/RSC Sprite Baker/metadata/combat-roles-v1.json" "$work/windows/RSC Sprite Baker/metadata/combat-roles-v1.json" || { echo "Linux and Windows combat manifests differ" >&2; exit 1; }
 
 test -x "$work/linux/RSC Sprite Baker/Start RSC Sprite Baker.sh"
 test -f "$work/windows/RSC Sprite Baker/Start RSC Sprite Baker.cmd"
