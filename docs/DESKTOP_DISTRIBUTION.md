@@ -99,6 +99,34 @@ final SHA-256 hashes and sizes only after inspection passes.
 The archives intentionally do not bundle a Java runtime. No cache, archive,
 or exported derivative is committed to this repository.
 
+## 2026-08-26 combat-role manifest release-path evidence
+
+The `0.1.5-combat-manifest-review` licensed build used
+`SOURCE_DATE_EPOCH=1787793880` and 2009scape source
+revision `b39b75e959bc68d54bf99392c22e85ef71273b84`. It derived an identical
+193,981-byte schema-1 manifest for Linux and Windows with 2,211 sorted NPC
+records and canonical-entry SHA-256
+`21ade1000f14ce9e51c95c1ff404db508bc929e6bfb454546fd8dae88acce912`.
+The source config SHA-256 remained
+`f2990eaec3c0506ab8f93611f0929d39a5f90129a63c7e31226be289a9b56226`
+before and after assembly, and all 31 cache inputs were revalidated against
+their recorded Git LFS hashes after inspection.
+
+The full Java 21 build passed 339 tests with one existing opt-in smoke test
+skipped. Inspection validated the manifest and its packaged checksum in both
+archives, rejected non-minimal source fields, confirmed no full
+`npc_configs.json` was present, and ran discovery from each extracted layout:
+
+- NPC 8349 found 10918, 10922, and far/long sequence 10919;
+- NPC 6605 found 7449 plus far sequences 7499 and 7513.
+
+Inspected review archives:
+
+- Linux tar.gz SHA-256:
+  `c180180e28ac02935cd0fdffcb9d7029ef52a936be423ee6a0d9f947d047994e`
+- Windows zip SHA-256:
+  `574d8c48a2f5b48ee057d66c345c735f99585a8007f4f633488dc3c708e5a3b9`
+
 ## 2026-08-14 terminal evidence
 
 Two consecutive `0.1.0` builds from Sprite Baker checkpoint `608352c`, using

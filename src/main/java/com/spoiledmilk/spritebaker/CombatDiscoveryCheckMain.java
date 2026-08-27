@@ -1,7 +1,6 @@
 package com.spoiledmilk.spritebaker;
 
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
