@@ -3,12 +3,15 @@ package com.spoiledmilk.spritebaker;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import net.runelite.cache.definitions.ModelDefinition;
 import net.runelite.cache.definitions.loaders.ModelLoader;
 import net.runelite.cache.fs.Archive;
 import net.runelite.cache.fs.FSFile;
 import net.runelite.cache.fs.Index;
 import net.runelite.cache.fs.Store;
+import net.runelite.cache.index.FileData;
 
 /** Read-only access to the revision-530 archive mappings used by 2009scape. */
 public final class CacheReader implements Closeable {
@@ -54,6 +57,16 @@ public final class CacheReader implements Closeable {
 
     public Sequence530 loadSequence(int id) throws IOException {
         return sequenceDecoder.decode(id, loadFile(SEQUENCE_INDEX, id >>> 7, id & 0x7f));
+    }
+
+    /** Sequence IDs in the anchor's JS5 group and its immediate neighbours (at most 384 IDs). */
+    public List<Integer> relatedSequenceIds(int... anchors) {
+        Index index=store.findIndex(SEQUENCE_INDEX);if(index==null)return List.of();
+        java.util.Set<Integer> groups=new java.util.TreeSet<>();
+        for(int anchor:anchors)if(anchor>=0){int group=anchor>>>7;for(int delta=-1;delta<=1;delta++)if(group+delta>=0)groups.add(group+delta);}
+        List<Integer> out=new ArrayList<>();
+        for(int group:groups){Archive archive=index.getArchive(group);if(archive==null)continue;for(FileData file:archive.getFileData())out.add((group<<7)|file.getId());}
+        return List.copyOf(out);
     }
 
     public Frame530 loadFrame(int packedFrameId) throws IOException {

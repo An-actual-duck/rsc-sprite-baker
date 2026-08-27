@@ -15,6 +15,8 @@ public final class DirectionFrameBrowser {
 
     private final SpriteProject project;
     private int direction;
+    private List<Integer> combatSequenceIds=List.of();
+    private int browsedCombatSequence=-1;
 
     public DirectionFrameBrowser(SpriteProject project){
         if(project==null)throw new NullPointerException("project");
@@ -48,10 +50,24 @@ public final class DirectionFrameBrowser {
     }
 
     public List<Integer> visibleSequenceIds(){
+        if(combatDirection()){
+            int id=browsedCombatSequence>=0?browsedCombatSequence:project.combatSequenceId;
+            return id<0?List.of():List.of(id);
+        }
         List<Integer> ids=new ArrayList<>();
         for(Source source:visibleSources()){int id=sequenceId(source);if(id>=0)ids.add(id);}
         return List.copyOf(ids);
     }
+
+    public void combatSequenceIds(List<Integer> ids){
+        java.util.LinkedHashSet<Integer> unique=new java.util.LinkedHashSet<>();for(Integer id:ids)if(id!=null&&id>=0)unique.add(id);
+        if(project.combatSequenceId>=0)unique.add(project.combatSequenceId);
+        combatSequenceIds=List.copyOf(unique);
+        if(!combatSequenceIds.contains(browsedCombatSequence))browsedCombatSequence=combatSequenceIds.contains(project.combatSequenceId)?project.combatSequenceId:combatSequenceIds.isEmpty()?-1:combatSequenceIds.get(0);
+    }
+    public List<Integer> combatSequenceIds(){return combatSequenceIds;}
+    public int browsedCombatSequence(){return browsedCombatSequence;}
+    public boolean browseCombatSequence(int sequenceId){if(!combatSequenceIds.contains(sequenceId))throw new IllegalArgumentException("undiscovered combat sequence "+sequenceId);int previous=browsedCombatSequence;browsedCombatSequence=sequenceId;return previous!=sequenceId;}
 
     public boolean assign(Source source,int sequenceId){
         if(source==null)throw new NullPointerException("source");
@@ -63,6 +79,7 @@ public final class DirectionFrameBrowser {
             case COMBAT:project.combatSequenceId=sequenceId;break;
             default:throw new AssertionError(source);
         }
+        if(source==Source.COMBAT){java.util.LinkedHashSet<Integer> ids=new java.util.LinkedHashSet<>(combatSequenceIds);ids.add(sequenceId);combatSequenceIds=List.copyOf(ids);browsedCombatSequence=sequenceId;}
         return previous!=sequenceId;
     }
 

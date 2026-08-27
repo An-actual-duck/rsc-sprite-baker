@@ -91,19 +91,27 @@ compatibility diagnosis never run on Swing's event thread. The cache session
 remains read-only and closes with the browser.
 
 Known standing and walking sequences come from BAS metadata when present, with
-NPC-definition animation IDs as the fallback. Combat animations are not
-authoritatively identified by this metadata. The detector builds a normalized
-side-view geometry baseline from every encoded standing and walking keyframe,
-then examines nearby sequences whose complete frame set uses the locomotion
-framemap set. A candidate must contain at least three visibly distinct poses,
-depart from that locomotion baseline, and recover toward it; frozen sequences,
-locomotion duplicates, one-way death poses, and mismatched framemaps are
-rejected. The bounded sequence-ID neighborhood and frame count remain
-secondary ranking signals. Animation roles, candidate selection, and raw
-numeric sequence IDs are absent from the normal workflow. They remain
-available under **Advanced > Manual animation sources** for definitions
-without usable discovery. Existing overrides and locks remain authoritative
-when detection refreshes recommendations.
+NPC-definition animation IDs as the fallback. Combat discovery has separate
+browse and automatic contracts. Runtime discovery first validates the packaged
+`metadata/combat-roles-v1.json` manifest, then checks adjacent per-NPC source
+configuration for development. Every distinct melee, magic, and ranged
+relationship is exposed with role provenance. When both sources are absent or
+invalid, the
+detector examines only the related sequence archives and a ±32 ID window,
+requires exact locomotion framemap compatibility, and retains a candidate only
+for a visible departure with at least partial recovery. The scan analyzes at
+most 64 encoded frames per sequence, rejects exact locomotion and candidate
+duplicates, and records every analyzed rejection instead of swallowing it.
+
+The ordinary Combat source chooser keeps every credible result in deterministic
+order. Selecting one sequence browses it lazily and never removes the other
+sequences or changes the preferred automatic source. **Advanced > Combat
+discovery details** lists provenance, confidence, motion evidence, scan bounds,
+and rejection reasons. Automatic sheet population still requires the stricter
+three-pose wind-up/peak/recovery detector and considers only sequences of at
+most 24 encoded frames. Existing overrides and locks remain authoritative when
+detection refreshes recommendations. Raw numeric IDs remain available under
+**Advanced > Manual animation sources**.
 
 ## Source selection and playback
 
@@ -142,8 +150,9 @@ inventing or persisting a standing sequence ID. Definitions missing both
 automatic sources remain fail-closed.
 
 For a movement direction, the browser combines every viable pose from the
-discovered standing and walking animations; for Combat side it contains only
-the current best combat poses. The complete timeline is the default. It
+discovered standing and walking animations; for Combat side its chooser exposes
+every credible sequence while the cards contain the complete timeline of the
+currently browsed sequence. The complete timeline is the default. It
 includes one entry per client cycle, so tweened positions between encoded
 keyframe starts are selectable. Every entry leads with Standing, Walking, or
 Combat as its understandable source, then displays encoded frame index, cycle

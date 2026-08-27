@@ -29,6 +29,10 @@ of the ordinary workflow. The browser begins with an empty instruction; a
 name search or one exact numeric ID runs only after Search or Enter. See
 [`docs/DESKTOP_DISTRIBUTION.md`](docs/DESKTOP_DISTRIBUTION.md) for the build,
 license/provenance, and terminal inspection contract.
+Released archives include a deterministic minimal combat-role manifest derived
+during licensed assembly. It contains only NPC IDs and positive melee, magic,
+and ranged sequence IDs; the full source configuration is neither packaged nor
+committed.
 
 Phase 6 also retains deterministic single-project and manifest-driven
 headless export, validation-only/dry-run modes, atomic package publication,
@@ -88,8 +92,11 @@ view, but later source browsing never moves the orange destination selection.
 There is no ordinary animation-role selector.
 
 For each movement direction, the alternative-pose browser automatically
-combines the discovered standing and walking animations. Combat side shows the
-best current combat animation instead. The browser defaults to every
+combines the discovered standing and walking animations. Combat side offers
+every credible compatible attack sequence in a provenance-bearing chooser and
+shows every selectable pose from the sequence being browsed. Changing that
+chooser does not replace the preferred automatic sequence or discard the other
+discoveries. The browser defaults to every
 selectable 20 ms client cycle, including tweened poses, rather than only
 encoded keyframe starts. Larger cards show their understandable animation
 source, frame, cycle offset, and time; the sequence ID is secondary. Purple
@@ -99,12 +106,17 @@ view remains available. Select a card or scrub it, then replace the
 orange-outlined cell.
 
 Standing and walking sources come from discovered NPC/BAS metadata. Combat
-detection projects those locomotion keyframes from the side, rejects nearby
-sequences that merely repeat locomotion or never recover from a departure, and
-ranks sequences with a distinct wind-up, peak deviation, and recovery. Its
-three suggestions are separate encoded frames even when one frame has an
-unusually long duration. Raw source roles, candidate choices, and sequence IDs
-are confined to **Advanced > Manual animation sources** for exceptional NPCs.
+discovery first consumes optional per-NPC melee, magic, and ranged relationships
+adjacent to a compatible cache. Without those relationships it performs a
+bounded ±32 sequence-group analysis using exact locomotion framemap
+compatibility. Browseable candidates retain roles, provenance, confidence,
+motion evidence, and deterministic ordering; locomotion and exact candidate
+duplicates remain excluded. **Advanced > Combat discovery details** explains
+all analyzed rejections. Automatic population remains stricter: it uses only a
+sequence with three distinct side-view poses and a clear wind-up, peak
+deviation, and recovery. Its three suggestions are separate encoded frames even
+when one frame has an unusually long duration. Manual numeric sequence IDs
+remain under **Advanced > Manual animation sources** for exceptional NPCs.
 **Repopulate** advances every unlocked cell to its next viable alternative
 within the Standing, Left-step, Right-step, or combat phase appropriate to
 that cell. It preserves locks and persisted source-direction overrides and
