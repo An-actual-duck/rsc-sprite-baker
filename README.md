@@ -1,199 +1,245 @@
 # RSC Sprite Baker
 
-RSC Sprite Baker is a standalone tool for rendering cache-backed 3D NPC
-models and their animations into consistently aligned RuneScape
-Classic-style sprite sheets.
+RSC Sprite Baker turns 3D NPC models and animations into aligned, transparent
+RuneScape Classic-style sprite sheets. It automatically suggests the 18 poses
+needed by an RSC NPC—five movement directions plus a side-view combat
+direction, with standing, left-step, and right-step frames—and lets you replace
+any suggestion before exporting.
 
-The intended first input is the local 2009scape cache. The intended first
-output is a transparent six-column by three-row PNG sheet containing front,
-diagonal, side, diagonal-away, away, and combat views.
+The normal desktop version is self-contained and project-free. Pick an NPC,
+adjust its appearance and poses, preview the finished animation, and export.
 
-## Project boundaries
+## Download and launch
 
-- This repository contains the baker, its tests, documentation, and neutral
-  test fixtures only.
-- RuneScape caches, extracted models, textures, rendered derivative assets,
-  credentials, and absolute machine configuration do not belong in Git.
-- Spoiled Milk may consume reviewed exported sprites, but its source and this
-  repository have separate Git histories.
-- The Core manager coordinates this project, while implementation happens in
-  the dedicated `rsc-sprite-baker-ai-1` worker.
+Download the archive for your operating system from the
+[latest GitHub release](https://github.com/An-actual-duck/rsc-sprite-baker/releases/latest),
+then extract the entire archive. Keep everything inside the extracted
+`RSC Sprite Baker` folder together.
 
-## Current status
+Java 11 or newer is required. The application does not bundle Java.
 
-The current desktop distribution is a zero-configuration workflow: users
-launch the platform start file directly into the NPC browser, select an NPC from the bundled
-read-only licensed cache, customize the sheet, and export PNG + provenance to
-the adjacent `exports` folder. No cache, project, or export path setup is part
-of the ordinary workflow. The browser begins with an empty instruction; a
-name search or one exact numeric ID runs only after Search or Enter. See
-[`docs/DESKTOP_DISTRIBUTION.md`](docs/DESKTOP_DISTRIBUTION.md) for the build,
-license/provenance, and terminal inspection contract.
-Released archives include a deterministic minimal combat-role manifest derived
-during licensed assembly. It contains only NPC IDs and positive melee, magic,
-and ranged sequence IDs; the full source configuration is neither packaged nor
-committed.
+### Windows
 
-Phase 6 also retains deterministic single-project and manifest-driven
-headless export, validation-only/dry-run modes, atomic package publication,
-and a versioned asset-free handoff contract. See
-[`docs/BATCH_HANDOFF.md`](docs/BATCH_HANDOFF.md) for commands, schemas, and the
-remaining Core integration decisions. The advanced portable-project desktop
-entry point remains available through `SelectorMain`; the packaged JAR starts
-the simplified desktop by default. See
-[`docs/DESKTOP_APPLICATION.md`](docs/DESKTOP_APPLICATION.md) for packaging and
-end-user workflow evidence. See
-[`docs/TEXTURE_COMPATIBILITY.md`](docs/TEXTURE_COMPATIBILITY.md) for Phase 4's
-fail-closed textured compatibility matrix and provenance,
-[`docs/RSC_VISUAL_PRESETS.md`](docs/RSC_VISUAL_PRESETS.md) for the visual
-pipeline, and [`docs/ANIMATION_COMPATIBILITY.md`](docs/ANIMATION_COMPATIBILITY.md)
-for the client animation trace. The deterministic all-NPC terminal scanner,
-lazy browser compatibility status, and current 8,590-definition results are in
-[`docs/COMPATIBILITY_CENSUS.md`](docs/COMPATIBILITY_CENSUS.md), including the
-terminal-only opcode-255 forensic audit. The resolved model-underflow audit
-and bounded revision-530 decoder evidence are in
-[`docs/MODEL_BUFFER_UNDERFLOW_AUDIT.md`](docs/MODEL_BUFFER_UNDERFLOW_AUDIT.md).
-The repeatable terminal-only creature-body review matrix, current results, and
-suggested manual browse list are in
-[`docs/NON_HUMANOID_VISUAL_VALIDATION.md`](docs/NON_HUMANOID_VISUAL_VALIDATION.md).
-The Phase 1 CLI remains unchanged.
+Open the extracted folder and double-click:
 
-## Compatibility-spike CLI
+```text
+Start RSC Sprite Baker.cmd
+```
 
-JDK 11 or newer and Maven are required. The command refuses to write into the
-cache and, when run from this checkout, into the repository:
+Use the `.cmd` launcher, not `rsc-sprite-baker.jar`.
+
+### Linux
+
+Open the extracted folder and run:
+
+```text
+Start RSC Sprite Baker.sh
+```
+
+Most desktop file managers can launch it by double-clicking and choosing
+**Run**. From a terminal, use:
+
+```bash
+./Start\ RSC\ Sprite\ Baker.sh
+```
+
+If the launcher lost its executable permission while being copied, restore it
+once with:
+
+```bash
+chmod +x "Start RSC Sprite Baker.sh"
+```
+
+## Quick start
+
+1. Launch the application. It opens directly to **Browse NPCs**.
+2. Enter part of an NPC name, or one exact numeric NPC ID, and press **Search**
+   or Enter. The browser deliberately starts empty rather than loading an
+   arbitrary first page.
+3. Select a result and click **Load Selected NPC**. The baker discovers the
+   model's movement and combat animations and fills the sprite sheet with its
+   best suggestions.
+4. Choose **Original** or **Material** from **Look**, then adjust the visual
+   controls if needed.
+5. Inspect each direction with **Play final RSC loop**. Replace questionable
+   frames from the source-pose browser and lock frames you want to keep.
+6. Click **Export PNG + provenance**.
+
+Exports are written automatically to the `exports` folder beside the launcher:
+
+- `npc-<id>-<name>-rsc-sheet.png` is the finished transparent sprite sheet.
+- `npc-<id>-<name>-sheet-provenance.json` records the source poses, directions,
+  and visual settings used to make it.
+
+Changing NPCs or closing before exporting can discard the current edits. The
+application warns before doing so. Existing exports are never overwritten
+without confirmation.
+
+## Original and Material looks
+
+The **Look** menu applies a complete group of sensible starting settings.
+
+- **Original** preserves the model's rendered colors and texture detail. Use it
+  when you want the closest representation of the source model or a reference
+  for comparison.
+- **Material** simplifies fine texture variation into cleaner color and shadow
+  ramps. It removes much of the noisy, speckled detail found in 3D textures and
+  is usually the better starting point for an RSC-style sprite.
+- **Custom** appears after you alter an individual setting.
+- Profiles created with **Save settings** also appear here. A saved profile
+  restores all visual settings, including the selected surface-color method.
+
+The separate **Surface colors** control lets you switch between original
+material detail and simplified RSC-style material ramps without resetting all
+the other controls.
+
+Material is intended as a starting point, not a mandatory final appearance.
+NPCs with important texture detail may look better in Original or with a higher
+**Texture detail** value.
+
+## Visual controls
+
+Every numeric control has both a slider and an editable value. Changing one
+updates the previews and changes **Look** to Custom.
+
+| Control | What it changes |
+| --- | --- |
+| **Frame width** | Width of each exported cell. Increasing it adds horizontal canvas space; it does not enlarge the model by itself. |
+| **Frame height** | Height of each exported cell. Increasing it adds vertical canvas space. |
+| **Render quality** | Internal render resolution used before reducing to the export size. Higher values produce cleaner edges and material sampling, but render more slowly. It does not change final dimensions. |
+| **Edge margin** | Minimum transparent space between the sprite and the edge of a frame. Increase it if limbs, wings, or weapons are being clipped. |
+| **Sprite size** | Scales the model within every frame. Increase it for a larger character; decrease it when the model does not fit cleanly. |
+| **Camera tilt** | Tilts the camera up or down. Use it to show more of the top or front of the model. |
+| **Turn offset** | Rotates all views slightly left or right while keeping them assigned to the same direction. Useful when the source model's natural forward angle is a little off. |
+| **Vertical position** | Moves the sprite up or down inside every frame without changing its size. |
+| **Surface colors** | Chooses detailed original materials or simplified RSC-style material ramps. |
+| **Base brightness** | Light applied to all visible surfaces. Raise it to brighten dark areas without moving the light. |
+| **Directional light** | Strength of the directed light and therefore the contrast between lit and shaded sides. |
+| **Light direction** | Moves the main light around the character horizontally. |
+| **Light height** | Moves the main light higher or lower above the character. |
+| **Color variation %** | Controls small local color differences on the same surface. `100%` preserves the normal result; lower values smooth speckling, while higher values emphasize variation. |
+| **Texture detail %** | Controls how strongly decoded texture detail remains. `100%` preserves it; lower values blend it toward the underlying lit material color. |
+| **Color intensity %** | Controls color saturation. Lower values mute colors; higher values make them stronger. It does not change transparency or geometry. |
+| **Shadow depth %** | Strength of inner and contact shadows in the Material surface style. It does not affect Original surface colors. |
+
+**Save settings** asks for a profile name and stores the current visual setup as
+a reusable entry in **Look**. Saved profiles are local to your computer.
+
+## Choosing and replacing frames
+
+The final sheet has six columns:
+
+1. Facing camera
+2. Facing diagonal
+3. Side
+4. Diagonal away
+5. Away
+6. Combat side
+
+Each column contains **Standing**, **Left step**, and **Right step** cells.
+For Combat side, those three cells form the attack animation.
+
+To replace a frame:
+
+1. Click the destination cell in the **Final RSC sprite sheet**. Its orange
+   outline identifies the cell you are editing.
+2. Choose the desired **Browse source view**. This can differ from the
+   destination direction when automatic direction detection is wrong.
+3. Select an alternative source pose on the left. The scrubber can select a
+   nearby point within its animation.
+4. Click **Replace selected cell**, press Enter, or double-click the source
+   pose.
+
+Useful frame controls:
+
+- **Keyframes only** hides in-between 20 ms animation samples for a shorter
+  source list. Leave it off when you want the widest frame selection.
+- **Combat sequence** switches among credible attack animations discovered for
+  the NPC. It is active while browsing Combat side.
+- **Lock** protects an individual cell from replacement and from Repopulate.
+  Pressing `L` also toggles the selected cell's lock.
+- **Repopulate** advances each unlocked cell to another suitable suggestion.
+  It preserves locked cells and direction overrides. If no other valid option
+  exists for a cell, that cell remains unchanged.
+- **Restore canonical direction** keeps the selected pose but renders it from
+  its normal destination direction. Use this to remove a per-cell direction
+  override.
+
+Cell borders show how a frame was assigned: purple is automatic, blue is a
+manual pose override, gold is a direction override, green is assigned, red is
+locked, and the orange outer border is the currently selected destination.
+
+## Preview, orientation, and export controls
+
+- **Play final RSC loop** previews the selected output direction using the
+  actual assigned frames. Movement plays standing, left step, standing, right
+  step; Combat side plays its three attack frames.
+- **Preview speed** changes playback speed only. It does not alter the exported
+  poses or source timing.
+- **2× larger preview** enlarges the inspection display with nearest-neighbor
+  scaling. It does not change exported pixels.
+- **Horizontal inversion (face right)** mirrors the source cards, sheet,
+  preview, and export. It is enabled by default to match the expected RSC
+  orientation.
+- **Swap facing and away** exchanges the front and rear directions, including
+  their diagonals. Use it when the baker interpreted the model's front as its
+  back. Side and Combat side are unchanged.
+- **Export PNG + provenance** writes the 18-frame PNG and its matching JSON
+  record to `exports`.
+
+## Menus and advanced tools
+
+- **NPC > Browse NPCs** returns to NPC selection.
+- **NPC > Compatibility Details** reports whether the current model and its
+  materials were decoded successfully.
+- **Advanced > Combat discovery details** lists considered attack animations,
+  their evidence, and rejection reasons.
+- **Advanced > Manual animation sources** accepts a sequence ID when automatic
+  discovery cannot find a usable movement or combat animation.
+- **Advanced > Legacy palette reduction** retains fixed color-cube and ordered
+  dithering controls for compatibility with older saved projects. Most users
+  should start with Material, Color variation, Texture detail, Color intensity,
+  and Shadow depth instead.
+- **Help > About** shows a short description of the current workflow.
+
+## Troubleshooting
+
+- **Nothing happens when launching:** make sure the archive was extracted and
+  Java 11 or newer is installed. Keep the launcher, JAR, cache, metadata, and
+  license folders together.
+- **Application JAR not found:** launch from inside the extracted folder and do
+  not move the `.cmd` or `.sh` file away from `rsc-sprite-baker.jar`.
+- **An NPC search shows nothing:** enter part of its name or an exact numeric
+  ID, then explicitly press Search or Enter.
+- **A model is clipped:** reduce Sprite size or increase Frame width, Frame
+  height, or Edge margin.
+- **The sprite is noisy or speckled:** select Material, then reduce Color
+  variation and Texture detail.
+- **Front and back are reversed:** enable Swap facing and away. For one unusual
+  cell, browse a different source view and replace only that destination.
+- **A replacement does nothing:** check whether the destination cell is locked.
+
+## Developers and project boundaries
+
+This repository contains the baker, tests, documentation, and neutral test
+fixtures. RuneScape caches, extracted models, textures, and rendered derivative
+assets are not committed to Git. Released desktop archives include the licensed,
+read-only cache and provenance needed by the zero-configuration workflow.
+
+The advanced portable-project selector, headless single-project export,
+deterministic batch export, validation, and dry-run interfaces remain available
+for development and automation:
+
+- [Desktop distribution and packaging](docs/DESKTOP_DISTRIBUTION.md)
+- [Advanced desktop application](docs/DESKTOP_APPLICATION.md)
+- [Visual rendering pipeline](docs/RSC_VISUAL_PRESETS.md)
+- [Animation compatibility](docs/ANIMATION_COMPATIBILITY.md)
+- [Batch and integration handoff](docs/BATCH_HANDOFF.md)
+- [Compatibility census](docs/COMPATIBILITY_CENSUS.md)
+
+Building from source requires JDK 11 or newer and Maven. The basic test command
+is:
 
 ```bash
 mvn test
-mvn exec:java \
-  -Dexec.args="--cache /path/to/user-supplied/cache \
-  --output-dir /tmp/rsc-sprite-baker-output --npc 72"
 ```
-
-The output is one transparent diagnostic PNG and one JSON manifest.
-
-## Animation selector MVP
-
-The selector project records identifiers and timing only; it contains no cache
-payload. The project and output paths may be placed outside the checkout:
-
-```bash
-mvn exec:java -Dexec.mainClass=com.spoiledmilk.spritebaker.SelectorMain \
-  -Dexec.args="--cache /path/to/user-supplied/cache \
-  --project /tmp/troll-project.json \
-  --output-dir /tmp/troll-sheet --npc 72"
-```
-
-The final RSC sheet occupies most of the editor. Choose one of its six
-directions—**Facing camera**, **Facing diagonal**, **Side**, **Diagonal away**,
-**Away**, or **Combat side**—then select the Standing, Left step, or Right step
-cell to complete. Clicking a sheet cell initially browses its matching source
-view, but later source browsing never moves the orange destination selection.
-There is no ordinary animation-role selector.
-
-For each movement direction, the alternative-pose browser automatically
-combines the discovered standing and walking animations. Combat side offers
-every credible compatible attack sequence in a provenance-bearing chooser and
-shows every selectable pose from the sequence being browsed. Changing that
-chooser does not replace the preferred automatic sequence or discard the other
-discoveries. The browser defaults to every
-selectable 20 ms client cycle, including tweened poses, rather than only
-encoded keyframe starts. Larger cards show their understandable animation
-source, frame, cycle offset, and time; the sequence ID is secondary. Purple
-`AUTO` markers identify the exact Standing, Left step, Right step, and Combat
-samples used by automatic sheet completion. An optional **Keyframes only**
-view remains available. Select a card or scrub it, then replace the
-orange-outlined cell.
-
-Standing and walking sources come from discovered NPC/BAS metadata. Combat
-discovery first consumes optional per-NPC melee, magic, and ranged relationships
-adjacent to a compatible cache. Without those relationships it performs a
-bounded ±32 sequence-group analysis using exact locomotion framemap
-compatibility. Browseable candidates retain roles, provenance, confidence,
-motion evidence, and deterministic ordering; locomotion and exact candidate
-duplicates remain excluded. **Advanced > Combat discovery details** explains
-all analyzed rejections. Automatic population remains stricter: it uses only a
-sequence with three distinct side-view poses and a clear wind-up, peak
-deviation, and recovery. Its three suggestions are separate encoded frames even
-when one frame has an unusually long duration. Manual numeric sequence IDs
-remain under **Advanced > Manual animation sources** for exceptional NPCs.
-**Repopulate** advances every unlocked cell to its next viable alternative
-within the Standing, Left-step, Right-step, or combat phase appropriate to
-that cell. It preserves locks and persisted source-direction overrides and
-reports cells for which no different alternative exists.
-Individual cells can then be replaced from the direction browser.
-
-The visual toolbar presents **Original** and **Material** as its primary looks;
-older preset names remain loadable for projects that already reference them but
-are no longer advertised for new tuning. Controls use visible-effect names such
-as Sprite size, Camera tilt, Base brightness, and Light direction, with concise
-tooltips. Every numeric tuning control combines a physical slider with an
-editable value field. The renderer's persisted padding is exposed as **Edge
-margin**. **Color variation**, **Texture detail**, **Color intensity**, and
-Material-only **Shadow depth** default to 100%, which preserves prior pixels.
-The toolbar remains two rows high. Fixed-cube color limiting and ordered
-dithering remain available under **Advanced > Legacy palette reduction** for
-saved-project compatibility rather than occupying normal tuning space. These
-controls drive the same shared preview/export settings and manifest fields.
-
-The prominent **Play final RSC loop** control lives beside the final-sheet
-preview. It shows the actual assigned export-size poses in the
-selected direction: movement directions loop Standing → Left step → Standing
-→ Right step, while Combat side loops its three combat cells. Its framing is
-calculated from the complete 18-cell sheet exactly like export. It is the
-editor's only playback control. When playback is paused, the enlarged final
-preview returns to the exact pose assigned to the orange-selected cell rather
-than the first source-animation frame. Preview speed defaults to 0.5×, with
-0.75× and 1× choices; this UI clock does not change source timing or any
-saved/exported data. A default-on **2× larger preview** toggle doubles the
-normal preview display, producing a genuinely larger sprite (4× source pixels
-instead of the normal preview's 2×). The scrollable preview keeps that scale
-even when the image exceeds the available viewport, while the export retains
-its configured native pixels. Transparent export-cell margins are trimmed only
-from this inspection display so blank alignment space does not push the visible
-character below the viewport.
-
-The enlarged playback area always shows original model colors, including
-intentional cache colors, NPC recolors, and accent regions. Textured faces
-retain the pinned client face-color and material-metadata modulation instead
-of displaying the procedural texture as uncolored gray. Display scaling remains
-preview-only and cannot affect sprite pixels. New projects, and older projects
-without an explicit orientation choice, enable **Horizontal inversion (face
-right)** by default to match established RSC sprite orientation. The control
-can disable inversion, and an explicitly saved choice is preserved. Sheet
-source-frame selection cards, sheet thumbnails, final playback, exported PNG
-pixels, hashes, and provenance all use the same orientation. Final playback renders away from Swing's event thread and
-stops when the NPC changes or editor closes.
-
-The adjacent, default-off **Swap facing and away** setting maps Facing camera
-to Away, Facing diagonal to Diagonal away, and vice versa. Side and Combat
-side remain unchanged. It preserves the fixed sheet positions while applying
-the mapped view consistently to source-frame selection cards, sheet cells,
-selected preview, final playback, export, saved projects, and provenance. The
-selection cards refresh immediately when either orientation control changes.
-Older projects default to no swap, and
-explicitly saved choices are retained.
-
-Double-click a timeline pose to assign it. `Enter` replaces the selected cell
-and `L` toggles its lock. Purple, blue, green, gold, and red cell frames
-identify automatic, overridden, assigned, direction-overridden, and locked states.
-
-The default export uses 128×128 cells and creates a transparent 768×384 PNG;
-cell width and height are configurable. Every cell shares scale, ground anchor,
-framing policy, camera settings, and target canvas. The diagnostic JSON records
-the applied horizontal orientation and facing/away mapping, complete visual
-configuration, and both source and rendered direction traces per cell.
-
-## Local collaboration
-
-The manager checkout is `/home/justin/rsc-sprite-baker`. The exclusive worker
-checkout is `/home/justin/rsc-sprite-baker-ai-1`.
-
-```bash
-./scripts/ai-manager.sh status
-./scripts/ai-workspace.sh start ai-1 feat/cache-compatibility-spike
-```
-
-The small wrappers reuse the hardened collaboration implementation owned by
-the sibling Core repository. Product source remains independent; only local
-workspace orchestration is shared.
